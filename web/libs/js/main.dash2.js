@@ -1064,6 +1064,8 @@ $.ccio.ws.on('f',function (d){
         case'monitor_watch_on':
             d.o=$.ccio.op().watch_on;if(!d.o){d.o={}};if(!d.o[d.ke]){d.o[d.ke]={}};d.o[d.ke][d.id]=1;$.ccio.op('watch_on',d.o);
             $.ccio.mon[d.id].watch=1;
+            delete($.ccio.mon[d.id].image)
+            delete($.ccio.mon[d.id].ctx)
             d.e=$('#monitor_live_'+d.id);
             d.e.find('.stream-detected-object').remove()
             $.ccio.init('clearTimers',d)
@@ -1140,23 +1142,24 @@ $.ccio.ws.on('f',function (d){
         break;
         case'monitor_frame':
             try{
-                var image = new Image();
-                var ctx = $('#monitor_live_'+d.id+' canvas');
-                image.onload = function() {
-                    var x = 0;
-                    var y = 0;
-                    var wRatio = ctx.width()/image.width;
-                    var hRatio = ctx.height()/image.height;
-                    var ratio = Math.min(wRatio,hRatio);
-                    var drawWidth = image.width*ratio;
-                    var drawHeight = image.height*ratio;
-                    if( drawWidth < ctx.width() )
-                        x = (ctx.width() / 2) - (drawWidth / 2);
-                    if( drawHeight < ctx.height() )
-                        y = (ctx.height() / 2) - (drawHeight / 2);
-                    ctx[0].getContext("2d").drawImage(image,0,0,image.width,image.height,x,y,drawWidth,drawHeight);
-                };
-                image.src='data:image/jpeg;base64,'+d.frame;
+                if(!$.ccio.mon[d.id].image){
+                    $.ccio.mon[d.id].image = new Image();
+                    $.ccio.mon[d.id].ctx = $('#monitor_live_'+d.id+' canvas');
+                    $.ccio.mon[d.id].image.onload = function() {
+                        d.x = 0,d.y = 0;
+                        d.ratio = Math.min($.ccio.mon[d.id].ctx.width()/$.ccio.mon[d.id].image.width,$.ccio.mon[d.id].ctx.height()/$.ccio.mon[d.id].image.height);
+                        d.height = $.ccio.mon[d.id].image.height*d.ratio;
+                        d.width = $.ccio.mon[d.id].image.width*d.ratio;
+                        if( d.width < $.ccio.mon[d.id].ctx.width() )
+                            d.x = ($.ccio.mon[d.id].ctx.width() / 2) - (d.width / 2);
+                        if( d.height < $.ccio.mon[d.id].ctx.height() )
+                            d.y = ($.ccio.mon[d.id].ctx.height() / 2) - (d.height / 2);
+                        $.ccio.mon[d.id].ctx[0].getContext("2d").drawImage($.ccio.mon[d.id].image,0,0,$.ccio.mon[d.id].image.width,$.ccio.mon[d.id].image.height,d.x,d.y,d.width,d.height);
+                    };
+                }
+                if($.ccio.mon[d.id].image.complete){
+                    $.ccio.mon[d.id].image.src='data:image/jpeg;base64,'+d.frame;
+                }
                 $.ccio.mon[d.id].last_frame='data:image/jpeg;base64,'+d.frame;
             }catch(er){
                 $.ccio.log('base64 frame')
@@ -2940,10 +2943,6 @@ $('body')
             })
         break;
         case'fullscreen':
-            if( lastFullscreenChangeTimeout != null ) {
-                clearTimeout(lastFullscreenChangeTimeout);
-                lastFullscreenChangeTimeout = null;
-            }
             e.e=e.e.parents('.monitor_item');
             e.e.addClass('fullscreen')
             e.vid=e.e.find('.stream-element')
@@ -3236,14 +3235,12 @@ $('body')
 document.addEventListener("fullscreenchange", onFullScreenChange, false);
 document.addEventListener("webkitfullscreenchange", onFullScreenChange, false);
 document.addEventListener("mozfullscreenchange", onFullScreenChange, false);
-var lastFullscreenChangeTimeout = null;
 function onFullScreenChange() {
     var fullscreenElement = document.fullscreenElement || document.mozFullScreenElement || document.webkitFullscreenElement;
     if(!fullscreenElement){
         $('.fullscreen').removeClass('fullscreen')
-        lastFullscreenChangeTimeout = setTimeout(function(){
+        setTimeout(function(){
             $('canvas.stream-element').resize();
-            lastFullscreenChangeTimeout = null;
         },2000)
     }
 }
