@@ -1877,7 +1877,9 @@ var tx;
                             }
                             d.setURL(d.base+d.m.details['control_url_'+d.direction])
                             http.get(d.options, function(first) {
-                                  first.on('end', function(){
+                                first.on('data', function(toss) {});
+                                first.endCommand=function(){
+                                    clearTimeout(first.endCommandLastResort)
                                     if(d.m.details.control_stop=='1'&&d.direction!=='center'){
                                         d.setURL(d.base+d.m.details['control_url_'+d.direction+'_stop'])
                                         setTimeout(function(){
@@ -1893,7 +1895,9 @@ var tx;
                                     }else{
                                         tx({f:'control',mid:d.mid,ke:d.ke,direction:d.direction,url_stop:false});
                                     }
-                                  });
+                                }
+                                first.on('end',first.endCommand);
+                                first.endCommandLastResort=setTimeout(first.endCommand,3000)
                             }).on('error', function(err) {
                                 s.log(d,{type:'Control Error',msg:err});
                             }).end();
@@ -2436,7 +2440,7 @@ s.auth=function(xx,x,res,req){
         xx.failed=function(){
             if(!req.ret){req.ret={ok:false}}
             req.ret.msg=lang['Not Authorized'];
-            res.send(s.s(req.ret, null, 3));
+            res.end(s.s(req.ret, null, 3));
         }
     }else{
         xx.failed=function(){
@@ -2533,7 +2537,7 @@ app.get('/:auth/update/:key', function (req,res){
         }else{
             req.ret.msg=user.lang.updateKeyText2;
         }
-        res.send(s.s(req.ret, null, 3));
+        res.end(s.s(req.ret, null, 3));
     }
     s.auth(req.params,req.fn,res,req);
 });
@@ -2556,7 +2560,7 @@ app.post('/:auth/register/:ke/:uid',function (req,res){
                                 sql.query('INSERT INTO Users (ke,uid,mail,pass,details) VALUES (?,?,?,?,?)',[req.params.ke,req.gid,req.body.mail,s.md5(req.body.pass),req.body.details])
                                 s.tx({f:'add_sub_account',details:req.body.details,ke:req.params.ke,uid:req.gid,mail:req.body.mail},'ADM_'+req.params.ke);
                             }
-                            res.send(s.s(req.resp,null,3));
+                            res.end(s.s(req.resp,null,3));
                         })
                     }else{
                         req.resp.msg=user.lang['Passwords Don\'t Match'];
@@ -2568,7 +2572,7 @@ app.post('/:auth/register/:ke/:uid',function (req,res){
                 req.resp.msg=user.lang['Not an Administrator Account'];
             }
             if(req.resp.msg){
-                res.send(s.s(req.resp,null,3));
+                res.end(s.s(req.resp,null,3));
             }
         })
     },res,req);
@@ -2885,7 +2889,7 @@ app.get('/:auth/hls/:ke/:id/:file', function (req,res){
         if (fs.existsSync(req.dir)){
             fs.createReadStream(req.dir).pipe(res);
         }else{
-            res.send(user.lang['File Not Found'])
+            res.end(user.lang['File Not Found'])
         }
     }
     s.auth(req.params,req.fn,res,req);
@@ -2992,12 +2996,13 @@ app.get(['/:auth/monitor/:ke','/:auth/monitor/:ke/:id'], function (req,res){
             if(!user.details.sub||user.details.allmonitors!=='0'||user.details.monitors.indexOf(req.params.id)>-1){
                 req.sql+=' and mid=?';req.ar.push(req.params.id)
             }else{
-                res.send('[]');return;
+                res.end('[]');
+                return;
             }
         }
         sql.query(req.sql,req.ar,function(err,r){
             if(r.length===1){r=r[0];}
-            res.send(s.s(r, null, 3));
+            res.end(s.s(r, null, 3));
         })
     }
     s.auth(req.params,req.fn,res,req);
@@ -3026,7 +3031,8 @@ app.get(['/:auth/videos/:ke','/:auth/videos/:ke/:id'], function (req,res){
                 req.sql+=' and mid=?';req.ar.push(req.params.id)
                 req.count_sql+=' and mid=?';req.count_ar.push(req.params.id)
             }else{
-                res.send('[]');return;
+                res.end('[]');
+                return;
             }
         }
         if(req.query.start||req.query.end){
@@ -3114,7 +3120,8 @@ app.get(['/:auth/events/:ke','/:auth/events/:ke/:id','/:auth/events/:ke/:id/:lim
             if(!user.details.sub||user.details.allmonitors!=='0'||user.details.monitors.indexOf(req.params.id)>-1){
                 req.sql+=' and mid=?';req.ar.push(req.params.id)
             }else{
-                res.send('[]');return;
+                res.end('[]');
+                return;
             }
         }
         if(req.params.start&&req.params.start!==''){
@@ -3132,12 +3139,16 @@ app.get(['/:auth/events/:ke','/:auth/events/:ke/:id','/:auth/events/:ke/:id/:lim
         if(!req.params.limit||req.params.limit==''){req.params.limit=100}
         req.sql+=' ORDER BY `time` DESC LIMIT '+req.params.limit+'';
         sql.query(req.sql,req.ar,function(err,r){
-            if(err){err.sql=req.sql;return res.send(s.s(err, null, 3));}
+            if(err){
+                err.sql=req.sql;
+                res.end(s.s(err, null, 3));
+                return
+            }
             if(!r){r=[]}
             r.forEach(function(v,n){
                 r[n].details=JSON.parse(v.details);
             })
-            res.send(s.s(r, null, 3));
+            res.end(s.s(r, null, 3));
         })
     },res,req);
 });
@@ -3164,18 +3175,23 @@ app.get(['/:auth/logs/:ke','/:auth/logs/:ke/:id','/:auth/logs/:ke/:limit','/:aut
             if(!user.details.sub||user.details.allmonitors!=='0'||user.details.monitors.indexOf(req.params.id)>-1||req.params.id.indexOf('$')>-1){
                 req.sql+=' and mid=?';req.ar.push(req.params.id)
             }else{
-                res.send('[]');return;
+                res.end('[]');
+                return;
             }
         }
         if(!req.params.limit||req.params.limit==''){req.params.limit=100}
         req.sql+=' ORDER BY `time` DESC LIMIT '+req.params.limit+'';
         sql.query(req.sql,req.ar,function(err,r){
-            if(err){err.sql=req.sql;return res.send(s.s(err, null, 3));}
+            if(err){
+                err.sql=req.sql;
+                res.end(s.s(err, null, 3));
+                return
+            }
             if(!r){r=[]}
             r.forEach(function(v,n){
                 r[n].info=JSON.parse(v.info)
             })
-            res.send(s.s(r, null, 3));
+            res.end(s.s(r, null, 3));
         })
     },res,req);
 });
@@ -3208,7 +3224,7 @@ app.get('/:auth/smonitor/:ke', function (req,res){
             }else{
                 req.ar=[];
             }
-            res.send(s.s(req.ar, null, 3));
+            res.end(s.s(req.ar, null, 3));
         })
     }
     s.auth(req.params,req.fn,res,req);
@@ -3326,7 +3342,7 @@ app.get(['/:auth/monitor/:ke/:id/:f','/:auth/monitor/:ke/:id/:f/:ff','/:auth/mon
             res.end(user.lang['Not Permitted'])
             return
         }
-        if(req.params.f===''){req.ret.msg=user.lang.monitorGetText1;res.send(s.s(req.ret, null, 3));return}
+        if(req.params.f===''){req.ret.msg=user.lang.monitorGetText1;res.end(s.s(req.ret, null, 3));return}
         if(req.params.f!=='stop'&&req.params.f!=='start'&&req.params.f!=='record'){
             req.ret.msg='Mode not recognized.';
             res.end(s.s(req.ret, null, 3));
@@ -3432,6 +3448,9 @@ app.get('/:auth/videos/:ke/:id/:file', function (req,res){
                 req.headerWrite['content-disposition']='attachment; filename="'+req.query.downloadName+'"';
             }
             res.writeHead(req.writeCode,req.headerWrite);
+            file.on('close',function(){
+                res.end();
+            })
             file.pipe(res);
         }else{
             res.end(user.lang['File Not Found'])
@@ -3501,7 +3520,7 @@ app.get(['/:auth/videos/:ke/:id/:file/:mode','/:auth/videos/:ke/:id/:file/:mode/
             }else{
                 req.ret.msg=user.lang['No such file'];
             }
-            res.send(s.s(req.ret, null, 3));
+            res.end(s.s(req.ret, null, 3));
         })
     },res,req);
 })

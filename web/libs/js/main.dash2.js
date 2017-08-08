@@ -2833,6 +2833,9 @@ $('body')
                 }else{
                     e.limit='0,'+e.limit.split(',')[1]
                 }
+                if(e.limit=='0,0'){
+                    e.limit='0'
+                }
                 $.vidview.limit.val(e.limit)
             }
             e.dateRange=$('#videos_viewer_daterange').data('daterangepicker');
