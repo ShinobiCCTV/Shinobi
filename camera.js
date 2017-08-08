@@ -566,6 +566,11 @@ s.video=function(x,e){
                             if(s.group[e.ke].init){
                                 if(!s.group[e.ke].init.used_space){s.group[e.ke].init.used_space=0}else{s.group[e.ke].init.used_space=parseFloat(s.group[e.ke].init.used_space)}
                                 s.group[e.ke].init.used_space=s.group[e.ke].init.used_space+e.filesizeMB;
+                                clearTimeout(s.group[e.ke].checkSpaceLockTimeout)
+                                s.group[e.ke].checkSpaceLockTimeout=setTimeout(function(){
+                                    s.group[e.ke].checkSpaceLock=0
+                                    s.init('diskUsed',e)
+                                },1000*60*5)
                                 if(config.cron.deleteOverMax===true&&s.group[e.ke].checkSpaceLock!==1){
                                     s.group[e.ke].checkSpaceLock=1;
                                     //check space
@@ -589,6 +594,7 @@ s.video=function(x,e){
                                                 }
                                             })
                                         }else{
+                                            clearTimeout(s.group[e.ke].checkSpaceLockTimeout)
                                             s.group[e.ke].checkSpaceLock=0
                                             s.init('diskUsed',e)
                                         }
