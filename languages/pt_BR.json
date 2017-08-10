@@ -262,7 +262,6 @@
    "StreamText": "<p>Esta seção designará o método do fluxo primário e as configurações. Este fluxo será exibido no painel. Se você optar por usar HLS, JPEG ou MJPEG, então você pode consumir o fluxo através de outros programas.</p><p class=\"h_st_input h_st_jpeg\">Usar o fluxo de JPEG essencialmente desativa o fluxo primário e usa o compartimento de instantâneos para obter quadros.</p>",
    "DetectorText": "<p>Quando as caixas de Largura e Altura são mostradas, você deve configurá-las para 640x480 ou abaixo. Isso otimizará a velocidade de leitura dos quadros.</p>",
    "RecordingText": "Recomenda-se que você defina <b>Tipo de arquivo de gravação</b> para <b class=\"h_t_input h_t_jpeg h_t_socket\">WebM</b><b class=\"h_t_input h_t_mjpeg h_t_h264 h_t_hls h_t_mp4 h_t_local\">MP4</b> e <b>Video Codec</b> para <b class=\"h_t_input h_t_jpeg h_t_socket\">libvpx</b><b class=\"h_t_input h_t_h264 h_t_hls h_t_mp4\">copie ou </b><b class=\"h_t_input h_t_mjpeg h_t_h264 h_t_hls h_t_mp4 h_t_local\">libx264</b> porque seu <b>Tipo de Entrada</b> está definido para <b class=\"h_t_text\"></b>.",
-   "Mode": "Modo",
    "Name": "Nome",
    "Retry Connection": "Tentar novamente a conexão <small>Número de vezes permitido falhar</small>",
    "Notes": "Notas",
@@ -529,3 +528,4 @@
    "Search Base":"Base de Pesquisa",
    "Search Filter":"Procurar Filtro"
 }
+   "Mode": "Modo",
