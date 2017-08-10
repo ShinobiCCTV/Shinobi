@@ -203,6 +203,9 @@ io.on('f',function(d){
                         }catch(err){
                         }
                     }
+                    if(d.mon.detector_frame_save==="1"){
+                       d.base64=s.group[d.ke][d.id].buffer.toString('base64')
+                    }
                     s.group[d.ke][d.id].cords=Object.values(d.mon.cords);
                     d.mon.cords=d.mon.cords;
                     d.image = new Canvas.Image;

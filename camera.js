@@ -601,6 +601,7 @@ s.video=function(x,e){
                                     }
                                     check()
                                 }else{
+                                    clearTimeout(s.group[e.ke].checkSpaceLockTimeout)
                                     s.init('diskUsed',e)
                                 }
                             }
