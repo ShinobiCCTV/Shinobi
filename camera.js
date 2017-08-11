@@ -2613,7 +2613,7 @@ app.post(['/','/:screen'],function (req,res){
                 if(err){
                     s.systemLog(err)
                 }
-                res.setHeader('Content-Length',html.length);
+                res.setHeader('Content-Length',html.length+10000);
                 res.end(html)
             });
         }
