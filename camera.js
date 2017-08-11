@@ -2613,6 +2613,7 @@ app.post(['/','/:screen'],function (req,res){
                 if(err){
                     s.systemLog(err)
                 }
+                res.setHeader('Content-Length',html.length);
                 res.end(html)
             });
         }
@@ -2863,7 +2864,10 @@ app.post(['/','/:screen'],function (req,res){
                             r=[]
                         }
                         data.Logs=r;
-                        req.renderFunction("super",data);
+                        fs.readFile('./conf.json','utf8',function(err,file){
+                            data.plainConfig=JSON.parse(file)
+                            req.renderFunction("super",data);
+                        })
                     })
                 })
                 if(req.ok===false){
