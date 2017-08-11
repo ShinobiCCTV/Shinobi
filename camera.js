@@ -2858,7 +2858,7 @@ app.post(['/','/:screen'],function (req,res){
                     return
                 }
                 req.ok=s.superAuth({mail:req.body.mail,pass:req.body.pass,users:true,md5:true},function(data){
-                    sql.query('SELECT * FROM Logs WHERE ke=? ORDER BY `time` ASC LIMIT 30',['$'],function(err,r) {
+                    sql.query('SELECT * FROM Logs WHERE ke=? ORDER BY `time` DESC LIMIT 30',['$'],function(err,r) {
                         if(!r){
                             r=[]
                         }
