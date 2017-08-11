@@ -2526,8 +2526,13 @@ app.get('/info', function (req,res){
     res.sendFile(__dirname+'/index.html');
 });
 //main page
-app.get('/', function (req,res){
-    res.render('index',{lang:lang,config:config});
+app.get(['/','/:screen'], function (req,res){
+    res.render('index',{lang:lang,config:config,screen:req.params.screen},function(err,html){
+        if(err){
+            s.systemLog(err)
+        }
+        res.end(html)
+    })
 });
 //update server
 app.get('/:auth/update/:key', function (req,res){
@@ -2591,7 +2596,7 @@ s.deleteFactorAuth=function(r){
         delete(s.factorAuth[r.ke])
     }
 }
-app.post('/',function (req,res){
+app.post(['/','/:screen'],function (req,res){
     req.ip=req.headers['cf-connecting-ip']||req.headers["CF-Connecting-IP"]||req.headers["'x-forwarded-for"]||req.connection.remoteAddress;
     if(req.query.json=='true'){
         res.header("Access-Control-Allow-Origin",req.headers.origin);
@@ -2603,7 +2608,13 @@ app.post('/',function (req,res){
             res.setHeader('Content-Type', 'application/json');
             res.end(s.s(data, null, 3))
         }else{
-            res.render(focus,data);
+            data.screen=req.params.screen
+            res.render(focus,data,function(err,html){
+                if(err){
+                    s.systemLog(err)
+                }
+                res.end(html)
+            });
         }
     }
     req.failed=function(board){
@@ -2611,8 +2622,12 @@ app.post('/',function (req,res){
             res.setHeader('Content-Type', 'application/json');
             res.end(s.s({ok:false}, null, 3))
         }else{
-            res.render("index",{failedLogin:true,lang:lang,config:config});
-            res.end();
+            res.render('index',{failedLogin:true,lang:lang,config:config,screen:req.params.screen},function(err,html){
+                if(err){
+                    s.systemLog(err)
+                }
+                res.end(html);
+            });
         }
         req.logTo={ke:'$',mid:'$USER'}
         req.logData={type:lang['Authentication Failed'],msg:{for:board,mail:req.body.mail,ip:req.ip}}
@@ -2843,7 +2858,7 @@ app.post('/',function (req,res){
                     return
                 }
                 req.ok=s.superAuth({mail:req.body.mail,pass:req.body.pass,users:true,md5:true},function(data){
-                    sql.query('SELECT * FROM Logs WHERE ke=?',['$'],function(err,r) {
+                    sql.query('SELECT * FROM Logs WHERE ke=? ORDER BY `time` ASC LIMIT 30',['$'],function(err,r) {
                         if(!r){
                             r=[]
                         }
@@ -2926,7 +2941,12 @@ app.get('/:auth/jpeg/:ke/:id/s.jpg', function(req,res){
 //Get MJPEG stream
 app.get(['/:auth/mjpeg/:ke/:id','/:auth/mjpeg/:ke/:id/:addon'], function(req,res) {
     if(req.params.addon=='full'){
-        res.render('mjpeg',{url:'/'+req.params.auth+'/mjpeg/'+req.params.ke+'/'+req.params.id})
+        res.render('mjpeg',{url:'/'+req.params.auth+'/mjpeg/'+req.params.ke+'/'+req.params.id},function(err,html){
+            if(err){
+                s.systemLog(err)
+            }
+            res.end(html);
+        });
     }else{
         s.auth(req.params,function(user){
             if(user.permissions.watch_stream==="0"||user.details.sub&&user.details.allmonitors!=='1'&&user.details.monitors.indexOf(req.params.id)===-1){
@@ -2971,7 +2991,12 @@ app.get(['/:auth/embed/:ke/:id','/:auth/embed/:ke/:id/:addon'], function (req,re
         }
         if(s.group[req.params.ke]&&s.group[req.params.ke].mon[req.params.id]){
             if(s.group[req.params.ke].mon[req.params.id].started===1){
-                res.render("embed",{data:req.params,baseUrl:req.protocol+'://'+req.hostname,config:config,lang:user.lang,mon:CircularJSON.parse(CircularJSON.stringify(s.group[req.params.ke].mon_conf[req.params.id]))});
+                res.render("embed",{data:req.params,baseUrl:req.protocol+'://'+req.hostname,config:config,lang:user.lang,mon:CircularJSON.parse(CircularJSON.stringify(s.group[req.params.ke].mon_conf[req.params.id]))},function(err,html){
+                    if(err){
+                        s.systemLog(err)
+                    }
+                    res.end(html);
+                });
             }else{
                 res.end(user.lang['Cannot watch a monitor that isn\'t running.'])
             }
