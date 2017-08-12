@@ -2180,8 +2180,13 @@ var tx;
         }else{
             if(cn.mail&&cn.init=='super'){
                 switch(d.f){
+                    case'restart':
+                        s.systemLog('Shinobi Ordered to Restart',{by:cn.mail})
+                        exec('pm2 restart '+__dirname+'/camera.js')
+                        exec('pm2 restart '+__dirname+'/cron.js')
+                    break;
                     case'configure':
-                        s.systemLog('conf.json Modified',{old:jsonfile.readFileSync('./conf.json')})
+                        s.systemLog('conf.json Modified',{by:cn.mail,old:jsonfile.readFileSync('./conf.json')})
                         jsonfile.writeFile('./conf.json',d.data,{spaces: 2},function(){
                             s.tx({f:'save_configuration'},cn.id)
                         })

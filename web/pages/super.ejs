@@ -58,8 +58,11 @@
                     <div class="form-group">
                         <textarea name="json" style="height:300px;font-family: monospace;" class="form-control"></textarea>
                     </div>
-                      <div class="text-right">
-                          <button type="submit" class="btn btn-success"><i class="fa fa-check"></i> <%-lang.Save%></button>
+                      <div>
+                          <a restart class="btn btn-danger"><i class="fa fa-retweet"></i> <%-lang.Restart%></a>
+                          <div class="pull-right">
+                              <button type="submit" class="btn btn-success"><i class="fa fa-check"></i> <%-lang.Save%></button>
+                          </div>
                       </div>
                 </form>
             </div>
@@ -98,6 +101,9 @@ switch($user.lang){
 }
 $.ccio.ws=io(location.origin);
 $.ccio.cx=function(x){return $.ccio.ws.emit('super',x)}
+$.ccio.ws.on('connect',function(d){
+    $.ccio.cx({f:'init',mail:$user.mail,pass:$user.pass});
+})
 $.ccio.ws.on('f',function(d){
     switch(d.f){
         case'log':
@@ -125,7 +131,7 @@ $.ccio.ws.on('f',function(d){
         $('#toast')[0].MaterialSnackbar.showSnackbar({message:d.msg})
     }
 })
-$.ccio.cx({f:'init',mail:$user.mail,pass:$user.pass});
+
 $.ccio.tm=function(x,d,z,k){
     var tmp='';if(!d){d={}};if(!k){k={}};
     if(d.id&&!d.mid){d.mid=d.id;}
@@ -222,7 +228,7 @@ $.conf.e.submit(function(e){
     if($.conf.valid===1){
         $.confirm.e.modal('show');
         $.confirm.title.html('Save Configuration <small>conf.json</small>')
-        e.html='<p>This is a change being applied to the configuration file (conf.json). Are you sure you want to do this? <b>The JSON below is what you are about to save.</b></p>'
+        e.html='<p>This is a change being applied to the configuration file (conf.json). Are you sure you want to do this? You must restart Shinobi for these changes to take effect. <b>The JSON below is what you are about to save.</b></p>'
         e.html+='<pre>'+JSON.stringify($.parseJSON($.conf.draw.val()),null,3)+'</pre>'
         $.confirm.body.html(e.html)
         $.confirm.click({title:'Save',class:'btn-success'},function(){
@@ -232,6 +238,15 @@ $.conf.e.submit(function(e){
         $.conf.msg.text('Invalid JSON Syntax, Cannot Save.')
     }
     return false;
+})
+$.conf.e.find('[restart]').click(function(e){
+    $.confirm.e.modal('show');
+    $.confirm.title.html('Restart Shinobi?')
+    e.html='<p>Do you want to restart Shinobi (camera.js and cron.js)? plugins will not be restarted. They will reconnect when Shinobi is back online.</p>'
+    $.confirm.body.html(e.html)
+    $.confirm.click({title:'Restart',class:'btn-danger'},function(){
+        $.ccio.cx({f:'restart'})
+    });
 })
 $(document).ready(function(){
     $.each(<%-JSON.stringify(Logs)%>,function(n,v){
