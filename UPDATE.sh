@@ -1,9 +1,8 @@
 #!/bin/bash
 distro=$1
-if [ -n $distro ]; then 
+if [ -z ${distro+x} ]; then 
     distro='master'
 fi
-touch cool_$distro
 rm -rf $distro master_temp
 wget https://github.com/ShinobiCCTV/Shinobi/tarball/$distro
 mkdir master_temp
