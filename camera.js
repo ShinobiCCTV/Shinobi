@@ -2193,7 +2193,7 @@ var tx;
                             case'update':
                                 s.ffmpegKill()
                                 s.systemLog('Shinobi ordered to update',{by:cn.mail,ip:cn.ip})
-                                exec('chmod +x '+__dirname+'/UPDATE.sh&&'+__dirname+'/./UPDATE.sh',{detached: true})
+                                exec('chmod +x '+__dirname+'/UPDATE.sh&&'+__dirname+'/./UPDATE.sh '+d.distro,{detached: true})
                             break;
                             case'restart':
                                 d.check=function(x){return d.target.indexOf(x)>-1}

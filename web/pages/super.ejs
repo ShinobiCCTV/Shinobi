@@ -72,7 +72,8 @@
                         <a restart="logs" class="btn btn-danger"><i class="fa fa-retweet"></i> <%-lang['Flush PM2 Logs']%></a>
                     </div>
                     <div class="btn-group btn-group-justified">
-                        <a system="update" class="btn btn-primary"><i class="fa fa-upload"></i> <%-lang['Update']%></a>
+                        <a system="update" distro="master" class="btn btn-primary"><i class="fa fa-upload"></i> <%-lang['Update to Master']%></a>
+                        <a system="update" distro="dev" class="btn btn-primary"><i class="fa fa-upload"></i> <%-lang['Update to Development']%></a>
                     </div>
                 </div>
             </div>
@@ -254,11 +255,13 @@ $.system={e:$('#system')}
 $.system.e.find('[system]').click(function(e){
     switch($(this).attr('system')){
         case'update':
+            e.distro=$(this).attr('distro')
+            if(!e.distro){e.distro='master'}
             $.confirm.e.modal('show')
             $.confirm.title.html('Update Shinobi?')
-            $.confirm.body.html('Updating Shinobi means overwriting files. If you have modified any files yourself you should update Shinobi manually. The updater will download the latest master from the <a href="https://github.com/ShinobiCCTV/Shinobi" target="_blank">Pro repository</a>.')
+            $.confirm.body.html('Updating Shinobi means overwriting files. If you have modified any files yourself you should update Shinobi manually. The updater will download the latest '+e.distro+' from the <a href="https://github.com/ShinobiCCTV/Shinobi" target="_blank">Pro repository</a>.')
             $.confirm.click({title:'Update',class:'btn-danger'},function(){
-                $.ccio.cx({f:'system',ff:'update'})
+                $.ccio.cx({f:'system',ff:'update',distro:e.distro})
             });
         break;
     }
