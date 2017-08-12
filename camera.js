@@ -2169,7 +2169,8 @@ var tx;
             d.ok=s.superAuth({mail:d.mail,pass:d.pass},function(data){
                 cn.uid=d.mail
                 cn.join('$');
-                s.log({ke:'$',mid:'$USER'},{type:lang['Websocket Connected'],msg:{for:lang['Superuser'],id:cn.uid,ip:cn.request.connection.remoteAddress}})
+                cn.ip=cn.request.connection.remoteAddress
+                s.log({ke:'$',mid:'$USER'},{type:lang['Websocket Connected'],msg:{for:lang['Superuser'],id:cn.uid,ip:cn.ip}})
                 cn.init='super';
                 cn.mail=d.mail;
                 s.tx({f:'init_success',mail:d.mail},cn.id);
@@ -2180,32 +2181,41 @@ var tx;
         }else{
             if(cn.mail&&cn.init=='super'){
                 switch(d.f){
-                    case'restart':
-                        d.check=function(x){return d.target.indexOf(x)>-1}
-                        if(d.check('system')){
-                            s.systemLog('Shinobi ordered to restart',{by:cn.mail})
-                            s.ffmpegKill()
-                            exec('pm2 restart '+__dirname+'/camera.js')
-                        }
-                        if(d.check('cron')){
-                            s.systemLog('Shinobi CRON ordered to restart',{by:cn.mail})
-                            exec('pm2 restart '+__dirname+'/cron.js')
-                        }
-                        if(d.check('logs')){
-                            s.systemLog('Flush PM2 Logs',{by:cn.mail})
-                            exec('pm2 flush')
-                        }
-                    break;
-                    case'configure':
-                        s.systemLog('conf.json Modified',{by:cn.mail,old:jsonfile.readFileSync('./conf.json')})
-                        jsonfile.writeFile('./conf.json',d.data,{spaces: 2},function(){
-                            s.tx({f:'save_configuration'},cn.id)
-                        })
-                    break;
                     case'logs':
                         switch(d.ff){
                             case'delete':
                                 sql.query('DELETE FROM Logs WHERE ke=?',[d.ke])
+                            break;
+                        }
+                    break;
+                    case'system':
+                        switch(d.ff){
+                            case'update':
+                                s.ffmpegKill()
+                                s.systemLog('Shinobi ordered to update',{by:cn.mail,ip:cn.ip})
+                                exec('chmod +x '+__dirname+'/UPDATE.sh&&'+__dirname+'/./UPDATE.sh',{detached: true})
+                            break;
+                            case'restart':
+                                d.check=function(x){return d.target.indexOf(x)>-1}
+                                if(d.check('system')){
+                                    s.systemLog('Shinobi ordered to restart',{by:cn.mail,ip:cn.ip})
+                                    s.ffmpegKill()
+                                    exec('pm2 restart '+__dirname+'/camera.js')
+                                }
+                                if(d.check('cron')){
+                                    s.systemLog('Shinobi CRON ordered to restart',{by:cn.mail,ip:cn.ip})
+                                    exec('pm2 restart '+__dirname+'/cron.js')
+                                }
+                                if(d.check('logs')){
+                                    s.systemLog('Flush PM2 Logs',{by:cn.mail,ip:cn.ip})
+                                    exec('pm2 flush')
+                                }
+                            break;
+                            case'configure':
+                                s.systemLog('conf.json Modified',{by:cn.mail,ip:cn.ip,old:jsonfile.readFileSync('./conf.json')})
+                                jsonfile.writeFile('./conf.json',d.data,{spaces: 2},function(){
+                                    s.tx({f:'save_configuration'},cn.id)
+                                })
                             break;
                         }
                     break;

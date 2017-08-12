@@ -64,13 +64,16 @@
                           </div>
                       </div>
                 </form>
-                <div class="form-group-group red" id="system">
+                <div class="form-group-group blue" id="system">
                     <h4><%-lang['System']%> <small class="pull-right msg"></small></h4>
-                      <div>
-                          <a restart="system" class="btn btn-danger"><i class="fa fa-retweet"></i> <%-lang['Restart Core']%></a>
-                          <a restart="cron" class="btn btn-danger"><i class="fa fa-retweet"></i> <%-lang['Restart CRON']%></a>
-                          <a restart="logs" class="btn btn-danger"><i class="fa fa-retweet"></i> <%-lang['Flush PM2 Logs']%></a>
-                      </div>
+                    <div class="btn-group btn-group-justified">
+                        <a restart="system" class="btn btn-danger"><i class="fa fa-retweet"></i> <%-lang['Restart Core']%></a>
+                        <a restart="cron" class="btn btn-danger"><i class="fa fa-retweet"></i> <%-lang['Restart CRON']%></a>
+                        <a restart="logs" class="btn btn-danger"><i class="fa fa-retweet"></i> <%-lang['Flush PM2 Logs']%></a>
+                    </div>
+                    <div class="btn-group btn-group-justified">
+                        <a system="update" class="btn btn-primary"><i class="fa fa-upload"></i> <%-lang['Update']%></a>
+                    </div>
                 </div>
             </div>
         </div>
@@ -239,7 +242,7 @@ $.conf.e.submit(function(e){
         e.html+='<pre>'+JSON.stringify($.parseJSON($.conf.draw.val()),null,3)+'</pre>'
         $.confirm.body.html(e.html)
         $.confirm.click({title:'Save',class:'btn-success'},function(){
-            $.ccio.cx({f:'configure',data:$.parseJSON($.conf.draw.val())})
+            $.ccio.cx({f:'system',ff:'configure',data:$.parseJSON($.conf.draw.val())})
         });
     }else{
         $.conf.msg.text('Invalid JSON Syntax, Cannot Save.')
@@ -248,6 +251,18 @@ $.conf.e.submit(function(e){
 })
 //sys controls
 $.system={e:$('#system')}
+$.system.e.find('[system]').click(function(e){
+    switch($(this).attr('system')){
+        case'update':
+            $.confirm.e.modal('show')
+            $.confirm.title.html('Update Shinobi?')
+            $.confirm.body.html('Updating Shinobi means overwriting files. If you have modified any files yourself you should update Shinobi manually. The updater will download the latest master from the <a href="https://github.com/ShinobiCCTV/Shinobi" target="_blank">Pro repository</a>.')
+            $.confirm.click({title:'Update',class:'btn-danger'},function(){
+                $.ccio.cx({f:'system',ff:'update'})
+            });
+        break;
+    }
+})
 $.system.e.find('[restart]').click(function(e){
     $.confirm.e.modal('show');
     e.html=''
@@ -269,7 +284,7 @@ $.system.e.find('[restart]').click(function(e){
     $.confirm.title.html('Restart?')
     $.confirm.body.html(e.html)
     $.confirm.click({title:'Restart',class:'btn-danger'},function(){
-        $.ccio.cx({f:'restart',target:e.target})
+        $.ccio.cx({f:'system',ff:'restart',target:e.target})
     });
 })
 $(document).ready(function(){

@@ -198,6 +198,7 @@
    "APIKeyDeletedText": "Key has been deleted. It will no longer work.",
    "API Key Added": "API Key Added",
    "APIKeyAddedText": "You may use this key now.",
+   "Update": "Update",
    "Filters Updated": "Filters Updated",
    "FiltersUpdatedText": "Your changes have been saved and applied.",
    "Settings Changed": "Settings Changed",
