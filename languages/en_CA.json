@@ -527,5 +527,6 @@
    "bindDN":"bindDN",
    "Bind Credentials":"Bind Credentials (Password)",
    "Search Base":"Search Base",
+   "Configuration":"Configuration",
    "Search Filter":"Search Filter"
 }

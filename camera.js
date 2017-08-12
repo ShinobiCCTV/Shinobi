@@ -33,6 +33,7 @@ var exec = require('child_process').exec;
 var spawn = require('child_process').spawn;
 var crypto = require('crypto');
 var webdav = require("webdav");
+var jsonfile = require("jsonfile");
 var connectionTester = require('connection-tester');
 var events = require('events');
 var Cam = require('onvif').Cam;
@@ -2179,6 +2180,11 @@ var tx;
         }else{
             if(cn.mail&&cn.init=='super'){
                 switch(d.f){
+                    case'configure':
+                        jsonfile.writeFile('./conf.json',d.data,{spaces: 2},function(){
+                            s.tx({f:'save_configuration'},cn.id)
+                        })
+                    break;
                     case'logs':
                         switch(d.ff){
                             case'delete':
@@ -2613,7 +2619,6 @@ app.post(['/','/:screen'],function (req,res){
                 if(err){
                     s.systemLog(err)
                 }
-                res.setHeader('Content-Length',html.length+10000);
                 res.end(html)
             });
         }
@@ -2945,12 +2950,8 @@ app.get('/:auth/jpeg/:ke/:id/s.jpg', function(req,res){
 //Get MJPEG stream
 app.get(['/:auth/mjpeg/:ke/:id','/:auth/mjpeg/:ke/:id/:addon'], function(req,res) {
     if(req.params.addon=='full'){
-        res.render('mjpeg',{url:'/'+req.params.auth+'/mjpeg/'+req.params.ke+'/'+req.params.id},function(err,html){
-            if(err){
-                s.systemLog(err)
-            }
-            res.end(html);
-        });
+        res.render('mjpeg',{url:'/'+req.params.auth+'/mjpeg/'+req.params.ke+'/'+req.params.id});
+        res.end()
     }else{
         s.auth(req.params,function(user){
             if(user.permissions.watch_stream==="0"||user.details.sub&&user.details.allmonitors!=='1'&&user.details.monitors.indexOf(req.params.id)===-1){
@@ -2995,12 +2996,8 @@ app.get(['/:auth/embed/:ke/:id','/:auth/embed/:ke/:id/:addon'], function (req,re
         }
         if(s.group[req.params.ke]&&s.group[req.params.ke].mon[req.params.id]){
             if(s.group[req.params.ke].mon[req.params.id].started===1){
-                res.render("embed",{data:req.params,baseUrl:req.protocol+'://'+req.hostname,config:config,lang:user.lang,mon:CircularJSON.parse(CircularJSON.stringify(s.group[req.params.ke].mon_conf[req.params.id]))},function(err,html){
-                    if(err){
-                        s.systemLog(err)
-                    }
-                    res.end(html);
-                });
+                res.render("embed",{data:req.params,baseUrl:req.protocol+'://'+req.hostname,config:config,lang:user.lang,mon:CircularJSON.parse(CircularJSON.stringify(s.group[req.params.ke].mon_conf[req.params.id]))});
+                res.end()
             }else{
                 res.end(user.lang['Cannot watch a monitor that isn\'t running.'])
             }
