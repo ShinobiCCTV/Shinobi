@@ -2181,6 +2181,7 @@ var tx;
             if(cn.mail&&cn.init=='super'){
                 switch(d.f){
                     case'configure':
+                        s.systemLog('conf.json Modified',{old:jsonfile.readFileSync('./conf.json')})
                         jsonfile.writeFile('./conf.json',d.data,{spaces: 2},function(){
                             s.tx({f:'save_configuration'},cn.id)
                         })
