@@ -2181,9 +2181,20 @@ var tx;
             if(cn.mail&&cn.init=='super'){
                 switch(d.f){
                     case'restart':
-                        s.systemLog('Shinobi Ordered to Restart',{by:cn.mail})
-                        exec('pm2 restart '+__dirname+'/camera.js')
-                        exec('pm2 restart '+__dirname+'/cron.js')
+                        d.check=function(x){return d.target.indexOf(x)>-1}
+                        if(d.check('system')){
+                            s.systemLog('Shinobi ordered to restart',{by:cn.mail})
+                            s.ffmpegKill()
+                            exec('pm2 restart '+__dirname+'/camera.js')
+                        }
+                        if(d.check('cron')){
+                            s.systemLog('Shinobi CRON ordered to restart',{by:cn.mail})
+                            exec('pm2 restart '+__dirname+'/cron.js')
+                        }
+                        if(d.check('logs')){
+                            s.systemLog('Flush PM2 Logs',{by:cn.mail})
+                            exec('pm2 flush')
+                        }
                     break;
                     case'configure':
                         s.systemLog('conf.json Modified',{by:cn.mail,old:jsonfile.readFileSync('./conf.json')})

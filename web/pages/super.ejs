@@ -59,12 +59,19 @@
                         <textarea name="json" style="height:300px;font-family: monospace;" class="form-control"></textarea>
                     </div>
                       <div>
-                          <a restart class="btn btn-danger"><i class="fa fa-retweet"></i> <%-lang.Restart%></a>
                           <div class="pull-right">
                               <button type="submit" class="btn btn-success"><i class="fa fa-check"></i> <%-lang.Save%></button>
                           </div>
                       </div>
                 </form>
+                <div class="form-group-group red" id="system">
+                    <h4><%-lang['System']%> <small class="pull-right msg"></small></h4>
+                      <div>
+                          <a restart="system" class="btn btn-danger"><i class="fa fa-retweet"></i> <%-lang['Restart Core']%></a>
+                          <a restart="cron" class="btn btn-danger"><i class="fa fa-retweet"></i> <%-lang['Restart CRON']%></a>
+                          <a restart="logs" class="btn btn-danger"><i class="fa fa-retweet"></i> <%-lang['Flush PM2 Logs']%></a>
+                      </div>
+                </div>
             </div>
         </div>
     </div>
@@ -239,13 +246,30 @@ $.conf.e.submit(function(e){
     }
     return false;
 })
-$.conf.e.find('[restart]').click(function(e){
+//sys controls
+$.system={e:$('#system')}
+$.system.e.find('[restart]').click(function(e){
     $.confirm.e.modal('show');
-    $.confirm.title.html('Restart Shinobi?')
-    e.html='<p>Do you want to restart Shinobi (camera.js and cron.js)? plugins will not be restarted. They will reconnect when Shinobi is back online.</p>'
+    e.html=''
+    e.title=''
+    e.target=$(this).attr('restart').split(',')
+    e.target.forEach(function(v){
+        switch(v){
+            case'system':
+                e.html+='<p>Do you want to restart the core (camera.js)? plugins will not be restarted. They will reconnect when Shinobi is back online.</p>'
+            break;
+            case'cron':
+                e.html+='<p>Do you want to restart the CRON (cron.js)?</p>'
+            break;
+            case'logs':
+                e.html+='<p>Flush PM2 console logs? The logs saved in the database will <b>not</b> be deleted.</p>'
+            break;
+        }
+    })
+    $.confirm.title.html('Restart?')
     $.confirm.body.html(e.html)
     $.confirm.click({title:'Restart',class:'btn-danger'},function(){
-        $.ccio.cx({f:'restart'})
+        $.ccio.cx({f:'restart',target:e.target})
     });
 })
 $(document).ready(function(){
