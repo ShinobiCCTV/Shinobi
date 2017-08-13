@@ -33,6 +33,7 @@ var exec = require('child_process').exec;
 var spawn = require('child_process').spawn;
 var crypto = require('crypto');
 var webdav = require("webdav");
+var jsonfile = require("jsonfile");
 var connectionTester = require('connection-tester');
 var events = require('events');
 var Cam = require('onvif').Cam;
@@ -566,6 +567,11 @@ s.video=function(x,e){
                             if(s.group[e.ke].init){
                                 if(!s.group[e.ke].init.used_space){s.group[e.ke].init.used_space=0}else{s.group[e.ke].init.used_space=parseFloat(s.group[e.ke].init.used_space)}
                                 s.group[e.ke].init.used_space=s.group[e.ke].init.used_space+e.filesizeMB;
+                                clearTimeout(s.group[e.ke].checkSpaceLockTimeout)
+                                s.group[e.ke].checkSpaceLockTimeout=setTimeout(function(){
+                                    s.group[e.ke].checkSpaceLock=0
+                                    s.init('diskUsed',e)
+                                },1000*60*5)
                                 if(config.cron.deleteOverMax===true&&s.group[e.ke].checkSpaceLock!==1){
                                     s.group[e.ke].checkSpaceLock=1;
                                     //check space
@@ -589,12 +595,14 @@ s.video=function(x,e){
                                                 }
                                             })
                                         }else{
+                                            clearTimeout(s.group[e.ke].checkSpaceLockTimeout)
                                             s.group[e.ke].checkSpaceLock=0
                                             s.init('diskUsed',e)
                                         }
                                     }
                                     check()
                                 }else{
+                                    clearTimeout(s.group[e.ke].checkSpaceLockTimeout)
                                     s.init('diskUsed',e)
                                 }
                             }
@@ -2161,7 +2169,8 @@ var tx;
             d.ok=s.superAuth({mail:d.mail,pass:d.pass},function(data){
                 cn.uid=d.mail
                 cn.join('$');
-                s.log({ke:'$',mid:'$USER'},{type:lang['Websocket Connected'],msg:{for:lang['Superuser'],id:cn.uid,ip:cn.request.connection.remoteAddress}})
+                cn.ip=cn.request.connection.remoteAddress
+                s.log({ke:'$',mid:'$USER'},{type:lang['Websocket Connected'],msg:{for:lang['Superuser'],id:cn.uid,ip:cn.ip}})
                 cn.init='super';
                 cn.mail=d.mail;
                 s.tx({f:'init_success',mail:d.mail},cn.id);
@@ -2176,6 +2185,37 @@ var tx;
                         switch(d.ff){
                             case'delete':
                                 sql.query('DELETE FROM Logs WHERE ke=?',[d.ke])
+                            break;
+                        }
+                    break;
+                    case'system':
+                        switch(d.ff){
+                            case'update':
+                                s.ffmpegKill()
+                                s.systemLog('Shinobi ordered to update',{by:cn.mail,ip:cn.ip})
+                                exec('chmod +x '+__dirname+'/UPDATE.sh&&'+__dirname+'/./UPDATE.sh '+d.distro,{detached: true})
+                            break;
+                            case'restart':
+                                d.check=function(x){return d.target.indexOf(x)>-1}
+                                if(d.check('system')){
+                                    s.systemLog('Shinobi ordered to restart',{by:cn.mail,ip:cn.ip})
+                                    s.ffmpegKill()
+                                    exec('pm2 restart '+__dirname+'/camera.js')
+                                }
+                                if(d.check('cron')){
+                                    s.systemLog('Shinobi CRON ordered to restart',{by:cn.mail,ip:cn.ip})
+                                    exec('pm2 restart '+__dirname+'/cron.js')
+                                }
+                                if(d.check('logs')){
+                                    s.systemLog('Flush PM2 Logs',{by:cn.mail,ip:cn.ip})
+                                    exec('pm2 flush')
+                                }
+                            break;
+                            case'configure':
+                                s.systemLog('conf.json Modified',{by:cn.mail,ip:cn.ip,old:jsonfile.readFileSync('./conf.json')})
+                                jsonfile.writeFile('./conf.json',d.data,{spaces: 2},function(){
+                                    s.tx({f:'save_configuration'},cn.id)
+                                })
                             break;
                         }
                     break;
@@ -2519,8 +2559,13 @@ app.get('/info', function (req,res){
     res.sendFile(__dirname+'/index.html');
 });
 //main page
-app.get('/', function (req,res){
-    res.render('index',{lang:lang,config:config});
+app.get(['/','/:screen'], function (req,res){
+    res.render('index',{lang:lang,config:config,screen:req.params.screen},function(err,html){
+        if(err){
+            s.systemLog(err)
+        }
+        res.end(html)
+    })
 });
 //update server
 app.get('/:auth/update/:key', function (req,res){
@@ -2584,7 +2629,7 @@ s.deleteFactorAuth=function(r){
         delete(s.factorAuth[r.ke])
     }
 }
-app.post('/',function (req,res){
+app.post(['/','/:screen'],function (req,res){
     req.ip=req.headers['cf-connecting-ip']||req.headers["CF-Connecting-IP"]||req.headers["'x-forwarded-for"]||req.connection.remoteAddress;
     if(req.query.json=='true'){
         res.header("Access-Control-Allow-Origin",req.headers.origin);
@@ -2596,7 +2641,13 @@ app.post('/',function (req,res){
             res.setHeader('Content-Type', 'application/json');
             res.end(s.s(data, null, 3))
         }else{
-            res.render(focus,data);
+            data.screen=req.params.screen
+            res.render(focus,data,function(err,html){
+                if(err){
+                    s.systemLog(err)
+                }
+                res.end(html)
+            });
         }
     }
     req.failed=function(board){
@@ -2604,8 +2655,12 @@ app.post('/',function (req,res){
             res.setHeader('Content-Type', 'application/json');
             res.end(s.s({ok:false}, null, 3))
         }else{
-            res.render("index",{failedLogin:true,lang:lang,config:config});
-            res.end();
+            res.render('index',{failedLogin:true,lang:lang,config:config,screen:req.params.screen},function(err,html){
+                if(err){
+                    s.systemLog(err)
+                }
+                res.end(html);
+            });
         }
         req.logTo={ke:'$',mid:'$USER'}
         req.logData={type:lang['Authentication Failed'],msg:{for:board,mail:req.body.mail,ip:req.ip}}
@@ -2836,12 +2891,15 @@ app.post('/',function (req,res){
                     return
                 }
                 req.ok=s.superAuth({mail:req.body.mail,pass:req.body.pass,users:true,md5:true},function(data){
-                    sql.query('SELECT * FROM Logs WHERE ke=?',['$'],function(err,r) {
+                    sql.query('SELECT * FROM Logs WHERE ke=? ORDER BY `time` DESC LIMIT 30',['$'],function(err,r) {
                         if(!r){
                             r=[]
                         }
                         data.Logs=r;
-                        req.renderFunction("super",data);
+                        fs.readFile('./conf.json','utf8',function(err,file){
+                            data.plainConfig=JSON.parse(file)
+                            req.renderFunction("super",data);
+                        })
                     })
                 })
                 if(req.ok===false){
@@ -2919,7 +2977,8 @@ app.get('/:auth/jpeg/:ke/:id/s.jpg', function(req,res){
 //Get MJPEG stream
 app.get(['/:auth/mjpeg/:ke/:id','/:auth/mjpeg/:ke/:id/:addon'], function(req,res) {
     if(req.params.addon=='full'){
-        res.render('mjpeg',{url:'/'+req.params.auth+'/mjpeg/'+req.params.ke+'/'+req.params.id})
+        res.render('mjpeg',{url:'/'+req.params.auth+'/mjpeg/'+req.params.ke+'/'+req.params.id});
+        res.end()
     }else{
         s.auth(req.params,function(user){
             if(user.permissions.watch_stream==="0"||user.details.sub&&user.details.allmonitors!=='1'&&user.details.monitors.indexOf(req.params.id)===-1){
@@ -2965,6 +3024,7 @@ app.get(['/:auth/embed/:ke/:id','/:auth/embed/:ke/:id/:addon'], function (req,re
         if(s.group[req.params.ke]&&s.group[req.params.ke].mon[req.params.id]){
             if(s.group[req.params.ke].mon[req.params.id].started===1){
                 res.render("embed",{data:req.params,baseUrl:req.protocol+'://'+req.hostname,config:config,lang:user.lang,mon:CircularJSON.parse(CircularJSON.stringify(s.group[req.params.ke].mon_conf[req.params.id]))});
+                res.end()
             }else{
                 res.end(user.lang['Cannot watch a monitor that isn\'t running.'])
             }
