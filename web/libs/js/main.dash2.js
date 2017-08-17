@@ -2756,7 +2756,10 @@ $('body')
                 $('#temp').html('<img src="'+url+'">')
                 var img=$('#temp img')[0]
                 img.onload=function(){
-                    window.open('/'+$user.auth_token+'/embed/'+e.ke+'/'+e.mid+'/fullscreen|gui|jquery','pop_'+e.mid,'height='+img.height+',width='+img.width);
+                    if($.ccio.mon[e.mid].popOut){
+                        $.ccio.mon[e.mid].popOut.close()
+                    }
+                    $.ccio.mon[e.mid].popOut = window.open('/'+$user.auth_token+'/embed/'+e.ke+'/'+e.mid+'/fullscreen|gui|jquery','pop_'+e.mid,'height='+img.height+',width='+img.width);
                 }
             })
         break;
