@@ -378,56 +378,64 @@ switch($.ccio.userDetails.lang){
         return k.tmp;
     }
     $.ccio.snapshot=function(e,cb){
-        var image_data;
+        var image_data,url;
         e.details=JSON.parse(e.mon.details);
         if(e.details.stream_scale_x===''){e.details.stream_scale_x=640}
         if(e.details.stream_scale_y===''){e.details.stream_scale_y=480}
         if($.ccio.op().jpeg_on!==true){
+            var extend=function(){
+                var len = image_data.length
+                var arraybuffer = new Uint8Array( len );
+                for (var i = 0; i < len; i++)        {
+                    arraybuffer[i] = image_data.charCodeAt(i);
+                }
+                try {
+                    var blob = new Blob([arraybuffer], {type: 'application/octet-stream'});
+                } catch (e) {
+                    var bb = new (window.WebKitBlobBuilder || window.MozBlobBuilder);
+                    bb.append(arraybuffer);
+                    var blob = bb.getBlob('application/octet-stream');
+                }
+                url = (window.URL || window.webkitURL).createObjectURL(blob);
+                cb(url,image_data);
+                try{
+                    setTimeout(function(){
+                        URL.revokeObjectURL(url)
+                    },10000)
+                }catch(er){}
+            }
             switch(JSON.parse(e.mon.details).stream_type){
                 case'hls':
-                    $('#temp').html('<canvas></canvas>')
-                    var c = $('#temp canvas')[0];
-                    var img = e.p.find('video')[0];
-                    c.width = img.videoWidth;
-                    c.height = img.videoHeight;
-                    var ctx = c.getContext('2d');
-                    ctx.drawImage(img, 0, 0,c.width,c.height);
-                    image_data=atob(c.toDataURL('image/jpeg').split(',')[1]);
+                    $.ccio.snapshotVideo($('[mid='+e.mon.mid+'].monitor_item video')[0],function(base64,video_data){
+                        url=base64
+                        image_data=video_data
+                        extend()
+                    })
                 break;
                 case'mjpeg':
                     $('#temp').html('<canvas></canvas>')
                     var c = $('#temp canvas')[0];
-                    var img = $('img',e.p.find('.stream-element').contents())[0];
-                    c.width = e.details.stream_scale_x;
-                    c.height = e.details.stream_scale_y;
+                    var img = $('img',$('[mid='+e.mon.mid+'].monitor_item .stream-element').contents())[0];
+                    c.width = img.width;
+                    c.height = img.height;
                     var ctx = c.getContext('2d');
                     ctx.drawImage(img, 0, 0,c.width,c.height);
                     image_data=atob(c.toDataURL('image/jpeg').split(',')[1]);
+                    extend()
                 break;
                 case'b64':
                     image_data = atob(e.mon.last_frame.split(',')[1]);
+                    extend()
+                break;
+                case'jpeg':
+                    url=e.p.find('.stream-element').attr('src');
+                    cb(url,image_data);
                 break;
             }
-            var arraybuffer = new ArrayBuffer(image_data.length);
-            var view = new Uint8Array(arraybuffer);
-            for (var i=0; i<image_data.length; i++) {
-                view[i] = image_data.charCodeAt(i) & 0xff;
-            }
-            try {
-                var blob = new Blob([arraybuffer], {type: 'application/octet-stream'});
-            } catch (e) {
-                var bb = new (window.WebKitBlobBuilder || window.MozBlobBuilder);
-                bb.append(arraybuffer);
-                var blob = bb.getBlob('application/octet-stream');
-            }
-            var url = (window.URL || window.webkitURL).createObjectURL(blob);
         }else{
             url=e.p.find('.stream-element').attr('src');
-        }
             cb(url,image_data);
-        try{
-            URL.revokeObjectURL(url)
-        }catch(er){}
+        }
     }
     $.ccio.snapshotVideo=function(videoElement,cb){
         var image_data;
@@ -502,7 +510,7 @@ switch($.ccio.userDetails.lang){
                 tmp+='<div class="mdl-card__supporting-text text-center">';
                 tmp+='<div class="indifference"><div class="progress"><div class="progress-bar progress-bar-danger" role="progressbar"><span></span></div></div></div>';
                 tmp+='<div class="monitor_name">'+d.name+'</div>';
-                tmp+='<div class="btn-group"><a title="<%-cleanLang(lang.Snapshot)%>" monitor="snapshot" class="btn btn-primary"><i class="fa fa-camera"></i></a> <a title="<%-cleanLang(lang['Show Logs'])%>" class_toggle="show_logs" data-target=".monitor_item[mid=\''+d.mid+'\'][ke=\''+d.ke+'\']" class="btn btn-warning"><i class="fa fa-exclamation-triangle"></i></a> <a title="<%-cleanLang(lang.Control)%>" monitor="control_toggle" class="btn btn-default"><i class="fa fa-arrows"></i></a> <a title="<%-cleanLang(lang['Status Indicator'])%>" class="btn btn-danger signal" monitor="watch_on"><i class="fa fa-plug"></i></a> <a title="<%-cleanLang(lang.Calendar)%>" monitor="calendar" class="btn btn-default"><i class="fa fa-calendar"></i></a> <a title="<%-cleanLang(lang['Power Viewer'])%>" class="btn btn-default" monitor="powerview"><i class="fa fa-map-marker"></i></a> <a title="<%-cleanLang(lang['Time-lapse'])%>" class="btn btn-default" monitor="timelapse"><i class="fa fa-angle-double-right"></i></a> <a title="<%-cleanLang(lang['Videos List'])%>" monitor="videos_table" class="btn btn-default"><i class="fa fa-film"></i></a> <a title="<%-cleanLang(lang['Monitor Settings'])%>" class="btn btn-default permission_monitor_edit" monitor="edit"><i class="fa fa-wrench"></i></a> <a title="<%-cleanLang(lang.Fullscreen)%>" monitor="fullscreen" class="btn btn-default"><i class="fa fa-arrows-alt"></i></a> <a title="<%-cleanLang(lang.Close)%> Stream" monitor="watch_off" class="btn btn-danger"><i class="fa fa-times"></i></a></div>';
+                tmp+='<div class="btn-group"><a title="<%-cleanLang(lang.Snapshot)%>" monitor="snapshot" class="btn btn-primary"><i class="fa fa-camera"></i></a> <a title="<%-cleanLang(lang['Show Logs'])%>" class_toggle="show_logs" data-target=".monitor_item[mid=\''+d.mid+'\'][ke=\''+d.ke+'\']" class="btn btn-warning"><i class="fa fa-exclamation-triangle"></i></a> <a title="<%-cleanLang(lang.Control)%>" monitor="control_toggle" class="btn btn-default"><i class="fa fa-arrows"></i></a> <a title="<%-cleanLang(lang['Status Indicator'])%>" class="btn btn-danger signal" monitor="watch_on"><i class="fa fa-plug"></i></a> <a title="<%-cleanLang(lang.Pop)%>" monitor="pop" class="btn btn-default"><i class="fa fa-sign-out"></i></a> <a title="<%-cleanLang(lang.Calendar)%>" monitor="calendar" class="btn btn-default"><i class="fa fa-calendar"></i></a> <a title="<%-cleanLang(lang['Power Viewer'])%>" class="btn btn-default" monitor="powerview"><i class="fa fa-map-marker"></i></a> <a title="<%-cleanLang(lang['Time-lapse'])%>" class="btn btn-default" monitor="timelapse"><i class="fa fa-angle-double-right"></i></a> <a title="<%-cleanLang(lang['Videos List'])%>" monitor="videos_table" class="btn btn-default"><i class="fa fa-film"></i></a> <a title="<%-cleanLang(lang['Monitor Settings'])%>" class="btn btn-default permission_monitor_edit" monitor="edit"><i class="fa fa-wrench"></i></a> <a title="<%-cleanLang(lang.Fullscreen)%>" monitor="fullscreen" class="btn btn-default"><i class="fa fa-arrows-alt"></i></a> <a title="<%-cleanLang(lang.Close)%> Stream" monitor="watch_off" class="btn btn-danger"><i class="fa fa-times"></i></a></div>';
                 tmp+='</div>';
                 tmp+='</div>';
                 tmp+='<div class="mdl-card mdl-cell mdl-cell--8-col mdl-cell--4-col-desktop">';
@@ -2743,6 +2751,15 @@ $('body')
         e.mid=e.p.attr('mid'),//monitor id
         e.mon=$.ccio.mon[e.mid];//monitor configuration
     switch(e.a){
+        case'pop':
+            $.ccio.snapshot(e,function(url){
+                $('#temp').html('<img src="'+url+'">')
+                var img=$('#temp img')[0]
+                img.onload=function(){
+                    window.open('/'+$user.auth_token+'/embed/'+e.ke+'/'+e.mid+'/fullscreen|gui|jquery','pop_'+e.mid,'height='+img.height+',width='+img.width);
+                }
+            })
+        break;
         case'mode':
             e.mode=e.e.attr('mode')
             if(e.mode){
