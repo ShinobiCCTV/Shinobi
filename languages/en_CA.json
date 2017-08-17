@@ -536,5 +536,9 @@
    "Bind Credentials":"Bind Credentials (Password)",
    "Search Base":"Search Base",
    "Configuration":"Configuration",
+   "Blank for No Change":"Blank for No Change",
+   "Pop":"Pop",
+   "Recording FPS Change on Start":"Recording FPS Change on Start",
+   "Save Frames to Events":"Save Frames to Events",
    "Search Filter":"Search Filter"
 }

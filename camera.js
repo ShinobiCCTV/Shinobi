@@ -1532,24 +1532,35 @@ s.camera=function(x,e,cn,tx){
                 }else{
                     d.mon.details.detector_timeout=parseFloat(d.mon.details.detector_timeout)
                 }
-                d.auth=s.gid();
-                s.group[d.ke].users[d.auth]={system:1,details:{}}
+                if(!d.auth){
+                    d.auth=s.gid();
+                }
+                if(!s.group[d.ke].users[d.auth]){
+                    s.group[d.ke].users[d.auth]={system:1,details:{},lang:lang}
+                }
+                d.urlQuery=[]
                 d.url='http://'+config.ip+':'+config.port+'/'+d.auth+'/monitor/'+d.ke+'/'+d.id+'/record/'+d.mon.details.detector_timeout+'/min';
                 if(d.mon.details.watchdog_reset!=='0'){
-                    d.url+='?reset=1'
+                    d.urlQuery.push('reset=1')
+                }
+                if(d.mon.details.detector_trigger_record_fps&&d.mon.details.detector_trigger_record_fps!==''&&d.mon.details.detector_trigger_record_fps!=='0'){
+                    d.urlQuery.push('fps='+d.mon.details.detector_trigger_record_fps)
+                }
+                if(d.urlQuery.length>0){
+                    d.url+='?'+d.urlQuery.join('&')
                 }
                 http.get(d.url, function(data) {
-                      data.setEncoding('utf8');
-                      var chunks='';
-                      data.on('data', (chunk) => {
-                          chunks+=chunk;
-                      });
-                      data.on('end', () => {
-                          delete(s.group[d.ke].users[d.auth])
-                          d.cx.f='detector_record_engaged';
-                          d.cx.msg=JSON.parse(chunks);
-                          s.tx(d.cx,'GRP_'+d.ke);
-                      });
+                    data.setEncoding('utf8');
+                    var chunks='';
+                    data.on('data', (chunk) => {
+                        chunks+=chunk;
+                    });
+                    data.on('end', () => {
+                        delete(s.group[d.ke].users[d.auth])
+                        d.cx.f='detector_record_engaged';
+                        d.cx.msg=JSON.parse(chunks);
+                        s.tx(d.cx,'GRP_'+d.ke);
+                    });
 
                 }).on('error', function(e) {
 
@@ -2192,7 +2203,7 @@ var tx;
                         switch(d.ff){
                             case'update':
                                 s.ffmpegKill()
-                                s.systemLog('Shinobi ordered to update',{by:cn.mail,ip:cn.ip})
+                                s.systemLog('Shinobi ordered to update',{by:cn.mail,ip:cn.ip,distro:d.distro})
                                 exec('chmod +x '+__dirname+'/UPDATE.sh&&'+__dirname+'/./UPDATE.sh '+d.distro,{detached: true})
                             break;
                             case'restart':
@@ -2474,7 +2485,7 @@ var tx;
 //Authenticator functions
 s.api={};
 //auth handler
-s.auth=function(xx,x,res,req){
+s.auth=function(xx,cb,res,req){
     if(req){
         xx.ip=req.headers['cf-connecting-ip'] || req.headers['x-forwarded-for'] || req.connection.remoteAddress;
         xx.failed=function(){
@@ -2489,14 +2500,14 @@ s.auth=function(xx,x,res,req){
     }
     xx.checkIP=function(ee){
         if(s.api[xx.auth].ip.indexOf('0.0.0.0')>-1||s.api[xx.auth].ip.indexOf(xx.ip)>-1){
-            x(s.api[xx.auth]);
+            cb(s.api[xx.auth]);
         }else{
             xx.failed();
         }
     }
     if(s.group[xx.ke]&&s.group[xx.ke].users&&s.group[xx.ke].users[xx.auth]){
         s.group[xx.ke].users[xx.auth].permissions={};
-        x(s.group[xx.ke].users[xx.auth]);
+        cb(s.group[xx.ke].users[xx.auth]);
     }else{
         if(s.api[xx.auth]&&s.api[xx.auth].details){
             xx.checkIP();
@@ -3397,7 +3408,7 @@ app.all(['/:auth/configureMonitor/:ke/:id','/:auth/configureMonitor/:ke/:id/:f']
 app.get(['/:auth/monitor/:ke/:id/:f','/:auth/monitor/:ke/:id/:f/:ff','/:auth/monitor/:ke/:id/:f/:ff/:fff'], function (req,res){
     req.ret={ok:false};
     res.setHeader('Content-Type', 'application/json');
-    req.fn=function(user){
+    s.auth(req.params,function(user){
         if(user.permissions.control_monitors==="0"||user.details.sub&&user.details.allmonitors!=='1'&&user.details.monitor_edit.indexOf(req.params.id)===-1){
             res.end(user.lang['Not Permitted'])
             return
@@ -3411,11 +3422,22 @@ app.get(['/:auth/monitor/:ke/:id/:f','/:auth/monitor/:ke/:id/:f/:ff','/:auth/mon
         sql.query('SELECT * FROM Monitors WHERE ke=? AND mid=?',[req.params.ke,req.params.id],function(err,r){
             if(r&&r[0]){
                 r=r[0];
-                if(req.query.reset==='1'||(s.group[r.ke]&&s.group[r.ke].mon_conf[r.mid].mode!==req.params.f)){
+                if(req.query.reset==='1'||(s.group[r.ke]&&s.group[r.ke].mon_conf[r.mid].mode!==req.params.f)||req.query.fps&&(!s.group[r.ke].mon[r.mid].currentState||!s.group[r.ke].mon[r.mid].currentState.trigger_on)){
                     if(req.query.reset!=='1'||!s.group[r.ke].mon[r.mid].trigger_timer){
-                        s.group[r.ke].mon[r.mid].currentState=r.mode.toString()
+                        if(!s.group[r.ke].mon[r.mid].currentState)s.group[r.ke].mon[r.mid].currentState={}
+                        s.group[r.ke].mon[r.mid].currentState.mode=r.mode.toString()
+                        s.group[r.ke].mon[r.mid].currentState.fps=r.fps.toString()
+                        if(!s.group[r.ke].mon[r.mid].currentState.trigger_on){
+                           s.group[r.ke].mon[r.mid].currentState.trigger_on=true
+                        }else{
+                            s.group[r.ke].mon[r.mid].currentState.trigger_on=false
+                        }
                         r.mode=req.params.f;
                         try{r.details=JSON.parse(r.details);}catch(er){}
+                        if(req.query.fps){
+                            r.fps=parseFloat(r.details.detector_trigger_record_fps)
+                            s.group[r.ke].mon[r.mid].currentState.detector_trigger_record_fps=r.fps
+                        }
                         r.id=r.mid;
                         sql.query('UPDATE Monitors SET mode=? WHERE ke=? AND mid=?',[r.mode,r.ke,r.mid]);
                         s.group[r.ke].mon_conf[r.mid]=r;
@@ -3450,12 +3472,13 @@ app.get(['/:auth/monitor/:ke/:id/:f','/:auth/monitor/:ke/:id/:f/:ff','/:auth/mon
                         }
                         s.group[r.ke].mon[r.mid].trigger_timer=setTimeout(function(){
                             delete(s.group[r.ke].mon[r.mid].trigger_timer)
-                            sql.query('UPDATE Monitors SET mode=? WHERE ke=? AND mid=?',[s.group[r.ke].mon[r.mid].currentState,r.ke,r.mid]);
+                            sql.query('UPDATE Monitors SET mode=? WHERE ke=? AND mid=?',[s.group[r.ke].mon[r.mid].currentState.mode,r.ke,r.mid]);
                             r.neglectTriggerTimer=1;
-                            r.mode=s.group[r.ke].mon[r.mid].currentState;
+                            r.mode=s.group[r.ke].mon[r.mid].currentState.mode;
+                            r.fps=s.group[r.ke].mon[r.mid].currentState.fps;
                             s.camera('stop',s.init('noReference',r),function(){
-                                if(s.group[r.ke].mon[r.mid].currentState!=='stop'){
-                                    s.camera(s.group[r.ke].mon[r.mid].currentState,s.init('noReference',r));
+                                if(s.group[r.ke].mon[r.mid].currentState.mode!=='stop'){
+                                    s.camera(s.group[r.ke].mon[r.mid].currentState.mode,s.init('noReference',r));
                                 }
                                 s.group[r.ke].mon_conf[r.mid]=r;
                             });
@@ -3472,8 +3495,7 @@ app.get(['/:auth/monitor/:ke/:id/:f','/:auth/monitor/:ke/:id/:f/:ff','/:auth/mon
             }
             res.end(s.s(req.ret, null, 3));
         })
-    }
-    s.auth(req.params,req.fn,res,req);
+    },res,req);
 })
 
 // Get video file
