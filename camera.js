@@ -293,7 +293,7 @@ server.listen(config.port,config.bindip,function(){
     console.log(lang.Shinobi+' - PORT : '+config.port);
 });
 io.attach(server);
-console.log('NODE.JS : '+execSync("node -v"))
+console.log('NODE.JS version : '+execSync("node -v"))
 //ffmpeg location
 if(!config.ffmpegDir){
     if(s.isWin===true){
@@ -301,6 +301,12 @@ if(!config.ffmpegDir){
     }else{
         config.ffmpegDir='ffmpeg'
     }
+}
+s.ffmpegVersion=execSync(config.ffmpegDir+" -version").toString().split('Copyright')[0].replace('ffmpeg version','').trim()
+console.log('FFMPEG version : '+s.ffmpegVersion)
+if(s.ffmpegVersion.indexOf(': 2.')>-1){
+    s.systemLog('File Delete Error : '+e.ke+' : '+' : '+e.mid,err)
+    return
 }
 //directories
 s.group={};
