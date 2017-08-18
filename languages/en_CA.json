@@ -23,6 +23,7 @@
    "Montage": "Montage",
    "Accounts": "Accounts",
    "Settings": "Settings",
+   "Recording FPS": "Recording FPS",
    "API": "API",
    "ONVIF": "ONVIF",
    "FFprobe": "Probe",
@@ -538,6 +539,7 @@
    "Configuration":"Configuration",
    "Blank for No Change":"Blank for No Change",
    "Pop":"Pop",
+   "Monitor Manager":"Monitor Manager",
    "Recording FPS Change on Start":"Recording FPS Change on Start",
    "Save Frames to Events":"Save Frames to Events",
    "Search Filter":"Search Filter"

@@ -40,6 +40,34 @@ switch($.ccio.userDetails.lang){
     $.ccio.init=function(x,d,z,k){
         if(!k){k={}};k.tmp='';
         switch(x){
+            case'monitorInfo':
+                d.e=$('.glM'+d.mon.mid);
+                if(d.mon.details.vcodec!=='copy'&&d.mon.mode=='record'){
+                    d.e.find('.monitor_not_record_copy').show()
+                }else{
+                    d.e.find('.monitor_not_record_copy').hide()
+                }
+                d.e.find('.monitor_name').text(d.mon.name)
+                d.e.find('.monitor_mid').text(d.mon.mid)
+                d.e.find('.monitor_ext').text(d.mon.ext);
+                    switch(d.mon.mode){
+                        case'idle':
+                            d.mode='Idle'
+                        break;
+                        case'stop':
+                            d.mode='Disabled'
+                        break;
+                        case'record':
+                            d.mode='Record'
+                        break;
+                        case'start':
+                            d.mode='Watch Only'
+                        break;
+                    }
+                d.e.find('.monitor_mode').text(d.mode)
+                d.e.attr('mode',d.mode)
+                d.e.find('.lamp').attr('title',d.mode)
+            break;
             case'fullscreen':
                 if (d.requestFullscreen) {
                   d.requestFullscreen();
@@ -509,7 +537,9 @@ switch($.ccio.userDetails.lang){
                 tmp+='</div>';
                 tmp+='<div class="mdl-card__supporting-text text-center">';
                 tmp+='<div class="indifference"><div class="progress"><div class="progress-bar progress-bar-danger" role="progressbar"><span></span></div></div></div>';
-                tmp+='<div class="monitor_name">'+d.name+'</div>';
+                tmp+='<div class="monitor_details">';
+                tmp+='<div><span class="monitor_name">'+d.name+'</span><span class="monitor_not_record_copy">, <%-cleanLang(lang['Recording FPS'])%> : <span class="monitor_fps">'+d.fps+'</span></span></div>';
+                tmp+='</div>';
                 tmp+='<div class="btn-group"><a title="<%-cleanLang(lang.Snapshot)%>" monitor="snapshot" class="btn btn-primary"><i class="fa fa-camera"></i></a> <a title="<%-cleanLang(lang['Show Logs'])%>" class_toggle="show_logs" data-target=".monitor_item[mid=\''+d.mid+'\'][ke=\''+d.ke+'\']" class="btn btn-warning"><i class="fa fa-exclamation-triangle"></i></a> <a title="<%-cleanLang(lang.Control)%>" monitor="control_toggle" class="btn btn-default"><i class="fa fa-arrows"></i></a> <a title="<%-cleanLang(lang['Status Indicator'])%>" class="btn btn-danger signal" monitor="watch_on"><i class="fa fa-plug"></i></a> <a title="<%-cleanLang(lang.Pop)%>" monitor="pop" class="btn btn-default"><i class="fa fa-external-link"></i></a> <a title="<%-cleanLang(lang.Calendar)%>" monitor="calendar" class="btn btn-default"><i class="fa fa-calendar"></i></a> <a title="<%-cleanLang(lang['Power Viewer'])%>" class="btn btn-default" monitor="powerview"><i class="fa fa-map-marker"></i></a> <a title="<%-cleanLang(lang['Time-lapse'])%>" class="btn btn-default" monitor="timelapse"><i class="fa fa-angle-double-right"></i></a> <a title="<%-cleanLang(lang['Videos List'])%>" monitor="videos_table" class="btn btn-default"><i class="fa fa-film"></i></a> <a title="<%-cleanLang(lang['Monitor Settings'])%>" class="btn btn-default permission_monitor_edit" monitor="edit"><i class="fa fa-wrench"></i></a> <a title="<%-cleanLang(lang.Fullscreen)%>" monitor="fullscreen" class="btn btn-default"><i class="fa fa-arrows-alt"></i></a> <a title="<%-cleanLang(lang.Close)%> Stream" monitor="watch_off" class="btn btn-danger"><i class="fa fa-times"></i></a></div>';
                 tmp+='</div>';
                 tmp+='</div>';
@@ -519,7 +549,7 @@ switch($.ccio.userDetails.lang){
                 tmp+='<div class="side-menu videos_monitor_list glM'+d.mid+' scrollable"><ul></ul></div>';
                 tmp+='</div>';
                 tmp+='<div class="mdl-card__supporting-text meta meta--fill mdl-color-text--grey-600">';
-                tmp+='<span class="monitor_name">'+d.name+'</span>';
+                tmp+='<div><span class="monitor_name">'+d.name+'</span><span class="monitor_not_record_copy"><%-cleanLang(lang['Recording FPS'])%> : <b class="monitor_fps">'+d.fps+'</b></span>';
                 tmp+='<b class="monitor_mode">'+k.mode+'</b>';
                 tmp+='</div>';
                 tmp+='</div>';
@@ -663,6 +693,9 @@ switch($.ccio.userDetails.lang){
                     }
                     $.ccio.tm('stream-element',d)
                 }catch(re){$.ccio.log(re)}
+                k.mid=d.mid
+                k.mon=$.ccio.mon[d.mid]
+                $.ccio.init('monitorInfo',k)
             break;
             case'filters-where':
                 $('#filters_where').append(tmp);
@@ -1019,27 +1052,7 @@ $.ccio.ws.on('f',function (d){
                     }
                 break;
             }
-            d.e=$('.glM'+d.mon.mid);
-            d.e.find('.monitor_name').text(d.mon.name)
-            d.e.find('.monitor_mid').text(d.mon.mid)
-            d.e.find('.monitor_ext').text(d.mon.ext);
-                switch(d.mon.mode){
-                    case'idle':
-                        d.mode='Idle'
-                    break;
-                    case'stop':
-                        d.mode='Disabled'
-                    break;
-                    case'record':
-                        d.mode='Record'
-                    break;
-                    case'start':
-                        d.mode='Watch Only'
-                    break;
-                }
-            d.e.find('.monitor_mode').text(d.mode)
-            d.e.attr('mode',d.mode)
-            d.e.find('.lamp').attr('title',d.mode)
+            $.ccio.init('monitorInfo',d)
             $.gR.drawList();
             $.ccio.init('note',{title:'Monitor Saved',text:'<b>'+d.mon.name+'</b> <small>'+d.mon.mid+'</small> has been saved.',type:'success'});
         break;
@@ -2759,7 +2772,7 @@ $('body')
                     if($.ccio.mon[e.mid].popOut){
                         $.ccio.mon[e.mid].popOut.close()
                     }
-                    $.ccio.mon[e.mid].popOut = window.open('/'+$user.auth_token+'/embed/'+e.ke+'/'+e.mid+'/fullscreen|gui|jquery','pop_'+e.mid,'height='+img.height+',width='+img.width);
+                    $.ccio.mon[e.mid].popOut = window.open('/'+$user.auth_token+'/embed/'+e.ke+'/'+e.mid+'/fullscreen|jquery','pop_'+e.mid,'height='+img.height+',width='+img.width);
                 }
             })
         break;

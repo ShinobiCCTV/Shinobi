@@ -96,7 +96,7 @@ img{max-width:100%}
 .monitor_item .indifference:hover .progress{height:20px;transition:0.2s}
 .hide_indifference .indifference{display:none!important}
 .hide_indifference [class_toggle="hide_indifference"]{color:#d9534f!important}
-.monitor_item .mdl-card:not(.mdl-cell--4-col-desktop) .mdl-card__supporting-text .monitor_name{display:none;font-size:90%;margin-bottom:10px}
+.monitor_item .mdl-card:not(.mdl-cell--4-col-desktop) .mdl-card__supporting-text .monitor_details{display:none;font-size:90%;margin-bottom:10px}
 .monitor_item[mode="Record"] [mode="record"]{display:none}
 .monitor_item[mode="Watch Only"] [mode="start"]{display:none}
 .monitor_item .stream-hud .controls .btn{opacity:0.7}
@@ -122,7 +122,7 @@ img{max-width:100%}
 .montage .monitor_item .indifference{top:-5px}
 .montage .monitor_item .mdl-cell--8-col{width:100%;border:0;border-radius:0;margin:0;position:relative}
 .montage .monitor_item .mdl-cell--4-col-desktop,.montage .monitor_item .mdl-card__supporting-text{display:none}
-.montage .monitor_item .mdl-card .mdl-card__supporting-text .monitor_name{display:block}
+.montage .monitor_item .mdl-card .mdl-card__supporting-text .monitor_details{display:block}
 .montage .monitor_item .mdl-card__supporting-text:not(.meta){display:block;position:absolute;bottom:0;left:0;height:0;padding:0;}
 .montage .monitor_item.detector_triggered .mdl-card__supporting-text:not(.meta) .indifference{opacity:0.5;}
 .montage .monitor_item:hover .mdl-card__supporting-text:not(.meta){opacity:1;z-index:2;height:auto;padding:15px}
