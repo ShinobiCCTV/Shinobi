@@ -890,6 +890,7 @@ $.ccio.ws.on('f',function (d){
             $('.shinobi-detector_name').text(d.plug)
             $('.shinobi-detector-'+d.plug).show()
             $('.shinobi-detector-invert').hide()
+            $.aM.drawList()
         break;
         case'detector_unplugged':
             $('.stream-objects').empty()
@@ -898,6 +899,7 @@ $.ccio.ws.on('f',function (d){
             $('.shinobi-detector_name').empty()
             $('.shinobi-detector_plug').hide()
             $('.shinobi-detector-invert').show()
+            $.aM.drawList()
         break;
         case'log':
             $.ccio.tm(4,d,'#logs,.monitor_item[mid="'+d.mid+'"][ke="'+d.ke+'"] .logs')
@@ -1527,6 +1529,35 @@ $.log.lm.change(function(e){
 });
 //add Monitor
 $.aM={e:$('#add_monitor')};$.aM.f=$.aM.e.find('form')
+$.aM.e.find('.follow-list ul').affix();
+$.each(<%-JSON.stringify(define["Monitor Settings"].blocks)%>,function(n,v){
+    $.each(v.info,function(m,b){
+        if(!b.name){
+            console.log(b)
+            return
+        }
+        if(b.name.indexOf('detail=')>-1){
+            b.name=b.name.replace('detail=','')
+            v.element=$('[detail="'+b.name+'"]')
+        }else{
+            v.element=$('[name="'+b.name+'"]')
+        }
+        v.parent=v.element.parents('.form-group').find('label div:first-child span')
+        v.parent.find('small').remove()
+        v.parent.append('<small class="hover">'+b.description+'</small>')
+    })
+})
+$.aM.drawList=function(){
+    e={list:$.aM.e.find('.follow-list ul'),html:''}
+    $.aM.e.find('[section]:visible').each(function(n,v){
+        e.e=$(v)
+        e.id = e.e.attr('id');
+        e.title = e.e.find('h4').first().html();
+        e.html += '<li><a class="scrollTo" href="#'+e.id+'" scrollToParent="#add_monitor .modal-body">'+e.title+'</a></li>'
+    })
+    e.list.html(e.html)
+    $('#add_monitor .modal-body').scrollspy({ target: '#add_monitor .follow-list' })
+}
 $.aM.import=function(e){
     $.each(e.values,function(n,v){
         $.aM.e.find('[name="'+n+'"]').val(v).change()
@@ -1566,6 +1597,7 @@ $.aM.import=function(e){
             }
         }
     });
+    setTimeout(function(){$.aM.drawList()},1000)
 }
 $.aM.e.find('.refresh_cascades').click(function(e){
     $.ccio.cx({f:'ocv_in',data:{f:'refreshPlugins',ke:$user.ke}})
@@ -1698,6 +1730,7 @@ $.aM.f.find('[selector]').change(function(e){
     $.aM.f.find('.'+e.a+'_input').hide()
     $.aM.f.find('.'+e.a+'_'+e.v).show();
     $.aM.f.find('.'+e.a+'_text').text($(this).find('option:selected').text())
+    $.aM.drawList()
 });
 $.aM.f.find('[name="type"]').change(function(e){
     e.e=$(this);
@@ -3169,6 +3202,17 @@ $('.modal').on('shown.bs.modal',function(){
 });
 
 $('body')
+.on('click','.scrollTo',function(ee){
+    ee.preventDefault()
+    var e = {e:$(this)};
+    e.parent=e.e.attr('scrollToParent')
+    if(!e.parent){
+        e.parent='body,html'
+    }
+    $(e.parent).animate({
+        scrollTop: $(e.e.attr('href')).position().top
+    }, 400);
+})
 .on('resize','.flex-container-modal-body',function(e){
     e=$(this)
     e.find('.flex-modal-block').css('height',e.height())

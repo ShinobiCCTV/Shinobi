@@ -55,6 +55,13 @@ try{
     console.log('There was an error loading your language file.')
     var lang = require('./languages/en_CA.json');
 }
+try{
+    var definitions = require('./definitions/'+config.language+'.json');
+}catch(er){
+    console.error(er)
+    console.log('There was an error loading your language file.')
+    var definitions = require('./definitions/en_CA.json');
+}
 process.send = process.send || function () {};
 if(config.mail){
     var nodemailer = require('nodemailer').createTransport(config.mail);
@@ -73,11 +80,12 @@ if(config.cron.deleteOverMax===undefined)config.cron.deleteOverMax=true;
 if(config.cron.deleteOverMaxOffset===undefined)config.cron.deleteOverMaxOffset=0.9;
 if(config.pluginKeys===undefined)config.pluginKeys={};
 s={factorAuth:{},child_help:false,totalmem:os.totalmem(),platform:os.platform(),s:JSON.stringify,isWin:(process.platform==='win32')};
+//load languages dynamically
 s.loadedLanguages={}
 s.loadedLanguages[config.language]=lang;
-s.getLanguageFile=function(rule,file){
+s.getLanguageFile=function(rule){
     if(rule&&rule!==''){
-        file=s.loadedLanguages[file]
+        var file=s.loadedLanguages[file]
         if(!file){
             try{
                 s.loadedLanguages[rule]=require('./languages/'+rule+'.json')
@@ -88,6 +96,25 @@ s.getLanguageFile=function(rule,file){
         }
     }else{
         file=lang
+    }
+    return file
+}
+//load defintions dynamically
+s.loadedDefinitons={}
+s.loadedDefinitons[config.language]=definitions;
+s.getDefinitonFile=function(rule){
+    if(rule&&rule!==''){
+        var file=s.loadedDefinitons[file]
+        if(!file){
+            try{
+                s.loadedDefinitons[rule]=require('./definitions/'+rule+'.json')
+                file=s.loadedDefinitons[rule]
+            }catch(err){
+                file=definitions
+            }
+        }
+    }else{
+        file=definitions
     }
     return file
 }
@@ -2702,29 +2729,29 @@ app.post(['/','/:screen'],function (req,res){
             case'cam':
                 sql.query('SELECT * FROM Monitors WHERE ke=? AND type=?',[r.ke,"dashcam"],function(err,rr){
                     req.resp.mons=rr;
-                    req.renderFunction("dashcam",{$user:req.resp,lang:r.lang});
+                    req.renderFunction("dashcam",{$user:req.resp,lang:r.lang,define:s.getDefinitonFile(r.details.lang)});
                 })
             break;
             case'streamer':
                 sql.query('SELECT * FROM Monitors WHERE ke=? AND type=?',[r.ke,"socket"],function(err,rr){
                     req.resp.mons=rr;
-                    req.renderFunction("streamer",{$user:req.resp,lang:r.lang});
+                    req.renderFunction("streamer",{$user:req.resp,lang:r.lang,define:s.getDefinitonFile(r.details.lang)});
                 })
             break;
             case'admin':
                 if(!r.details.sub){
                     sql.query('SELECT uid,mail,details FROM Users WHERE ke=? AND details LIKE \'%"sub"%\'',[r.ke],function(err,rr) {
                         sql.query('SELECT * FROM Monitors WHERE ke=?',[r.ke],function(err,rrr) {
-                            req.renderFunction("admin",{$user:req.resp,$subs:rr,$mons:rrr,lang:r.lang});
+                            req.renderFunction("admin",{$user:req.resp,$subs:rr,$mons:rrr,lang:r.lang,define:s.getDefinitonFile(r.details.lang)});
                         })
                     })
                 }else{
                     //not admin user
-                    req.renderFunction("home",{$user:req.resp,config:config,lang:r.lang,fs:fs});
+                    req.renderFunction("home",{$user:req.resp,config:config,lang:r.lang,define:s.getDefinitonFile(r.details.lang),fs:fs});
                 }
             break;
             default:
-                req.renderFunction("home",{$user:req.resp,config:config,lang:r.lang,fs:fs});
+                req.renderFunction("home",{$user:req.resp,config:config,lang:r.lang,define:s.getDefinitonFile(r.details.lang),fs:fs});
             break;
         }
         s.log({ke:r.ke,mid:'$USER'},{type:r.lang['New Authentication Token'],msg:{for:req.body.function,mail:r.mail,id:r.uid,ip:req.ip}})
@@ -2932,7 +2959,7 @@ app.post(['/','/:screen'],function (req,res){
                 if(s.factorAuth[req.body.ke][req.body.id].key===req.body.factorAuthKey){
                     if(req.body.remember==="1"){
                         req.details=JSON.parse(s.factorAuth[req.body.ke][req.body.id].info.details)
-                        req.lang=s.loadedLanguages[req.details.lang]
+                        req.lang=s.getLanguageFile(req.details.lang)
                         if(!req.details.acceptedMachines||!(req.details.acceptedMachines instanceof Object)){
                             req.details.acceptedMachines={}
                         }

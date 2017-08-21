@@ -54,6 +54,7 @@
 @import (less) "../less/pie.less";
 ul{list-style:none}
 *{transition:0.2s;box-sizing:border-box}
+.affix-top{position:fixed}
 .no-padding{padding:0!important}
 .no-margin{margin:0!important}
 .pre-inline{white-space: normal;word-break: normal}
@@ -76,7 +77,7 @@ img{max-width:100%}
 .jpegMode [system="jpegToggle"],[system].text-success{color:#5cb85c!important}
 .permission_monitor_edit{display:none}
 .permission_video_delete{display:none}
-
+.follow-list ul{padding:0;margin:0}
 .nodata .divider{margin:5px 0}
 
 .monitor_item.fullscreen img.stream-element{height:100%;width:auto}
