@@ -8,10 +8,6 @@ window.chartColors = {
     grey: 'rgb(201, 203, 207)'
 };
 $.ccio={fr:$('#files_recent'),mon:{},userDetails:JSON.parse($user.details)};
-<% cleanLang=function(string){
-    if(!string){string=''}
-    return string.replace(/'/g,"\\'")
-} %>
 if(!$.ccio.userDetails.lang||$.ccio.userDetails.lang==''){
     $.ccio.userDetails.lang="<%-config.language%>"
 }
@@ -1547,6 +1543,52 @@ $.each(<%-JSON.stringify(define["Monitor Settings"].blocks)%>,function(n,v){
         v.parent.append('<small class="hover">'+b.description+'</small>')
     })
 })
+if(!$.ccio.op().tabsOpen){
+    $.ccio.op('tabsOpen',{})
+}
+$.aM.tab=function(x,e){
+    var k={e:$('#monedit_tabs')}
+    k.tabs=$.ccio.op().tabsOpen
+    k.append=function(e){
+        k.e.append('<li class="mdl-menu__item" mid="'+e.mid+'" ke="'+e.ke+'"><a title="Delete Pending Changes" class="delete btn btn-default btn-xs">&nbsp;<i class="fa fa-trash-o"></i>&nbsp;</a> &nbsp; <span class="name">'+e.name+'</span> <small>'+e.mid+'</small></li>')
+    }
+    if(!x){
+        $.each(k.tabs,function(n,v){
+            k.append(v)
+        })
+        return
+    }
+    if(!e.mid||e.mid===''){return}
+    e.ke=$user.ke
+    k.launcher=k.e.find('[mid="'+e.mid+'"][ke="'+e.ke+'"]')
+    switch(x){
+        case'add':
+            k.tabs[e.mid]=e
+            if(k.launcher.length===0){
+                k.append(e)
+            }else{
+                k.launcher.find('.name').text(e.name)
+            }
+        break;
+        case'delete':
+            delete(k.tabs[e.mid])
+            k.launcher.remove()
+        break;
+    }
+    $.ccio.op('tabsOpen',k.tabs)
+}
+$.aM.tab()
+$.aM.e.on('click','#monedit_tabs li .delete',function(e){
+    e.preventDefault()
+    $.aM.tab('delete',$.ccio.op().tabsOpen[$(this).parents('li').attr('mid')])
+})
+$.aM.e.on('click','#monedit_tabs li',function(){
+    e={e:$(this)}
+    e.mid=e.e.attr('mid')
+    e.ke=e.e.attr('ke')
+    e.values=$.ccio.op().tabsOpen[e.mid]
+    $.aM.import(e)
+})
 $.aM.drawList=function(){
     e={list:$.aM.e.find('.follow-list ul'),html:''}
     $.aM.e.find('[section]:visible').each(function(n,v){
@@ -1558,6 +1600,7 @@ $.aM.drawList=function(){
     e.list.html(e.html)
 }
 $.aM.import=function(e){
+    $.aM.e.attr('mid',e.mid).attr('ke',e.ke)
     $.each(e.values,function(n,v){
         $.aM.e.find('[name="'+n+'"]').val(v).change()
     })
@@ -1615,11 +1658,12 @@ $.aM.f.submit(function(e){
         $.ccio.init('note',{title:'Configuration Invalid',text:e.er.join('<br>'),type:'error'});
         return;
     }
-    $.post('/'+$user.auth_token+'/configureMonitor/'+$user.ke+'/'+e.s.mid,{data:JSON.stringify(e.s)},function(d){
+    $.post('/'+$user.auth_token+'/configureMonitor/'+$user.ke+'/'+e.s.mid+'?data='+JSON.stringify(e.s),function(d){
         $.ccio.log(d)
     })
     if(!$.ccio.mon[e.s.mid]){$.ccio.mon[e.s.mid]={}}
     $.each(e.s,function(n,v){$.ccio.mon[e.s.mid][n]=v;})
+    $.aM.tab('delete',e.s)
     $.aM.e.modal('hide')
     return false;
 });
@@ -1745,6 +1789,9 @@ $.aM.f.find('[name="type"]').change(function(e){
         break;
     }
 });
+$.aM.f.find('input,select,textarea').change(function(e){
+    $.aM.tab('add',$.aM.f.serializeObject())
+})
 //api window
 $.apM={e:$('#apis')};$.apM.f=$.apM.e.find('form');
 $.apM.md=$.apM.f.find('[detail]');
@@ -2797,16 +2844,25 @@ $('body')
         e.mon=$.ccio.mon[e.mid];//monitor configuration
     switch(e.a){
         case'pop':
-            $.ccio.snapshot(e,function(url){
-                $('#temp').html('<img src="'+url+'">')
-                var img=$('#temp img')[0]
-                img.onload=function(){
-                    if($.ccio.mon[e.mid].popOut){
-                        $.ccio.mon[e.mid].popOut.close()
-                    }
-                    $.ccio.mon[e.mid].popOut = window.open('/'+$user.auth_token+'/embed/'+e.ke+'/'+e.mid+'/fullscreen|jquery','pop_'+e.mid,'height='+img.height+',width='+img.width);
+            e.fin=function(img){
+                if($.ccio.mon[e.mid].popOut){
+                    $.ccio.mon[e.mid].popOut.close()
                 }
-            })
+                $.ccio.mon[e.mid].popOut = window.open('/'+$user.auth_token+'/embed/'+e.ke+'/'+e.mid+'/fullscreen|jquery','pop_'+e.mid,'height='+img.height+',width='+img.width);
+            }
+            if(e.mon.watch===1){
+                $.ccio.snapshot(e,function(url){
+                    $('#temp').html('<img src="'+url+'">')
+                    var img=$('#temp img')[0]
+                    console.log(img)
+                    img.onload=function(){
+                        e.fin(img)
+                    }
+                })
+            }else{
+                var img={height:720,width:1280}
+                e.fin(img)
+            }
         break;
         case'mode':
             e.mode=e.e.attr('mode')
@@ -3056,8 +3112,12 @@ $('body')
                 })
             });
         break;
+        case'unadd':
+            $.aM.tab('delete',$.aM.e.serializeObject())
+            $.aM.e.modal('hide')
+        break;
         case'edit':
-            e.p=$('#add_monitor'),e.mt=e.p.attr('mid',e.mid).attr('ke',e.ke).find('.modal-title')
+            e.p=$('#add_monitor'),e.mt=e.p.find('.modal-title')
             e.p.find('.am_notice').hide()
             e.p.find('[detailcontainer="detector_cascades"]').prop('checked',false).parents('.mdl-js-switch').removeClass('is-checked')
             if(!$.ccio.mon[e.mid]){
@@ -3162,6 +3222,10 @@ $('body')
                 e.values=$.ccio.mon[e.mid];
             }
             $.aM.selected=e.mid;
+            e.openTabs=$.ccio.op().tabsOpen
+            if(e.openTabs[e.mid]){
+                e.values=e.openTabs[e.mid]
+            }
             $.aM.import(e)
             try{
                 e.tmp='';
