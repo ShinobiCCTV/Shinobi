@@ -1556,7 +1556,6 @@ $.aM.drawList=function(){
         e.html += '<li><a class="scrollTo" href="#'+e.id+'" scrollToParent="#add_monitor .modal-body">'+e.title+'</a></li>'
     })
     e.list.html(e.html)
-    $('#add_monitor .modal-body').scrollspy({ target: '#add_monitor .follow-list' })
 }
 $.aM.import=function(e){
     $.each(e.values,function(n,v){
