@@ -77,7 +77,6 @@ img{max-width:100%}
 .jpegMode [system="jpegToggle"],[system].text-success{color:#5cb85c!important}
 .permission_monitor_edit{display:none}
 .permission_video_delete{display:none}
-.follow-list ul{padding:0;margin:0}
 .nodata .divider{margin:5px 0}
 
 .monitor_item.fullscreen img.stream-element{height:100%;width:auto}
@@ -319,6 +318,8 @@ img.circle-img,div.circle-img{border-radius:50%;height:50px;width:50px}
 .dark .table>tbody>tr.active>td{background:inherit;border:0}
 .dark code{color: #c49a68;background-color: #36333d;}
 .dark a:not(.btn){color: #c49a68;}
+.follow-list ul{padding:0;margin:0;font-family:"Roboto","Helvetica","Arial",sans-serif;}
+.follow-list ul a:not(.btn){color:#fff}
 .os_bars{width:600px;display:inline-block;padding:5px 0 0 10px}
 @media screen and (max-width: 600px){
     .os_bars{width:200px;}

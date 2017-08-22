@@ -1600,7 +1600,8 @@ $.aM.drawList=function(){
     e.list.html(e.html)
 }
 $.aM.import=function(e){
-    $.aM.e.attr('mid',e.mid).attr('ke',e.ke)
+    $.aM.e.find('.edit_id').text(e.values.mid);
+    $.aM.e.attr('mid',e.values.mid).attr('ke',e.values.ke)
     $.each(e.values,function(n,v){
         $.aM.e.find('[name="'+n+'"]').val(v).change()
     })
@@ -3211,12 +3212,10 @@ $('body')
                     "shto":"[]",
                     "shfr":"[]"
                 }
-                e.mt.find('.edit_id').text(e.values.mid);
             }else{
                 e.p.find('.am_notice_edit').show()
                 //edit monitor
                 e.p.find('[monitor="delete"]').show()
-                e.mt.find('.edit_id').text(e.mid);
                 e.mt.find('span').text('<%-cleanLang(lang.Edit)%>');
                 e.mt.find('i').attr('class','fa fa-wrench');
                 e.values=$.ccio.mon[e.mid];
