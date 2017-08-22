@@ -2853,12 +2853,12 @@ $('body')
             }
             if(e.mon.watch===1){
                 $.ccio.snapshot(e,function(url){
-                    $('#temp').html('<img src="'+url+'">')
+                    $('#temp').html('<img>')
                     var img=$('#temp img')[0]
-                    console.log(img)
                     img.onload=function(){
                         e.fin(img)
                     }
+                    img.src=url
                 })
             }else{
                 var img={height:720,width:1280}
