@@ -3113,10 +3113,6 @@ $('body')
                 })
             });
         break;
-        case'unadd':
-            $.aM.tab('delete',$.aM.e.serializeObject())
-            $.aM.e.modal('hide')
-        break;
         case'edit':
             e.p=$('#add_monitor'),e.mt=e.p.find('.modal-title')
             e.p.find('.am_notice').hide()
