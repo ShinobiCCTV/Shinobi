@@ -125,7 +125,15 @@ s.disc=function(){
 }
 s.disc();
 //kill any ffmpeg running
-s.ffmpegKill=function(){exec("ps aux | grep -ie ffmpeg | awk '{print $2}' | xargs kill -9",{detached: true})};
+s.ffmpegKill=function(){
+    var cmd=''
+    if(s.isWin===true){
+        cmd="Taskkill /IM ffmpeg.exe /F"
+    }else{
+        cmd="ps aux | grep -ie ffmpeg | awk '{print $2}' | xargs kill -9"
+    }
+    exec(cmd,{detached: true})
+};
 process.on('exit',s.ffmpegKill.bind(null,{cleanup:true}));
 process.on('SIGINT',s.ffmpegKill.bind(null, {exit:true}));
 //key for child servers
@@ -666,6 +674,7 @@ s.ffmpeg=function(e,x){
     x.cust_detect=' '
     x.record_video_filters=[]
     x.stream_video_filters=[]
+    x.hwaccel=''
     //input - analyze duration
     if(e.details.aduration&&e.details.aduration!==''){x.cust_input+=' -analyzeduration '+e.details.aduration};
     //input - probe size
@@ -828,15 +837,6 @@ s.ffmpeg=function(e,x){
     if(e.details.rotate_stream&&e.details.rotate_stream!==""&&e.details.rotate_stream!=="no"){
         x.stream_video_filters.push('transpose='+e.details.rotate_stream);
     }
-    //stream - video filter
-    if(e.details.svf&&e.details.svf!==''){
-        x.stream_video_filters.push(e.details.svf)
-    }
-    if(x.stream_video_filters.length>0){
-       x.stream_video_filters=' -vf '+x.stream_video_filters.join(',')
-    }else{
-        x.stream_video_filters=''
-    }
     //stream - hls vcodec
     if(e.details.stream_vcodec&&e.details.stream_vcodec!=='no'){
         if(e.details.stream_vcodec!==''){x.stream_vcodec=' -c:v '+e.details.stream_vcodec}else{x.stream_vcodec='libx264'}
@@ -858,12 +858,30 @@ s.ffmpeg=function(e,x){
     if(e.details.preset_stream&&e.details.preset_stream!==''){x.preset_stream=' -preset '+e.details.preset_stream;}else{x.preset_stream=''}
     //stream - quality
     if(e.details.stream_quality&&e.details.stream_quality!==''){x.stream_quality=e.details.stream_quality}else{x.stream_quality=''}
+    //hardware acceleration
+//	   x.hwaccel=' -c:v h264_cuvid -hwaccel_device :0';
+    if(e.details.gpu_decoder&&e.details.gpu_decoder!==''){
+        x.hwaccel+=' -hwaccel '+e.details.gpu_decoder;
+    }
+    //stream - video filter
+    if(e.details.svf&&e.details.svf!==''){
+        x.stream_video_filters.push(e.details.svf)
+    }
+    if(x.stream_video_filters.length>0){
+        x.stream_video_filters=' -vf '+x.stream_video_filters.join(',')
+    }else{
+        x.stream_video_filters=''
+    }
     //stream - pipe build
     switch(e.details.stream_type){
         case'hls':
-            if(x.cust_stream.indexOf('-tune')===-1){x.cust_stream+=' -tune zerolatency'}
-            if(x.cust_stream.indexOf('-g ')===-1){x.cust_stream+=' -g 1'}
             if(x.stream_quality)x.stream_quality=' -crf '+x.stream_quality;
+            if(x.hwaccel===''){
+                if(x.cust_stream.indexOf('-tune')===-1){x.cust_stream+=' -tune zerolatency'}
+            }else{
+                x.stream_quality=''
+            }
+            if(x.cust_stream.indexOf('-g ')===-1){x.cust_stream+=' -g 1'}
             x.pipe=x.preset_stream+x.stream_quality+x.stream_acodec+x.stream_vcodec+x.stream_fps+' -f hls -s '+x.ratio+x.stream_video_filters+x.cust_stream+' -hls_time '+x.hls_time+' -hls_list_size '+x.hls_list_size+' -start_number 0 -hls_allow_cache 0 -hls_flags +delete_segments+omit_endlist '+e.sdir+'s.m3u8';
         break;
         case'mjpeg':
@@ -941,7 +959,7 @@ s.ffmpeg=function(e,x){
             if(e.mode=='record'){
                 x.record_string+=x.vcodec+x.framerate+x.acodec+x.record_dimensions+x.record_video_filters+' '+x.segment;
             }
-            x.tmp=x.loglevel+x.cust_input+' -i '+e.url+x.record_string+x.pipe;
+            x.tmp=x.loglevel+x.cust_input+x.hwaccel+' -i '+e.url+x.record_string+x.pipe;
         break;
         case'local':
             if(e.mode=='record'){

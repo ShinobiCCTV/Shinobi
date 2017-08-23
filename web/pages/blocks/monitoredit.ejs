@@ -65,31 +65,29 @@
                   <%-lang.InputText2%>
                   <p><%-lang.InputText3%></p>
               </blockquote>
-              <div class="row">
-                  <div class="form-group col-md-12">
-                    <label><div><span><%-lang['Input Type']%></span></div>
-                        <div><select class="form-control" name="type" selector="h_t">
-                            <option value="jpeg"><%-lang['JPEG']%></option>
-                            <option value="mjpeg"><%-lang['MJPEG']%></option>
-                            <option value="h264"><%-lang['H.264 / H.265 / H.265+']%></option>
-                            <option value="hls"><%-lang['HLS (.m3u8)']%></option>
-                            <option value="mp4"><%-lang['MPEG-4 (.mp4 / .ts)']%></option>
-                            <option value="socket"><%-lang['Shinobi Streamer']%></option>
-                            <option value="dashcam"><%-lang['Dashcam (Streamer v2)']%></option>
-                            <option value="local"><%-lang['Local']%></option>
-                        </select></div>
-                    </label>
-                  </div>
-                  <div class="form-group col-md-12 h_t_input h_t_h264 h_t_hls h_t_mp4 h_t_jpeg h_t_mjpeg">
-                    <label><div><span><%-lang['Connection Type']%></span></div>
-                        <div><select class="form-control" name="protocol" selector="h_p">
-                            <option value="http" selected><%-lang['HTTP']%></option>
-                            <option value="https"><%-lang['HTTPS']%></option>
-                            <option value="rtsp"><%-lang['RTSP']%></option>
-                            <option value="udp"><%-lang['UDP']%></option>
-                        </select></div>
-                    </label>
-                  </div>
+              <div class="form-group">
+                <label><div><span><%-lang['Input Type']%></span></div>
+                    <div><select class="form-control" name="type" selector="h_t">
+                        <option value="jpeg"><%-lang['JPEG']%></option>
+                        <option value="mjpeg"><%-lang['MJPEG']%></option>
+                        <option value="h264"><%-lang['H.264 / H.265 / H.265+']%></option>
+                        <option value="hls"><%-lang['HLS (.m3u8)']%></option>
+                        <option value="mp4"><%-lang['MPEG-4 (.mp4 / .ts)']%></option>
+                        <option value="socket"><%-lang['Shinobi Streamer']%></option>
+                        <option value="dashcam"><%-lang['Dashcam (Streamer v2)']%></option>
+                        <option value="local"><%-lang['Local']%></option>
+                    </select></div>
+                </label>
+              </div>
+              <div class="form-group h_t_input h_t_h264 h_t_hls h_t_mp4 h_t_jpeg h_t_mjpeg">
+                <label><div><span><%-lang['Connection Type']%></span></div>
+                    <div><select class="form-control" name="protocol" selector="h_p">
+                        <option value="http" selected><%-lang['HTTP']%></option>
+                        <option value="https"><%-lang['HTTPS']%></option>
+                        <option value="rtsp"><%-lang['RTSP']%></option>
+                        <option value="udp"><%-lang['UDP']%></option>
+                    </select></div>
+                </label>
               </div>
               <div class="form-group h_p_input h_p_rtsp">
                 <label><div><span><%-lang['RTSP Transport']%></span></div>
@@ -101,13 +99,13 @@
                     </select></div>
                 </label>
               </div>
-              <div class="row h_t_input h_t_h264 h_t_hls h_t_mp4 h_t_jpeg h_t_mjpeg">
-                  <div class="form-group col-md-12">
+              <div class="h_t_input h_t_h264 h_t_hls h_t_mp4 h_t_jpeg h_t_mjpeg">
+                  <div class="form-group">
                     <label><div><span><%-lang['Username']%></span></div>
                     <div><input class="form-control" detail="muser" placeholder=""></div>
                     </label>
                   </div>
-                  <div class="form-group col-md-12">
+                  <div class="form-group">
                     <label><div><span><%-lang['Password']%></span></div>
                     <div><input class="form-control" type="password" detail="mpass" placeholder=""></div>
                     </label>
@@ -154,6 +152,18 @@
                 <div><input class="form-control" detail="probesize"></div>
                 </label>
               </div>
+              <div class="form-group">
+                <label><div><span><%-lang['Decode with GPU']%></span></div>
+                    <div><select class="form-control" detail="gpu_decoder">
+                        <option value="" selected><%-lang.No%></option>
+                        <optgroup label="Yes">
+                            <option value="qsv"><%-lang.qsv%></option>
+                            <option value="dxva2"><%-lang.dxva2%></option>
+                            <option value="cuvid"><%-lang.cuvid%></option>
+                        </optgroup>
+                    </select></div>
+                </label>
+              </div>
           </div>
 <!--     END of Input     -->
 <!--     START of Stream     -->
@@ -186,6 +196,7 @@
                                 <option value="libx264" selected><%-lang['libx264']%></option>
                                 <option value="libx265"><%-lang['libx265']%></option>
                                 <option value="copy"><%-lang['copy']%></option>
+                                <option value="h264_nvenc"><%-lang['h264_nvenc']%></option>
                             </select></div>
                         </label>
                       </div>
@@ -472,6 +483,7 @@
                             <option value="libx265"><%-lang['libx265']%></option>
                             <option value="libx264"><%-lang['libx264 (Default)']%></option>
                             <option value="copy"><%-lang['copy']%></option>
+                            <option value="h264_nvenc"><%-lang['h264_nvenc']%></option>
                         </optgroup>
                     </select></div>
                 </label>
