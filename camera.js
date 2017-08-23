@@ -55,6 +55,13 @@ try{
     console.log('There was an error loading your language file.')
     var lang = require('./languages/en_CA.json');
 }
+try{
+    var definitions = require('./definitions/'+config.language+'.json');
+}catch(er){
+    console.error(er)
+    console.log('There was an error loading your language file.')
+    var definitions = require('./definitions/en_CA.json');
+}
 process.send = process.send || function () {};
 if(config.mail){
     var nodemailer = require('nodemailer').createTransport(config.mail);
@@ -73,11 +80,12 @@ if(config.cron.deleteOverMax===undefined)config.cron.deleteOverMax=true;
 if(config.cron.deleteOverMaxOffset===undefined)config.cron.deleteOverMaxOffset=0.9;
 if(config.pluginKeys===undefined)config.pluginKeys={};
 s={factorAuth:{},child_help:false,totalmem:os.totalmem(),platform:os.platform(),s:JSON.stringify,isWin:(process.platform==='win32')};
+//load languages dynamically
 s.loadedLanguages={}
 s.loadedLanguages[config.language]=lang;
-s.getLanguageFile=function(rule,file){
+s.getLanguageFile=function(rule){
     if(rule&&rule!==''){
-        file=s.loadedLanguages[file]
+        var file=s.loadedLanguages[file]
         if(!file){
             try{
                 s.loadedLanguages[rule]=require('./languages/'+rule+'.json')
@@ -88,6 +96,25 @@ s.getLanguageFile=function(rule,file){
         }
     }else{
         file=lang
+    }
+    return file
+}
+//load defintions dynamically
+s.loadedDefinitons={}
+s.loadedDefinitons[config.language]=definitions;
+s.getDefinitonFile=function(rule){
+    if(rule&&rule!==''){
+        var file=s.loadedDefinitons[file]
+        if(!file){
+            try{
+                s.loadedDefinitons[rule]=require('./definitions/'+rule+'.json')
+                file=s.loadedDefinitons[rule]
+            }catch(err){
+                file=definitions
+            }
+        }
+    }else{
+        file=definitions
     }
     return file
 }
@@ -293,7 +320,7 @@ server.listen(config.port,config.bindip,function(){
     console.log(lang.Shinobi+' - PORT : '+config.port);
 });
 io.attach(server);
-console.log('NODE.JS : '+execSync("node -v"))
+console.log('NODE.JS version : '+execSync("node -v"))
 //ffmpeg location
 if(!config.ffmpegDir){
     if(s.isWin===true){
@@ -301,6 +328,12 @@ if(!config.ffmpegDir){
     }else{
         config.ffmpegDir='ffmpeg'
     }
+}
+s.ffmpegVersion=execSync(config.ffmpegDir+" -version").toString().split('Copyright')[0].replace('ffmpeg version','').trim()
+console.log('FFMPEG version : '+s.ffmpegVersion)
+if(s.ffmpegVersion.indexOf(': 2.')>-1){
+    s.systemLog('File Delete Error : '+e.ke+' : '+' : '+e.mid,err)
+    return
 }
 //directories
 s.group={};
@@ -1532,24 +1565,35 @@ s.camera=function(x,e,cn,tx){
                 }else{
                     d.mon.details.detector_timeout=parseFloat(d.mon.details.detector_timeout)
                 }
-                d.auth=s.gid();
-                s.group[d.ke].users[d.auth]={system:1,details:{}}
+                if(!d.auth){
+                    d.auth=s.gid();
+                }
+                if(!s.group[d.ke].users[d.auth]){
+                    s.group[d.ke].users[d.auth]={system:1,details:{},lang:lang}
+                }
+                d.urlQuery=[]
                 d.url='http://'+config.ip+':'+config.port+'/'+d.auth+'/monitor/'+d.ke+'/'+d.id+'/record/'+d.mon.details.detector_timeout+'/min';
                 if(d.mon.details.watchdog_reset!=='0'){
-                    d.url+='?reset=1'
+                    d.urlQuery.push('reset=1')
+                }
+                if(d.mon.details.detector_trigger_record_fps&&d.mon.details.detector_trigger_record_fps!==''&&d.mon.details.detector_trigger_record_fps!=='0'){
+                    d.urlQuery.push('fps='+d.mon.details.detector_trigger_record_fps)
+                }
+                if(d.urlQuery.length>0){
+                    d.url+='?'+d.urlQuery.join('&')
                 }
                 http.get(d.url, function(data) {
-                      data.setEncoding('utf8');
-                      var chunks='';
-                      data.on('data', (chunk) => {
-                          chunks+=chunk;
-                      });
-                      data.on('end', () => {
-                          delete(s.group[d.ke].users[d.auth])
-                          d.cx.f='detector_record_engaged';
-                          d.cx.msg=JSON.parse(chunks);
-                          s.tx(d.cx,'GRP_'+d.ke);
-                      });
+                    data.setEncoding('utf8');
+                    var chunks='';
+                    data.on('data', (chunk) => {
+                        chunks+=chunk;
+                    });
+                    data.on('end', () => {
+                        delete(s.group[d.ke].users[d.auth])
+                        d.cx.f='detector_record_engaged';
+                        d.cx.msg=JSON.parse(chunks);
+                        s.tx(d.cx,'GRP_'+d.ke);
+                    });
 
                 }).on('error', function(e) {
 
@@ -1570,7 +1614,7 @@ s.camera=function(x,e,cn,tx){
                         clearTimeout(s.group[d.ke].mon[d.id].detector_mail);
                         delete(s.group[d.ke].mon[d.id].detector_mail);
                     },d.mon.details.detector_mail_timeout);
-                    d.frame_filename='Motion_'+d.id+'_'+d.ke+'_'+s.moment()+'.jpg';
+                    d.frame_filename='Motion_'+d.name+'_'+d.id+'_'+d.ke+'_'+s.moment()+'.jpg';
                     fs.readFile(s.dir.streams+'/'+d.ke+'/'+d.id+'/s.jpg',function(err, frame){
                         d.mailOptions = {
                             from: '"ShinobiCCTV" <no-reply@shinobi.video>', // sender address
@@ -2192,7 +2236,7 @@ var tx;
                         switch(d.ff){
                             case'update':
                                 s.ffmpegKill()
-                                s.systemLog('Shinobi ordered to update',{by:cn.mail,ip:cn.ip})
+                                s.systemLog('Shinobi ordered to update',{by:cn.mail,ip:cn.ip,distro:d.distro})
                                 exec('chmod +x '+__dirname+'/UPDATE.sh&&'+__dirname+'/./UPDATE.sh '+d.distro,{detached: true})
                             break;
                             case'restart':
@@ -2474,7 +2518,7 @@ var tx;
 //Authenticator functions
 s.api={};
 //auth handler
-s.auth=function(xx,x,res,req){
+s.auth=function(xx,cb,res,req){
     if(req){
         xx.ip=req.headers['cf-connecting-ip'] || req.headers['x-forwarded-for'] || req.connection.remoteAddress;
         xx.failed=function(){
@@ -2489,14 +2533,14 @@ s.auth=function(xx,x,res,req){
     }
     xx.checkIP=function(ee){
         if(s.api[xx.auth].ip.indexOf('0.0.0.0')>-1||s.api[xx.auth].ip.indexOf(xx.ip)>-1){
-            x(s.api[xx.auth]);
+            cb(s.api[xx.auth]);
         }else{
             xx.failed();
         }
     }
     if(s.group[xx.ke]&&s.group[xx.ke].users&&s.group[xx.ke].users[xx.auth]){
         s.group[xx.ke].users[xx.auth].permissions={};
-        x(s.group[xx.ke].users[xx.auth]);
+        cb(s.group[xx.ke].users[xx.auth]);
     }else{
         if(s.api[xx.auth]&&s.api[xx.auth].details){
             xx.checkIP();
@@ -2685,29 +2729,29 @@ app.post(['/','/:screen'],function (req,res){
             case'cam':
                 sql.query('SELECT * FROM Monitors WHERE ke=? AND type=?',[r.ke,"dashcam"],function(err,rr){
                     req.resp.mons=rr;
-                    req.renderFunction("dashcam",{$user:req.resp,lang:r.lang});
+                    req.renderFunction("dashcam",{$user:req.resp,lang:r.lang,define:s.getDefinitonFile(r.details.lang)});
                 })
             break;
             case'streamer':
                 sql.query('SELECT * FROM Monitors WHERE ke=? AND type=?',[r.ke,"socket"],function(err,rr){
                     req.resp.mons=rr;
-                    req.renderFunction("streamer",{$user:req.resp,lang:r.lang});
+                    req.renderFunction("streamer",{$user:req.resp,lang:r.lang,define:s.getDefinitonFile(r.details.lang)});
                 })
             break;
             case'admin':
                 if(!r.details.sub){
                     sql.query('SELECT uid,mail,details FROM Users WHERE ke=? AND details LIKE \'%"sub"%\'',[r.ke],function(err,rr) {
                         sql.query('SELECT * FROM Monitors WHERE ke=?',[r.ke],function(err,rrr) {
-                            req.renderFunction("admin",{$user:req.resp,$subs:rr,$mons:rrr,lang:r.lang});
+                            req.renderFunction("admin",{$user:req.resp,$subs:rr,$mons:rrr,lang:r.lang,define:s.getDefinitonFile(r.details.lang)});
                         })
                     })
                 }else{
                     //not admin user
-                    req.renderFunction("home",{$user:req.resp,config:config,lang:r.lang,fs:fs});
+                    req.renderFunction("home",{$user:req.resp,config:config,lang:r.lang,define:s.getDefinitonFile(r.details.lang),fs:fs});
                 }
             break;
             default:
-                req.renderFunction("home",{$user:req.resp,config:config,lang:r.lang,fs:fs});
+                req.renderFunction("home",{$user:req.resp,config:config,lang:r.lang,define:s.getDefinitonFile(r.details.lang),fs:fs});
             break;
         }
         s.log({ke:r.ke,mid:'$USER'},{type:r.lang['New Authentication Token'],msg:{for:req.body.function,mail:r.mail,id:r.uid,ip:req.ip}})
@@ -2915,7 +2959,7 @@ app.post(['/','/:screen'],function (req,res){
                 if(s.factorAuth[req.body.ke][req.body.id].key===req.body.factorAuthKey){
                     if(req.body.remember==="1"){
                         req.details=JSON.parse(s.factorAuth[req.body.ke][req.body.id].info.details)
-                        req.lang=s.loadedLanguages[req.details.lang]
+                        req.lang=s.getLanguageFile(req.details.lang)
                         if(!req.details.acceptedMachines||!(req.details.acceptedMachines instanceof Object)){
                             req.details.acceptedMachines={}
                         }
@@ -3397,7 +3441,7 @@ app.all(['/:auth/configureMonitor/:ke/:id','/:auth/configureMonitor/:ke/:id/:f']
 app.get(['/:auth/monitor/:ke/:id/:f','/:auth/monitor/:ke/:id/:f/:ff','/:auth/monitor/:ke/:id/:f/:ff/:fff'], function (req,res){
     req.ret={ok:false};
     res.setHeader('Content-Type', 'application/json');
-    req.fn=function(user){
+    s.auth(req.params,function(user){
         if(user.permissions.control_monitors==="0"||user.details.sub&&user.details.allmonitors!=='1'&&user.details.monitor_edit.indexOf(req.params.id)===-1){
             res.end(user.lang['Not Permitted'])
             return
@@ -3411,11 +3455,22 @@ app.get(['/:auth/monitor/:ke/:id/:f','/:auth/monitor/:ke/:id/:f/:ff','/:auth/mon
         sql.query('SELECT * FROM Monitors WHERE ke=? AND mid=?',[req.params.ke,req.params.id],function(err,r){
             if(r&&r[0]){
                 r=r[0];
-                if(req.query.reset==='1'||(s.group[r.ke]&&s.group[r.ke].mon_conf[r.mid].mode!==req.params.f)){
+                if(req.query.reset==='1'||(s.group[r.ke]&&s.group[r.ke].mon_conf[r.mid].mode!==req.params.f)||req.query.fps&&(!s.group[r.ke].mon[r.mid].currentState||!s.group[r.ke].mon[r.mid].currentState.trigger_on)){
                     if(req.query.reset!=='1'||!s.group[r.ke].mon[r.mid].trigger_timer){
-                        s.group[r.ke].mon[r.mid].currentState=r.mode.toString()
+                        if(!s.group[r.ke].mon[r.mid].currentState)s.group[r.ke].mon[r.mid].currentState={}
+                        s.group[r.ke].mon[r.mid].currentState.mode=r.mode.toString()
+                        s.group[r.ke].mon[r.mid].currentState.fps=r.fps.toString()
+                        if(!s.group[r.ke].mon[r.mid].currentState.trigger_on){
+                           s.group[r.ke].mon[r.mid].currentState.trigger_on=true
+                        }else{
+                            s.group[r.ke].mon[r.mid].currentState.trigger_on=false
+                        }
                         r.mode=req.params.f;
                         try{r.details=JSON.parse(r.details);}catch(er){}
+                        if(req.query.fps){
+                            r.fps=parseFloat(r.details.detector_trigger_record_fps)
+                            s.group[r.ke].mon[r.mid].currentState.detector_trigger_record_fps=r.fps
+                        }
                         r.id=r.mid;
                         sql.query('UPDATE Monitors SET mode=? WHERE ke=? AND mid=?',[r.mode,r.ke,r.mid]);
                         s.group[r.ke].mon_conf[r.mid]=r;
@@ -3450,12 +3505,13 @@ app.get(['/:auth/monitor/:ke/:id/:f','/:auth/monitor/:ke/:id/:f/:ff','/:auth/mon
                         }
                         s.group[r.ke].mon[r.mid].trigger_timer=setTimeout(function(){
                             delete(s.group[r.ke].mon[r.mid].trigger_timer)
-                            sql.query('UPDATE Monitors SET mode=? WHERE ke=? AND mid=?',[s.group[r.ke].mon[r.mid].currentState,r.ke,r.mid]);
+                            sql.query('UPDATE Monitors SET mode=? WHERE ke=? AND mid=?',[s.group[r.ke].mon[r.mid].currentState.mode,r.ke,r.mid]);
                             r.neglectTriggerTimer=1;
-                            r.mode=s.group[r.ke].mon[r.mid].currentState;
+                            r.mode=s.group[r.ke].mon[r.mid].currentState.mode;
+                            r.fps=s.group[r.ke].mon[r.mid].currentState.fps;
                             s.camera('stop',s.init('noReference',r),function(){
-                                if(s.group[r.ke].mon[r.mid].currentState!=='stop'){
-                                    s.camera(s.group[r.ke].mon[r.mid].currentState,s.init('noReference',r));
+                                if(s.group[r.ke].mon[r.mid].currentState.mode!=='stop'){
+                                    s.camera(s.group[r.ke].mon[r.mid].currentState.mode,s.init('noReference',r));
                                 }
                                 s.group[r.ke].mon_conf[r.mid]=r;
                             });
@@ -3472,8 +3528,7 @@ app.get(['/:auth/monitor/:ke/:id/:f','/:auth/monitor/:ke/:id/:f/:ff','/:auth/mon
             }
             res.end(s.s(req.ret, null, 3));
         })
-    }
-    s.auth(req.params,req.fn,res,req);
+    },res,req);
 })
 
 // Get video file
