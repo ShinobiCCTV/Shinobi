@@ -287,7 +287,7 @@ s.log=function(e,x){
     if((e.details&&e.details.sqllog==='1')||e.mid.indexOf('$')>-1){
         sql.query('INSERT INTO Logs (ke,mid,info) VALUES (?,?,?)',[e.ke,e.mid,s.s(x)]);
     }
-    s.tx({f:'log',ke:e.ke,mid:e.mid,log:x,time:moment()},'GRP_'+e.ke);
+    s.tx({f:'log',ke:e.ke,mid:e.mid,log:x,time:moment()},'GRPLOG_'+e.ke);
 //    s.systemLog('s.log : ',{f:'log',ke:e.ke,mid:e.mid,log:x,time:moment()},'GRP_'+e.ke)
 }
 //system log
@@ -585,67 +585,62 @@ s.video=function(x,e){
                         e.filesize=k.stat.size;
                         e.filesizeMB=parseFloat((e.filesize/1000000).toFixed(2));
                         e.end_time=s.moment(k.stat.mtime,'YYYY-MM-DD HH:mm:ss');
-                        if(config.deleteCorruptFiles===true&&e.filesizeMB<0.05){
-                            s.video('delete',e);
-                            s.log(e,{type:'File Corrupt',msg:{ffmpeg:s.group[e.ke].mon[e.mid].ffmpeg,filesize:e.filesizeMB}})
-                        }else{
-                            e.save=[e.filesize,1,e.end_time,e.id,e.ke,s.nameToTime(e.filename)];
-                            if(!e.status){e.save.push(0)}else{e.save.push(e.status)}
-                            sql.query('UPDATE Videos SET `size`=?,`status`=?,`end`=? WHERE `mid`=? AND `ke`=? AND `time`=? AND `status`=?',e.save)
-                            s.txWithSubPermissions({f:'video_build_success',hrefNoAuth:'/videos/'+e.ke+'/'+e.mid+'/'+e.filename+'.'+e.ext,filename:e.filename+'.'+e.ext,mid:e.id,ke:e.ke,time:moment(s.nameToTime(e.filename)).format(),size:e.filesize,end:moment(e.end_time).format()},'GRP_'+e.ke,'video_view');
+                        e.save=[e.filesize,1,e.end_time,e.id,e.ke,s.nameToTime(e.filename)];
+                        if(!e.status){e.save.push(0)}else{e.save.push(e.status)}
+                        sql.query('UPDATE Videos SET `size`=?,`status`=?,`end`=? WHERE `mid`=? AND `ke`=? AND `time`=? AND `status`=?',e.save)
+                        s.txWithSubPermissions({f:'video_build_success',hrefNoAuth:'/videos/'+e.ke+'/'+e.mid+'/'+e.filename+'.'+e.ext,filename:e.filename+'.'+e.ext,mid:e.id,ke:e.ke,time:moment(s.nameToTime(e.filename)).format(),size:e.filesize,end:moment(e.end_time).format()},'GRP_'+e.ke,'video_view');
 
-                            //cloud auto savers
-                            //webdav
-                            if(s.group[e.ke].webdav&&s.group[e.ke].init.use_webdav!=='0'&&s.group[e.ke].init.webdav_save=="1"){
-                               fs.readFile(e.dir+e.filename+'.'+e.ext,function(err,data){
-                                   s.group[e.ke].webdav.putFileContents(s.group[e.ke].init.webdav_dir+e.ke+'/'+e.mid+'/'+e.filename+'.'+e.ext,"binary",data)
-                                .catch(function(err) {
-                                       s.log(e,{type:lang['Webdav Error'],msg:{msg:lang.WebdavErrorText+' <b>/'+e.ke+'/'+e.id+'</b>',info:err},ffmpeg:s.group[e.ke].mon[e.id].ffmpeg})
-                                    console.error(err);
-                                   });
-                                });
-                            }
-                            if(s.group[e.ke].init){
-                                if(!s.group[e.ke].init.used_space){s.group[e.ke].init.used_space=0}else{s.group[e.ke].init.used_space=parseFloat(s.group[e.ke].init.used_space)}
-                                s.group[e.ke].init.used_space=s.group[e.ke].init.used_space+e.filesizeMB;
-                                clearTimeout(s.group[e.ke].checkSpaceLockTimeout)
-                                s.group[e.ke].checkSpaceLockTimeout=setTimeout(function(){
-                                    s.group[e.ke].checkSpaceLock=0
-                                    s.init('diskUsed',e)
-                                },1000*60*5)
-                                if(config.cron.deleteOverMax===true&&s.group[e.ke].checkSpaceLock!==1){
-                                    s.group[e.ke].checkSpaceLock=1;
-                                    //check space
-                                    var check=function(){
-                                        if(s.group[e.ke].init.used_space>(s.group[e.ke].init.size*config.cron.deleteOverMaxOffset)){
-                                            sql.query('SELECT * FROM Videos WHERE status != 0 AND ke=? ORDER BY `time` ASC LIMIT 2',[e.ke],function(err,evs){
-                                                k.del=[];k.ar=[e.ke];
-                                                evs.forEach(function(ev){
-                                                    ev.dir=s.dir.videos+e.ke+'/'+ev.mid+'/'+s.moment(ev.time)+'.'+ev.ext;
-                                                    k.del.push('(mid=? AND time=?)');
-                                                    k.ar.push(ev.mid),k.ar.push(ev.time);
-                                                    s.file('delete',ev.dir);
-                                                   s.group[e.ke].init.used_space=s.group[e.ke].init.used_space-ev.size/1000000;
-                                                    s.tx({f:'video_delete',ff:'over_max',size:s.group[e.ke].init.used_space,limit:s.group[e.ke].init.size,filename:s.moment(ev.time)+'.'+ev.ext,mid:ev.mid,ke:ev.ke,time:ev.time,end:s.moment(new Date,'YYYY-MM-DD HH:mm:ss')},'GRP_'+e.ke);
-                                                });
-                                                if(k.del.length>0){
-                                                    k.qu=k.del.join(' OR ');
-                                                    sql.query('DELETE FROM Videos WHERE ke =? AND ('+k.qu+')',k.ar,function(){
-                                                        check()
-                                                    })
-                                                }
-                                            })
-                                        }else{
-                                            clearTimeout(s.group[e.ke].checkSpaceLockTimeout)
-                                            s.group[e.ke].checkSpaceLock=0
-                                            s.init('diskUsed',e)
-                                        }
+                        //cloud auto savers
+                        //webdav
+                        if(s.group[e.ke].webdav&&s.group[e.ke].init.use_webdav!=='0'&&s.group[e.ke].init.webdav_save=="1"){
+                           fs.readFile(e.dir+e.filename+'.'+e.ext,function(err,data){
+                               s.group[e.ke].webdav.putFileContents(s.group[e.ke].init.webdav_dir+e.ke+'/'+e.mid+'/'+e.filename+'.'+e.ext,"binary",data)
+                            .catch(function(err) {
+                                   s.log(e,{type:lang['Webdav Error'],msg:{msg:lang.WebdavErrorText+' <b>/'+e.ke+'/'+e.id+'</b>',info:err},ffmpeg:s.group[e.ke].mon[e.id].ffmpeg})
+                                console.error(err);
+                               });
+                            });
+                        }
+                        if(s.group[e.ke].init){
+                            if(!s.group[e.ke].init.used_space){s.group[e.ke].init.used_space=0}else{s.group[e.ke].init.used_space=parseFloat(s.group[e.ke].init.used_space)}
+                            s.group[e.ke].init.used_space=s.group[e.ke].init.used_space+e.filesizeMB;
+                            clearTimeout(s.group[e.ke].checkSpaceLockTimeout)
+                            s.group[e.ke].checkSpaceLockTimeout=setTimeout(function(){
+                                s.group[e.ke].checkSpaceLock=0
+                                s.init('diskUsed',e)
+                            },1000*60*5)
+                            if(config.cron.deleteOverMax===true&&s.group[e.ke].checkSpaceLock!==1){
+                                s.group[e.ke].checkSpaceLock=1;
+                                //check space
+                                var check=function(){
+                                    if(s.group[e.ke].init.used_space>(s.group[e.ke].init.size*config.cron.deleteOverMaxOffset)){
+                                        sql.query('SELECT * FROM Videos WHERE status != 0 AND ke=? ORDER BY `time` ASC LIMIT 2',[e.ke],function(err,evs){
+                                            k.del=[];k.ar=[e.ke];
+                                            evs.forEach(function(ev){
+                                                ev.dir=s.dir.videos+e.ke+'/'+ev.mid+'/'+s.moment(ev.time)+'.'+ev.ext;
+                                                k.del.push('(mid=? AND time=?)');
+                                                k.ar.push(ev.mid),k.ar.push(ev.time);
+                                                s.file('delete',ev.dir);
+                                               s.group[e.ke].init.used_space=s.group[e.ke].init.used_space-ev.size/1000000;
+                                                s.tx({f:'video_delete',ff:'over_max',size:s.group[e.ke].init.used_space,limit:s.group[e.ke].init.size,filename:s.moment(ev.time)+'.'+ev.ext,mid:ev.mid,ke:ev.ke,time:ev.time,end:s.moment(new Date,'YYYY-MM-DD HH:mm:ss')},'GRP_'+e.ke);
+                                            });
+                                            if(k.del.length>0){
+                                                k.qu=k.del.join(' OR ');
+                                                sql.query('DELETE FROM Videos WHERE ke =? AND ('+k.qu+')',k.ar,function(){
+                                                    check()
+                                                })
+                                            }
+                                        })
+                                    }else{
+                                        clearTimeout(s.group[e.ke].checkSpaceLockTimeout)
+                                        s.group[e.ke].checkSpaceLock=0
+                                        s.init('diskUsed',e)
                                     }
-                                    check()
-                                }else{
-                                    clearTimeout(s.group[e.ke].checkSpaceLockTimeout)
-                                    s.init('diskUsed',e)
                                 }
+                                check()
+                            }else{
+                                clearTimeout(s.group[e.ke].checkSpaceLockTimeout)
+                                s.init('diskUsed',e)
                             }
                         }
                     }else{
@@ -862,6 +857,13 @@ s.ffmpeg=function(e,x){
 //	   x.hwaccel=' -c:v h264_cuvid -hwaccel_device :0';
     if(e.details.gpu_decoder&&e.details.gpu_decoder!==''){
         x.hwaccel+=' -hwaccel '+e.details.gpu_decoder;
+    }
+    if(e.details.hwaccel_device&&e.details.hwaccel_device!==''){
+        x.hwaccel+=' -hwaccel_device '+e.details.hwaccel_device;
+    }else{
+        if(e.details.gpu_decoder==='vaapi'){
+            x.hwaccel+=' -hwaccel_device 0';
+        }
     }
     //stream - video filter
     if(e.details.svf&&e.details.svf!==''){
@@ -1713,6 +1715,9 @@ var tx;
 //                    s.group[d.ke].vid[cn.id]={uid:d.uid};
                     s.group[d.ke].users[d.auth]={cnid:cn.id,uid:r.uid,mail:r.mail,details:JSON.parse(r.details),logged_in_at:moment(new Date).format(),login_type:'Dashboard'}
                     try{s.group[d.ke].users[d.auth].details=JSON.parse(r.details)}catch(er){}
+                    if(s.group[d.ke].users[d.auth].details.get_server_log&&s.group[d.ke].users[d.auth].details.get_server_log!=='0'){
+                        cn.join('GRPLOG_'+d.ke)
+                    }
                     s.group[d.ke].users[d.auth].lang=s.getLanguageFile(s.group[d.ke].users[d.auth].details.lang)
                     s.log({ke:d.ke,mid:'$USER'},{type:s.group[d.ke].users[d.auth].lang['Websocket Connected'],msg:{mail:r.mail,id:d.uid,ip:cn.ip}})
                     if(!s.group[d.ke].mon){
@@ -1865,6 +1870,11 @@ var tx;
                                 if(r&&r[0]){
                                     r=r[0];
                                     d.d=JSON.parse(r.details);
+                                    if(r.details.get_server_log==='1'){
+                                        cn.join('GRPLOG_'+d.ke)
+                                    }else{
+                                        cn.leave('GRPLOG_'+d.ke)
+                                    }
                                     ///unchangeable from client side, so reset them in case they did.
                                     d.form.details=JSON.parse(d.form.details)
                                     //admin permissions

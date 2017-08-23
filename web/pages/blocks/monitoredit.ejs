@@ -153,15 +153,24 @@
                 </label>
               </div>
               <div class="form-group">
-                <label><div><span><%-lang['Decode with GPU']%></span></div>
-                    <div><select class="form-control" detail="gpu_decoder">
+                <label><div><span><%-lang.gpu_decoder%></span></div>
+                    <div><select class="form-control" detail="gpu_decoder" selector="h_gpud">
                         <option value="" selected><%-lang.No%></option>
                         <optgroup label="Yes">
                             <option value="qsv"><%-lang.qsv%></option>
+                            <option value="vdpau"><%-lang.vdpau%></option>
+                            <option value="vaapi"><%-lang.vaapi%></option>
                             <option value="dxva2"><%-lang.dxva2%></option>
                             <option value="cuvid"><%-lang.cuvid%></option>
+                            <option value="vdpau"><%-lang.vda%></option>
+                            <option value="vdpau"><%-lang.videotoolbox%></option>
                         </optgroup>
                     </select></div>
+                </label>
+              </div>
+              <div class="form-group h_gpud_input h_gpud_vaapi">
+                <label><div><span><%-lang.hwaccel_device%></span></div>
+                <div><input class="form-control" detail="hwaccel_device"></div>
                 </label>
               </div>
           </div>
@@ -197,6 +206,8 @@
                                 <option value="libx265"><%-lang['libx265']%></option>
                                 <option value="copy"><%-lang['copy']%></option>
                                 <option value="h264_nvenc"><%-lang['h264_nvenc']%></option>
+                                <option value="hevc_nvenc"><%-lang['hevc_nvenc']%></option>
+                                <option value="h264_vaapi"><%-lang['h264_vaapi']%></option>
                             </select></div>
                         </label>
                       </div>
@@ -244,7 +255,7 @@
                       </label>
                   </div>
               </div>
-              <div class=" h_st_input h_st_mjpeg h_st_b64 h_st_hls h_hls_v_input h_hls_v_libx264 h_hls_v_libx265 h_hls_v_no">
+              <div class=" h_st_input h_st_mjpeg h_st_b64 h_st_hls h_hls_v_input h_hls_v_libx264 h_hls_v_libx265 h_hls_v_h264_nvenc h_hls_v_hevc_nvenc h_hls_v_no">
                   <div class="row">
                       <div class="form-group col-md-12">
                         <label><div><span><%-lang['Quality']%></span></div>
@@ -484,11 +495,13 @@
                             <option value="libx264"><%-lang['libx264 (Default)']%></option>
                             <option value="copy"><%-lang['copy']%></option>
                             <option value="h264_nvenc"><%-lang['h264_nvenc']%></option>
+                            <option value="hevc_nvenc"><%-lang['hevc_nvenc']%></option>
+                            <option value="h264_vaapi"><%-lang['h264_vaapi']%></option>
                         </optgroup>
                     </select></div>
                 </label>
               </div>
-              <div class="h_vc_input h_vc_libvpx h_vc_libvpx-vp9 h_vc_libx264 h_vc_libx265 h_vc_default h_vc_none">
+              <div class="h_vc_input h_vc_libvpx h_vc_libvpx-vp9 h_vc_libx264 h_vc_libx265 h_vc_hevc_nvenc h_vc_h264_nvenc h_vc_default h_vc_none">
                   <div class="form-group">
                     <label><div><span><%-lang['Quality']%></span></div>
                     <div><input class="form-control" detail="crf" placeholder=""></div>
@@ -519,7 +532,7 @@
                     </select></div>
                 </label>
               </div>
-              <div class="h_vc_input h_vc_libvpx h_vc_libvpx-vp9 h_vc_libx264 h_vc_libx265 h_vc_default h_vc_none">
+              <div class="h_vc_input h_vc_libvpx h_vc_libvpx-vp9 h_vc_libx2ibx265 h_vc_hevc_nvenc h_vc_h264_nvenc h_vc_default h_vc_none">
                    <div class="form-group">
                     <label><div><span><%-lang['Video Record Rate']%></span></div>
                     <div><input class="form-control" name="fps"></div>
@@ -551,7 +564,7 @@
                 <div><input class="form-control" detail="cutoff" placeholder="15"></div>
                 </label>
               </div>
-              <div class="h_vc_input h_vc_libvpx h_vc_libvpx-vp9 h_vc_libx264 h_vc_libx265 h_vc_default h_vc_none">
+              <div class="h_vc_input h_vc_libvpx h_vc_libvpx-vp9 h_vc_libx264 h_vc_libx265 h_vc_hevc_nvenc h_vc_h264_nvenc h_vc_default h_vc_none">
                   <div class="form-group">
                     <label><div><span><%-lang['Rotate']%></span></div>
                             <div><select class="form-control" detail="rotate_record">
@@ -572,7 +585,7 @@
               </div>
           </div>
           <div class="h_us_input h_us_advanced" style="display:none">
-              <div class="h_vc_input h_vc_libvpx h_vc_libvpx-vp9 h_vc_libx264 h_vc_libx265 h_vc_default h_vc_none">
+              <div class="h_vc_input h_vc_libvpx h_vc_libvpx-vp9 h_vc_libx264 h_vc_libx265 h_vc_hevc_nvenc h_vc_h264_nvenc h_vc_default h_vc_none">
                   <div class="form-group-group red h_m_input h_m_record h_m_idle" section id="monSectionRecordingTimestamp">
                   <h4><%-lang['Recording Timestamp']%></h4>
                       <div class="form-group">
@@ -619,7 +632,7 @@
                       </div>
                   </div>
               </div>
-              <div class="h_vc_input h_vc_libvpx h_vc_libvpx-vp9 h_vc_libx264 h_vc_libx265 h_vc_default h_vc_none">
+              <div class="h_vc_input h_vc_libvpx h_vc_libvpx-vp9 h_vc_libx264 h_vc_libx265 h_vc_hevc_nvenc h_vc_h264_nvenc h_vc_default h_vc_none">
                   <div class="form-group-group red h_m_input h_m_record h_m_idle" section id="monSectionRecordingWatermark">
                   <h4><%-lang['Recording Watermark']%></h4>
                       <div class="form-group">
