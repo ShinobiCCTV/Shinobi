@@ -36,6 +36,23 @@ switch($.ccio.userDetails.lang){
     $.ccio.init=function(x,d,z,k){
         if(!k){k={}};k.tmp='';
         switch(x){
+            case'humanReadMode':
+                switch(d){
+                    case'idle':
+                        k.mode='<%-cleanLang(lang['Idle'])%>'
+                    break;
+                    case'stop':
+                        k.mode='<%-cleanLang(lang['Disabled'])%>'
+                    break;
+                    case'record':
+                        k.mode='<%-cleanLang(lang['Record'])%>'
+                    break;
+                    case'start':
+                        k.mode='<%-cleanLang(lang['Watch Only'])%>'
+                    break;
+                }
+                return k.mode
+            break;
             case'monitorInfo':
                 d.e=$('.glM'+d.mon.mid);
                 if(d.mon.details.vcodec!=='copy'&&d.mon.mode=='record'){
@@ -46,20 +63,7 @@ switch($.ccio.userDetails.lang){
                 d.e.find('.monitor_name').text(d.mon.name)
                 d.e.find('.monitor_mid').text(d.mon.mid)
                 d.e.find('.monitor_ext').text(d.mon.ext);
-                    switch(d.mon.mode){
-                        case'idle':
-                            d.mode='Idle'
-                        break;
-                        case'stop':
-                            d.mode='Disabled'
-                        break;
-                        case'record':
-                            d.mode='Record'
-                        break;
-                        case'start':
-                            d.mode='Watch Only'
-                        break;
-                    }
+                d.mode=$.ccio.init('humanReadMode',d.mon.mode)
                 d.e.find('.monitor_mode').text(d.mode)
                 d.e.attr('mode',d.mode)
                 d.e.find('.lamp').attr('title',d.mode)
@@ -511,20 +515,7 @@ switch($.ccio.userDetails.lang){
             break;
             case 2://monitor stream
                 try{k.d=JSON.parse(d.details);}catch(er){k.d=d.details;}
-                switch(d.mode){
-                    case'idle':
-                        k.mode='<%-cleanLang(lang['Idle'])%>'
-                    break;
-                    case'stop':
-                        k.mode='<%-cleanLang(lang['Disabled'])%>'
-                    break;
-                    case'record':
-                        k.mode='<%-cleanLang(lang['Record'])%>'
-                    break;
-                    case'start':
-                        k.mode='<%-cleanLang(lang['Watch Only'])%>'
-                    break;
-                }
+                k.mode=$.ccio.init('humanReadMode',d.mode)
                 tmp+='<div mid="'+d.mid+'" ke="'+d.ke+'" id="monitor_live_'+d.mid+'" mode="'+k.mode+'" class="monitor_item glM'+d.mid+' mdl-grid col-md-6">';
                 tmp+='<div class="mdl-card mdl-cell mdl-cell--8-col">';
                 tmp+='<div class="stream-block no-padding mdl-card__media mdl-color-text--grey-50">';
@@ -1523,6 +1514,38 @@ $.log.lm.change(function(e){
         $.ccio.init('ls')
     })
 });
+//multi monitor manager
+$.multimon={e:$('#multi_mon')};$.multimon.table=$.multimon.e.find('.tableData tbody')
+$.multimon.e.on('shown.bs.modal',function() {
+    var tmp=''
+    $.each($.ccio.mon,function(n,v){
+        var streamURL
+        switch(JSON.parse(v.details).stream_type){
+            case'jpeg':
+                streamURL='/'+$user.auth_token+'/jpeg/'+v.ke+'/'+v.mid+'/s.jpg'
+            break;
+            case'mjpeg':
+                streamURL='/'+$user.auth_token+'/mjpeg/'+v.ke+'/'+v.mid
+            break;
+            case'hls':
+                streamURL='/'+$user.auth_token+'/hls/'+v.ke+'/'+v.mid+'/s.m3u8'
+            break;
+            case'b64':
+                streamURL='Websocket'
+            break;
+        }
+        if(streamURL!=='Websocket'&&v.mode!==('idle'&&'stop')){
+            streamURL='<a target="_blank" href="'+streamURL+'">'+streamURL+'</a>'
+        }
+        var img = $('#left_menu [mid="'+v.mid+'"] [monitor="watch"]').attr('src')
+        tmp+='<tr mid="'+v.mid+'" ke="'+v.ke+'">'
+        tmp+='<td><a monitor="watch"><img class="small-square-img" src="'+img+'"></a></td><td>'+v.name+'<br><small>'+v.mid+'</small></td><td class="monitor_mode">'+$.ccio.init('humanReadMode',v.mode)+'</td><td>'+streamURL+'</td>'
+        //buttons
+        tmp+='<td class="text-right"><a title="<%-cleanLang(lang.Pop)%>" monitor="pop" class="btn btn-default"><i class="fa fa-external-link"></i></a> <a title="<%-cleanLang(lang.Calendar)%>" monitor="calendar" class="btn btn-default"><i class="fa fa-calendar"></i></a> <a title="<%-cleanLang(lang['Power Viewer'])%>" class="btn btn-default" monitor="powerview"><i class="fa fa-map-marker"></i></a> <a title="<%-cleanLang(lang['Time-lapse'])%>" class="btn btn-default" monitor="timelapse"><i class="fa fa-angle-double-right"></i></a> <a title="<%-cleanLang(lang['Videos List'])%>" monitor="videos_table" class="btn btn-default"><i class="fa fa-film"></i></a> <a title="<%-cleanLang(lang['Monitor Settings'])%>" class="btn btn-default permission_monitor_edit" monitor="edit"><i class="fa fa-wrench"></i></a></td>'
+        tmp+='</tr>'
+    })
+    $.multimon.table.html(tmp)
+})
 //add Monitor
 $.aM={e:$('#add_monitor')};$.aM.f=$.aM.e.find('form')
 $.aM.e.find('.follow-list ul').affix();

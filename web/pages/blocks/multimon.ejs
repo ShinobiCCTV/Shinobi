@@ -25,14 +25,3 @@
     </div>
   </div>
 </div>
-<script>
-    $.multimon={e:$('#multi_mon')};$.multimon.table=$.multimon.e.find('.tableData tbody')
-    $.multimon.e.on('shown.bs.modal',function() {
-        var tmp=''
-        $.each($.ccio.mon,function(n,v){
-            var img = $('#left_menu [mid="'+v.mid+'"] [monitor="watch"]').attr('src')
-            tmp+='<tr mid="'+v.mid+'" ke="'+v.ke+'"><td><a monitor="watch"><img class="small-square-img" src="'+img+'"></a></td><td>'+v.name+'</td><td>'+v.mid+'</td><td class="text-right"><a title="<%-cleanLang(lang.Pop)%>" monitor="pop" class="btn btn-default"><i class="fa fa-external-link"></i></a> <a title="<%-cleanLang(lang.Calendar)%>" monitor="calendar" class="btn btn-default"><i class="fa fa-calendar"></i></a> <a title="<%-cleanLang(lang['Power Viewer'])%>" class="btn btn-default" monitor="powerview"><i class="fa fa-map-marker"></i></a> <a title="<%-cleanLang(lang['Time-lapse'])%>" class="btn btn-default" monitor="timelapse"><i class="fa fa-angle-double-right"></i></a> <a title="<%-cleanLang(lang['Videos List'])%>" monitor="videos_table" class="btn btn-default"><i class="fa fa-film"></i></a> <a title="<%-cleanLang(lang['Monitor Settings'])%>" class="btn btn-default permission_monitor_edit" monitor="edit"><i class="fa fa-wrench"></i></a></td></tr>'
-        })
-        $.multimon.table.html(tmp)
-    })
-</script>
