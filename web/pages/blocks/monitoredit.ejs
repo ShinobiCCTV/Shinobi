@@ -153,10 +153,17 @@
                 </label>
               </div>
               <div class="form-group">
-                <label><div><span><%-lang.gpu_decoder%></span></div>
-                    <div><select class="form-control" detail="gpu_decoder" selector="h_gpud">
-                        <option value="" selected><%-lang.No%></option>
-                        <optgroup label="Yes">
+                <label><div><span><%-lang.Accelerator%></span></div>
+                    <div><select class="form-control" detail="accelerator" selector="h_gpud">
+                        <option value="0" selected><%-lang.No%></option>
+                        <option value="1"><%-lang.Yes%></option>
+                    </select></div>
+                </label>
+              </div>
+              <div class="h_gpud_input h_gpud_1">
+                  <div class="form-group">
+                    <label><div><span><%-lang.hwaccel%></span></div>
+                        <div><select class="form-control" detail="hwaccel">
                             <option value="qsv"><%-lang.qsv%></option>
                             <option value="vdpau"><%-lang.vdpau%></option>
                             <option value="vaapi"><%-lang.vaapi%></option>
@@ -164,14 +171,32 @@
                             <option value="cuvid"><%-lang.cuvid%></option>
                             <option value="vdpau"><%-lang.vda%></option>
                             <option value="vdpau"><%-lang.videotoolbox%></option>
-                        </optgroup>
-                    </select></div>
-                </label>
-              </div>
-              <div class="form-group h_gpud_input h_gpud_vaapi">
-                <label><div><span><%-lang.hwaccel_device%></span></div>
-                <div><input class="form-control" detail="hwaccel_device"></div>
-                </label>
+                        </select></div>
+                    </label>
+                  </div>
+                  <div class="form-group">
+                    <label><div><span><%-lang.hwaccel_vcodec%></span></div>
+                        <div><select class="form-control" detail="hwaccel_vcodec">
+                            <option value=""><%-lang.Auto%></option>
+                            <optgroup label="NVIDIA">
+                                <option value="h264_cuvid"><%-lang['h264_cuvid']%></option>
+                                <option value="hevc_cuvid"><%-lang['hevc_cuvid']%></option>
+                                <option value="mjpeg_cuvid"><%-lang['mjpeg_cuvid']%></option>
+                                <option value="mpeg4_cuvid"><%-lang['mpeg4_cuvid']%></option>
+                            </optgroup>
+                            <optgroup label="QuickSync Video">
+                                <option value="h264_qsv"><%-lang['h264_qsv']%></option>
+                                <option value="hevc_qsv"><%-lang['hevc_qsv']%></option>
+                                <option value="mpeg2_qsv"><%-lang['mpeg2_qsv']%></option>
+                            </optgroup>
+                        </select></div>
+                    </label>
+                  </div>
+                  <div class="form-group">
+                    <label><div><span><%-lang.hwaccel_device%></span></div>
+                    <div><input class="form-control" detail="hwaccel_device"></div>
+                    </label>
+                  </div>
               </div>
           </div>
 <!--     END of Input     -->
@@ -197,32 +222,36 @@
                 </label>
               </div>
               <div class="h_st_input h_st_hls">
-                  <div class="row">
-                      <div class="form-group col-md-12">
-                        <label><div><span><%-lang['HLS Video Encoder']%></span></div>
-                            <div><select class="form-control" detail="stream_vcodec" selector="h_hls_v">
-                                <option value="no" selected><%-lang['Auto']%></option>
-                                <option value="libx264" selected><%-lang['libx264']%></option>
-                                <option value="libx265"><%-lang['libx265']%></option>
-                                <option value="copy"><%-lang['copy']%></option>
+                  <div class="form-group">
+                    <label><div><span><%-lang['HLS Video Encoder']%></span></div>
+                        <div><select class="form-control" detail="stream_vcodec" selector="h_hls_v">
+                            <option value="no" selected><%-lang['Auto']%></option>
+                            <option value="libx264" selected><%-lang['libx264']%></option>
+                            <option value="libx265"><%-lang['libx265']%></option>
+                            <option value="copy"><%-lang['copy']%></option>
+                            <optgroup label="<%-lang['Hardware Accelerated']%>">
                                 <option value="h264_nvenc"><%-lang['h264_nvenc']%></option>
                                 <option value="hevc_nvenc"><%-lang['hevc_nvenc']%></option>
+                                <option value="h264_qsv"><%-lang['h264_qsv']%></option>
+                                <option value="hevc_qsv"><%-lang['hevc_qsv']%></option>
+                                <option value="mpeg2_qsv"><%-lang['mpeg2_qsv']%></option>
                                 <option value="h264_vaapi"><%-lang['h264_vaapi']%></option>
-                            </select></div>
-                        </label>
-                      </div>
-                      <div class="form-group col-md-12">
-                        <label><div><span><%-lang['HLS Audio Encoder']%></span></div>
-                            <div><select class="form-control" detail="stream_acodec">
-                                <option value="no" selected><%-lang['No Audio']%></option>
-                                <option value="" selected><%-lang['Auto']%></option>
-                                <option value="aac"><%-lang['aac']%></option>
-                                <option value="ac3"><%-lang['ac3']%></option>
-                                <option value="libmp3lame"><%-lang['libmp3lame']%></option>
-                                <option value="copy"><%-lang['copy']%></option>
-                            </select></div>
-                        </label>
-                      </div>
+                                <option value="hevc_vaapi"><%-lang['hevc_vaapi']%></option>
+                            </optgroup>
+                        </select></div>
+                    </label>
+                  </div>
+                  <div class="form-group">
+                    <label><div><span><%-lang['HLS Audio Encoder']%></span></div>
+                        <div><select class="form-control" detail="stream_acodec">
+                            <option value="no" selected><%-lang['No Audio']%></option>
+                            <option value="" selected><%-lang['Auto']%></option>
+                            <option value="aac"><%-lang['aac']%></option>
+                            <option value="ac3"><%-lang['ac3']%></option>
+                            <option value="libmp3lame"><%-lang['libmp3lame']%></option>
+                            <option value="copy"><%-lang['copy']%></option>
+                        </select></div>
+                    </label>
                   </div>
                   <div class="form-group">
                     <label><div><span><%-lang['HLS Segment Length']%></span></div>
@@ -494,9 +523,15 @@
                             <option value="libx265"><%-lang['libx265']%></option>
                             <option value="libx264"><%-lang['libx264 (Default)']%></option>
                             <option value="copy"><%-lang['copy']%></option>
+                        </optgroup>
+                        <optgroup label="MP4 <%-lang['Hardware Accelerated']%>">
                             <option value="h264_nvenc"><%-lang['h264_nvenc']%></option>
                             <option value="hevc_nvenc"><%-lang['hevc_nvenc']%></option>
+                            <option value="h264_qsv"><%-lang['h264_qsv']%></option>
+                            <option value="hevc_qsv"><%-lang['hevc_qsv']%></option>
+                            <option value="mpeg2_qsv"><%-lang['mpeg2_qsv']%></option>
                             <option value="h264_vaapi"><%-lang['h264_vaapi']%></option>
+                            <option value="hevc_vaapi"><%-lang['hevc_vaapi']%></option>
                         </optgroup>
                     </select></div>
                 </label>
