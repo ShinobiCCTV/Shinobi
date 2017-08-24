@@ -603,6 +603,7 @@ s.video=function(x,e){
                         }
                         if(s.group[e.ke].init){
                             if(!s.group[e.ke].init.used_space){s.group[e.ke].init.used_space=0}else{s.group[e.ke].init.used_space=parseFloat(s.group[e.ke].init.used_space)}
+                            if(s.group[e.ke].init.used_space<0){s.group[e.ke].init.used_space=0}
                             s.group[e.ke].init.used_space=s.group[e.ke].init.used_space+e.filesizeMB;
                             clearTimeout(s.group[e.ke].checkSpaceLockTimeout)
                             s.group[e.ke].checkSpaceLockTimeout=setTimeout(function(){
@@ -621,7 +622,7 @@ s.video=function(x,e){
                                                 k.del.push('(mid=? AND time=?)');
                                                 k.ar.push(ev.mid),k.ar.push(ev.time);
                                                 s.file('delete',ev.dir);
-                                               s.group[e.ke].init.used_space=s.group[e.ke].init.used_space-ev.size/1000000;
+                                                s.group[e.ke].init.used_space-=ev.size/1000000;
                                                 s.tx({f:'video_delete',ff:'over_max',size:s.group[e.ke].init.used_space,limit:s.group[e.ke].init.size,filename:s.moment(ev.time)+'.'+ev.ext,mid:ev.mid,ke:ev.ke,time:ev.time,end:s.moment(new Date,'YYYY-MM-DD HH:mm:ss')},'GRP_'+e.ke);
                                             });
                                             if(k.del.length>0){
@@ -1641,7 +1642,7 @@ s.camera=function(x,e,cn,tx){
                         clearTimeout(s.group[d.ke].mon[d.id].detector_mail);
                         delete(s.group[d.ke].mon[d.id].detector_mail);
                     },d.mon.details.detector_mail_timeout);
-                    d.frame_filename='Motion_'+d.name+'_'+d.id+'_'+d.ke+'_'+s.moment()+'.jpg';
+                    d.frame_filename='Motion_'+(d.name.replace(/[^\w\s]/gi, ''))+'_'+d.id+'_'+d.ke+'_'+s.moment()+'.jpg';
                     fs.readFile(s.dir.streams+'/'+d.ke+'/'+d.id+'/s.jpg',function(err, frame){
                         d.mailOptions = {
                             from: '"ShinobiCCTV" <no-reply@shinobi.video>', // sender address
@@ -2583,7 +2584,7 @@ s.auth=function(xx,cb,res,req){
             sql.query('SELECT * FROM API WHERE code=? AND ke=?',[xx.auth,xx.ke],function(err,r){
                 if(r&&r[0]){
                     r=r[0];
-                    s.api[xx.auth]={ip:r.ip,permissions:JSON.parse(r.details),details:{}};
+                    s.api[xx.auth]={ip:r.ip,uid:r.uid,permissions:JSON.parse(r.details),details:{}};
                     sql.query('SELECT details FROM Users WHERE uid=? AND ke=?',[r.uid,r.ke],function(err,rr){
                         if(rr&&rr[0]){
                             rr=rr[0];
@@ -3386,18 +3387,26 @@ app.all(['/:auth/configureMonitor/:ke/:id','/:auth/configureMonitor/:ke/:id/:f']
                     req.monitor=JSON.parse(req.body.data)
                 }
             }catch(er){
-                req.ret.msg=user.lang.monitorEditText1;
-                res.end(s.s(req.ret, null, 3))
+                if(!req.monitor){
+                    req.ret.msg=user.lang.monitorEditText1;
+                    res.end(s.s(req.ret, null, 3))
+                }
                 return
             }
             if(!user.details.sub||user.details.allmonitors==='1'||user.details.monitor_edit.indexOf(req.monitor.mid)>-1){
                     if(req.monitor&&req.monitor.mid&&req.monitor.name){
                         req.set=[],req.ar=[];
                         req.monitor.mid=req.monitor.mid.replace(/[^\w\s]/gi,'').replace(/ /g,'');
-                        try{JSON.parse(req.monitor.details)}catch(er){
-                            req.ret.msg=user.lang.monitorEditText2;
-                            res.end(s.s(req.ret, null, 3))
-                            return
+                        try{
+                            JSON.parse(req.monitor.details)
+                        }catch(er){
+                            if(!req.monitor.details||!req.monitor.details.stream_type){
+                                req.ret.msg=user.lang.monitorEditText2;
+                                res.end(s.s(req.ret, null, 3))
+                                return
+                            }else{
+                                req.monitor.details=JSON.stringify(req.monitor.details)
+                            }
                         }
                         req.monitor.ke=req.params.ke
                         req.logObject={details:JSON.parse(req.monitor.details),ke:req.params.ke,mid:req.params.id}
@@ -3453,7 +3462,7 @@ app.all(['/:auth/configureMonitor/:ke/:id','/:auth/configureMonitor/:ke/:id/:f']
                             res.end(s.s(req.ret, null, 3))
                         })
                     }else{
-                        req.ret.msg='Invalid Data, Check to see this is a valid import string.';
+                        req.ret.msg=user.lang.monitorEditText1;
                         res.end(s.s(req.ret, null, 3))
                     }
             }else{
