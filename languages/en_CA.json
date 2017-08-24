@@ -567,5 +567,6 @@
    "vaapi": "vaapi",
    "vda": "vda",
    "videotoolbox": "videotoolbox",
-   "cuvid": "cuvid"
+   "cuvid": "cuvid",
+   "Recommended": "Recommended"
 }
