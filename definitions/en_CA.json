@@ -178,7 +178,7 @@
                {
                   "name": "detail=probesize",
                   "field": "Probe Size",
-                  "description": "Specify how many big to make the analyzation probe for the input. Set to 100000 if you are using RTSP and having stream issues.",
+                  "description": "Specify how big to make the analyzation probe for the input. Set to 100000 if you are using RTSP and having stream issues.",
                   "default": "",
                   "example": "100000",
                   "possible": ""
