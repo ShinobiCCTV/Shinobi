@@ -1610,7 +1610,9 @@ $.aM.e.on('click','#monedit_tabs li',function(){
     e.mid=e.e.attr('mid')
     e.ke=e.e.attr('ke')
     e.values=$.ccio.op().tabsOpen[e.mid]
-    $.aM.import(e)
+    if(e.values){
+        $.aM.import(e)
+    }
 })
 $.aM.drawList=function(){
     e={list:$.aM.e.find('.follow-list ul'),html:''}

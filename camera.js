@@ -780,7 +780,7 @@ s.ffmpeg=function(e,x){
         x.record_video_filters.push('movie='+e.details.watermark_location+'[watermark],[in][watermark]overlay='+x.watermark_position+'[out]');
     }
     //record - rotation
-    if(e.details.rotate_record&&e.details.rotate_record!==""&&e.details.rotate_record!=="no"){
+    if(e.details.rotate_record&&e.details.rotate_record!==""&&e.details.rotate_record!=="no"&&e.details.stream_vcodec!=="copy"){
         x.record_video_filters.push('transpose='+e.details.rotate_record);
     }
     //check custom record filters for -vf
