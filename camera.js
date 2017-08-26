@@ -536,7 +536,7 @@ s.video=function(x,e){
             }
         break;
     }
-    k={}
+    var k={}
     if(x!=='getDir'){e.dir=s.video('getDir',e)}
     switch(x){
         case'fix':
@@ -665,6 +665,7 @@ s.video=function(x,e){
                                                 k.ar.push(ev.mid),k.ar.push(ev.time);
                                                 s.file('delete',ev.dir);
                                                 s.group[e.ke].init.used_space-=ev.size/1000000;
+
                                                 s.tx({f:'video_delete',ff:'over_max',size:s.group[e.ke].init.used_space,limit:s.group[e.ke].init.size,filename:s.moment(ev.time)+'.'+ev.ext,mid:ev.mid,ke:ev.ke,time:ev.time,end:s.moment(new Date,'YYYY-MM-DD HH:mm:ss')},'GRP_'+e.ke);
                                             });
                                             if(k.del.length>0){
