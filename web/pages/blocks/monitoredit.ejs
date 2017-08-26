@@ -56,6 +56,17 @@
                     <div><textarea class="form-control" detail="notes" placeholder="<%-lang.NotesPlacholder%>"></textarea></div>
                 </label>
               </div>
+            <div class="form-group">
+            <label>
+                <div><span><%-lang['Storage Location']%></span></div>
+                <div><select class="form-control" detail="dir">
+                    <option value="" selected><%-lang.Main%></option>
+                    <% addStorage.forEach(function(v){ %>
+                    <option value="<%-v.path%>"><%-v.name%></option>
+                    <% })%>
+                </select></div>
+            </label>
+            </div>
           </div>
 <!--     START of Input     -->
           <div class="form-group-group forestgreen" section id="monSectionInput">
