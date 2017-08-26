@@ -529,7 +529,7 @@ s.video=function(x,e){
             if(e.details&&(e.details instanceof Object)===false){
                 try{e.details=JSON.parse(e.details)}catch(err){}
             }
-            if(e.details.dir&&e.details.dir!==''){
+            if(e.details&&e.details.dir&&e.details.dir!==''){
                 return s.checkCorrectPathEnding(e.details.dir)+e.ke+'/'+e.id+'/'
             }else{
                 return s.dir.videos+e.ke+'/'+e.id+'/';
@@ -594,7 +594,7 @@ s.video=function(x,e){
             e.save=[e.id,e.ke,s.nameToTime(e.filename),e.ext];
             if(!e.status){e.save.push(0)}else{e.save.push(e.status)}
             k.details={}
-            if(e.details.dir&&e.details.dir!==''){
+            if(e.details&&e.details.dir&&e.details.dir!==''){
                 k.details.dir=e.details.dir
             }
             e.save.push(s.s(k.details))
@@ -1201,7 +1201,7 @@ s.camera=function(x,e,cn,tx){
             }else{
                 s.group[e.ke].mon[e.mid].record.yes=0;
             }
-            if(e.details.dir&&e.details.dir!==''){
+            if(e.details&&e.details.dir&&e.details.dir!==''){
                 //addStorage choice
                 e.dir=s.checkCorrectPathEnding(e.details.dir)+e.ke+'/';
                 if (!fs.existsSync(e.dir)){
@@ -2540,7 +2540,7 @@ var tx;
                         s.log(d.data,d.to)
                     break;
                     case'created_file':
-                        if(d.details.dir&&d.details.dir!==''){
+                        if(d.details&&d.details.dir&&d.details.dir!==''){
                             d.dir=s.checkCorrectPathEnding(d.details.dir)+d.ke+'/'+d.id+'/'
                         }else{
                             d.dir=s.dir.videos+d.ke+'/'+d.id+'/';
