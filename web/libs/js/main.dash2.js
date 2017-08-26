@@ -1152,9 +1152,11 @@ $.ccio.ws.on('f',function (d){
         break;
         case'monitor_frame':
             try{
+                if(!$.ccio.mon[d.id].ctx||$.ccio.mon[d.id].ctx.length===0){
+                    $.ccio.mon[d.id].ctx = $('#monitor_live_'+d.id+' canvas');
+                }
                 if(!$.ccio.mon[d.id].image){
                     $.ccio.mon[d.id].image = new Image();
-                    $.ccio.mon[d.id].ctx = $('#monitor_live_'+d.id+' canvas');
                     $.ccio.mon[d.id].image.onload = function() {
                         d.x = 0,d.y = 0;
                         d.ratio = Math.min($.ccio.mon[d.id].ctx.width()/$.ccio.mon[d.id].image.width,$.ccio.mon[d.id].ctx.height()/$.ccio.mon[d.id].image.height);
@@ -1167,11 +1169,10 @@ $.ccio.ws.on('f',function (d){
                         $.ccio.mon[d.id].ctx[0].getContext("2d").drawImage($.ccio.mon[d.id].image,0,0,$.ccio.mon[d.id].image.width,$.ccio.mon[d.id].image.height,d.x,d.y,d.width,d.height);
                     };
                 }
-                if($.ccio.mon[d.id].image.complete){
-                    $.ccio.mon[d.id].image.src='data:image/jpeg;base64,'+d.frame;
-                }
+                $.ccio.mon[d.id].image.src='data:image/jpeg;base64,'+d.frame;
                 $.ccio.mon[d.id].last_frame='data:image/jpeg;base64,'+d.frame;
             }catch(er){
+                console.log(er)
                 $.ccio.log('base64 frame')
             }
             $.ccio.init('signal',d);
