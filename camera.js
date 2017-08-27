@@ -906,7 +906,14 @@ s.ffmpeg=function(e,x){
             x.hwaccel+=' -c:v '+e.details.hwaccel_vcodec;
         }
         if(e.details.hwaccel_device&&e.details.hwaccel_device!==''){
-            x.hwaccel+=' -hwaccel_device '+e.details.hwaccel_device;
+            switch(e.details.hwaccel){
+                case'vaapi':
+                    x.hwaccel+=' -vaapi_device '+e.details.hwaccel_device//+' -hwaccel_output_format vaapi';
+                break;
+                default:
+                    x.hwaccel+=' -hwaccel_device '+e.details.hwaccel_device;
+                break;
+            }
         }
 //        else{
 //            if(e.details.hwaccel==='vaapi'){
@@ -915,7 +922,6 @@ s.ffmpeg=function(e,x){
 //        }
     }
     if(e.details.stream_vcodec==='h264_vaapi'){
-        x.hwaccel+=' -vaapi_device /dev/dri/renderD128 -hwaccel_output_format vaapi'
         x.stream_video_filters=[]
         x.stream_video_filters.push('format=nv12|vaapi');
         if(e.details.stream_scale_x&&e.details.stream_scale_x!==''&&e.details.stream_scale_y&&e.details.stream_scale_y!==''){

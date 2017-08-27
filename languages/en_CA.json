@@ -550,6 +550,7 @@
    "mpeg4_cuvid": "MPEG4 CUVID",
    "h264_qsv": "H.264 (Quick Sync Video)",
    "hevc_qsv": "H.265 (Quick Sync Video)",
+   "vp8_qsv": "VP8 (Quick Sync Video)",
    "mpeg2_qsv": "MPEG2 (Quick Sync Video)",
    "h264_vaapi": "H.264 VA-API (Intel HW Accel)",
    "h264_nvenc": "H.264 NVENC (NVIDIA HW Accel)",
