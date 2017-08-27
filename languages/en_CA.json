@@ -564,11 +564,13 @@
    "Hardware Accelerated": "Hardware Accelerated",
    "Accelerator": "Accelerator",
    "qsv": "qsv",
-   "dxva2": "dxva2 (DirectX Video)",
+   "dxva2": "dxva2 (DirectX Video, Windows)",
    "vdpau": "vdpau",
    "vaapi": "vaapi (VA-API)",
    "vda": "vda (Video Decoder Acceleration)",
    "videotoolbox": "videotoolbox",
    "cuvid": "cuvid (NVIDIA NVENC)",
+   "Main": "Main",
+   "Storage Location": "Storage Location",
    "Recommended": "Recommended"
 }
