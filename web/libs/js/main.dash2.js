@@ -36,6 +36,24 @@ switch($.ccio.userDetails.lang){
     $.ccio.init=function(x,d,z,k){
         if(!k){k={}};k.tmp='';
         switch(x){
+            case'streamURL':
+                var streamURL
+                switch(JSON.parse(d.details).stream_type){
+                    case'jpeg':
+                        streamURL='/'+$user.auth_token+'/jpeg/'+d.ke+'/'+d.mid+'/s.jpg'
+                    break;
+                    case'mjpeg':
+                        streamURL='/'+$user.auth_token+'/mjpeg/'+d.ke+'/'+d.mid
+                    break;
+                    case'hls':
+                        streamURL='/'+$user.auth_token+'/hls/'+d.ke+'/'+d.mid+'/s.m3u8'
+                    break;
+                    case'b64':
+                        streamURL='Websocket'
+                    break;
+                }
+                return streamURL
+            break;
             case'humanReadMode':
                 switch(d){
                     case'idle':
@@ -1520,21 +1538,7 @@ $.multimon={e:$('#multi_mon')};$.multimon.table=$.multimon.e.find('.tableData tb
 $.multimon.e.on('shown.bs.modal',function() {
     var tmp=''
     $.each($.ccio.mon,function(n,v){
-        var streamURL
-        switch(JSON.parse(v.details).stream_type){
-            case'jpeg':
-                streamURL='/'+$user.auth_token+'/jpeg/'+v.ke+'/'+v.mid+'/s.jpg'
-            break;
-            case'mjpeg':
-                streamURL='/'+$user.auth_token+'/mjpeg/'+v.ke+'/'+v.mid
-            break;
-            case'hls':
-                streamURL='/'+$user.auth_token+'/hls/'+v.ke+'/'+v.mid+'/s.m3u8'
-            break;
-            case'b64':
-                streamURL='Websocket'
-            break;
-        }
+        var streamURL = $.ccio.init('streamURL',v)
         if(streamURL!=='Websocket'&&v.mode!==('idle'&&'stop')){
             streamURL='<a target="_blank" href="'+streamURL+'">'+streamURL+'</a>'
         }
