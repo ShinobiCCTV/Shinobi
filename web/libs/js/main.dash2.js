@@ -538,10 +538,10 @@ switch($.ccio.userDetails.lang){
                 tmp+='<div class="mdl-card mdl-cell mdl-cell--8-col">';
                 tmp+='<div class="stream-block no-padding mdl-card__media mdl-color-text--grey-50">';
                 tmp+='<div class="stream-objects"></div>';
-                tmp+='<div class="stream-hud"><div class="lamp" title="'+k.mode+'"><i class="fa fa-eercast"></i></div><div class="controls"><span title="<%-cleanLang(lang['Currently viewing'])%>" class="label label-default"><span class="viewers"></span></span> <a class="btn-xs btn-danger btn" monitor="mode" mode="record"><i class="fa fa-circle"></i> <%-cleanLang(lang['Start Recording'])%></a> <a class="btn-xs btn-primary btn" monitor="mode" mode="start"><i class="fa fa-eye"></i> <%-cleanLang(lang['Set to Watch Only'])%></a></div></div>';
+                tmp+='<div class="stream-hud"><div class="lamp" title="'+k.mode+'"><i class="fa fa-eercast"></i></div><div class="controls"><span title="<%-cleanLang(lang['Currently viewing'])%>" class="label label-default"><span class="viewers"></span></span> <a class="btn-xs btn-danger btn" monitor="mode" mode="record"><i class="fa fa-circle"></i> <%-cleanLang(lang['Start Recording'])%></a> <a class="btn-xs btn-primary btn" monitor="mode" mode="start"><i class="fa fa-eye"></i> <%-cleanLang(lang['Set to Watch Only'])%></a></div><div class="bottom-text"><span class="detector-fade">Objects Detected : <span class="stream-detected-count"></span></span></div></div>';
                 tmp+='</div>';
                 tmp+='<div class="mdl-card__supporting-text text-center">';
-                tmp+='<div class="indifference"><div class="progress"><div class="progress-bar progress-bar-danger" role="progressbar"><span></span></div></div></div>';
+                tmp+='<div class="indifference detector-fade"><div class="progress"><div class="progress-bar progress-bar-danger" role="progressbar"><span></span></div></div></div>';
                 tmp+='<div class="monitor_details">';
                 tmp+='<div><span class="monitor_name">'+d.name+'</span><span class="monitor_not_record_copy">, <%-cleanLang(lang['Recording FPS'])%> : <span class="monitor_fps">'+d.fps+'</span></span></div>';
                 tmp+='</div>';
@@ -845,17 +845,18 @@ $.ccio.ws.on('f',function (d){
                     d.stream=d.e.find('.stream-element')
                     d.streamObjects=d.e.find('.stream-objects')
                     $.ccio.init('drawMatrices',d)
+                    d.e.find('.stream-detected-count').text(d.streamObjects.find('.stream-detected-object').length)
                 }
                 if(d.details.confidence){
-                    d.e.addClass('detector_triggered')
-                    clearTimeout($.ccio.mon[d.id].detector_trigger_timeout);
-                    $.ccio.mon[d.id].detector_trigger_timeout=setTimeout(function(){
-                        $('.monitor_item[ke="'+d.ke+'"][mid="'+d.id+'"]').removeClass('detector_triggered').find('.stream-detected-object').remove()
-                    },5000);
                     d.tt=d.details.confidence;
                     if (d.tt > 100) { d.tt = 100; }
                     d.e.find('.indifference .progress-bar').css('width',d.tt + "%").find('span').text(d.details.confidence)
                 }
+                d.e.addClass('detector_triggered')
+                clearTimeout($.ccio.mon[d.id].detector_trigger_timeout);
+                $.ccio.mon[d.id].detector_trigger_timeout=setTimeout(function(){
+                    $('.monitor_item[ke="'+d.ke+'"][mid="'+d.id+'"]').removeClass('detector_triggered').find('.stream-detected-object').remove()
+                },5000);
             }
         break;
         case'detector_cascade_list':

@@ -47,7 +47,6 @@ if(config.productType==='Pro'){
 if(!config.language){
     config.language='en_CA'
 }
-if(config.language.split('_')[0]==='he'){config.language=='ar'}
 try{
     var lang = require('./languages/'+config.language+'.json');
 }catch(er){
@@ -914,7 +913,7 @@ s.ffmpeg=function(e,x){
         if(e.details.hwaccel_device&&e.details.hwaccel_device!==''){
             switch(e.details.hwaccel){
                 case'vaapi':
-                    x.hwaccel+=' -vaapi_device '+e.details.hwaccel_device//+' -hwaccel_output_format vaapi';
+                    x.hwaccel+=' -vaapi_device '+e.details.hwaccel_device+' -hwaccel_output_format vaapi';
                 break;
                 default:
                     x.hwaccel+=' -hwaccel_device '+e.details.hwaccel_device;
@@ -2019,7 +2018,7 @@ var tx;
                                 d.URLobject=URL.parse(url)
                                 if(!d.URLobject.port){d.URLobject.port=80}
                                 d.options = {
-                                    host: d.URLobject.host,
+                                    host: d.URLobject.hostname,
                                     port: d.URLobject.port,
                                     method: "GET",
                                     path: d.URLobject.pathname,
