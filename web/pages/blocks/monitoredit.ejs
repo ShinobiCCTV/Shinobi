@@ -56,6 +56,17 @@
                     <div><textarea class="form-control" detail="notes" placeholder="<%-lang.NotesPlacholder%>"></textarea></div>
                 </label>
               </div>
+            <div class="form-group">
+            <label>
+                <div><span><%-lang['Storage Location']%></span></div>
+                <div><select class="form-control" detail="dir">
+                    <option value="" selected><%-lang.Main%></option>
+                    <% addStorage.forEach(function(v){ %>
+                    <option value="<%-v.path%>"><%-v.name%></option>
+                    <% })%>
+                </select></div>
+            </label>
+            </div>
           </div>
 <!--     START of Input     -->
           <div class="form-group-group forestgreen" section id="monSectionInput">
@@ -65,31 +76,29 @@
                   <%-lang.InputText2%>
                   <p><%-lang.InputText3%></p>
               </blockquote>
-              <div class="row">
-                  <div class="form-group col-md-12">
-                    <label><div><span><%-lang['Input Type']%></span></div>
-                        <div><select class="form-control" name="type" selector="h_t">
-                            <option value="jpeg"><%-lang['JPEG']%></option>
-                            <option value="mjpeg"><%-lang['MJPEG']%></option>
-                            <option value="h264"><%-lang['H.264 / H.265 / H.265+']%></option>
-                            <option value="hls"><%-lang['HLS (.m3u8)']%></option>
-                            <option value="mp4"><%-lang['MPEG-4 (.mp4 / .ts)']%></option>
-                            <option value="socket"><%-lang['Shinobi Streamer']%></option>
-                            <option value="dashcam"><%-lang['Dashcam (Streamer v2)']%></option>
-                            <option value="local"><%-lang['Local']%></option>
-                        </select></div>
-                    </label>
-                  </div>
-                  <div class="form-group col-md-12 h_t_input h_t_h264 h_t_hls h_t_mp4 h_t_jpeg h_t_mjpeg">
-                    <label><div><span><%-lang['Connection Type']%></span></div>
-                        <div><select class="form-control" name="protocol" selector="h_p">
-                            <option value="http" selected><%-lang['HTTP']%></option>
-                            <option value="https"><%-lang['HTTPS']%></option>
-                            <option value="rtsp"><%-lang['RTSP']%></option>
-                            <option value="udp"><%-lang['UDP']%></option>
-                        </select></div>
-                    </label>
-                  </div>
+              <div class="form-group">
+                <label><div><span><%-lang['Input Type']%></span></div>
+                    <div><select class="form-control" name="type" selector="h_t">
+                        <option value="jpeg"><%-lang['JPEG']%></option>
+                        <option value="mjpeg"><%-lang['MJPEG']%></option>
+                        <option value="h264"><%-lang['H.264 / H.265 / H.265+']%></option>
+                        <option value="hls"><%-lang['HLS (.m3u8)']%></option>
+                        <option value="mp4"><%-lang['MPEG-4 (.mp4 / .ts)']%></option>
+                        <option value="socket"><%-lang['Shinobi Streamer']%></option>
+                        <option value="dashcam"><%-lang['Dashcam (Streamer v2)']%></option>
+                        <option value="local"><%-lang['Local']%></option>
+                    </select></div>
+                </label>
+              </div>
+              <div class="form-group h_t_input h_t_h264 h_t_hls h_t_mp4 h_t_jpeg h_t_mjpeg">
+                <label><div><span><%-lang['Connection Type']%></span></div>
+                    <div><select class="form-control" name="protocol" selector="h_p">
+                        <option value="http" selected><%-lang['HTTP']%></option>
+                        <option value="https"><%-lang['HTTPS']%></option>
+                        <option value="rtsp"><%-lang['RTSP']%></option>
+                        <option value="udp"><%-lang['UDP']%></option>
+                    </select></div>
+                </label>
               </div>
               <div class="form-group h_p_input h_p_rtsp">
                 <label><div><span><%-lang['RTSP Transport']%></span></div>
@@ -101,13 +110,13 @@
                     </select></div>
                 </label>
               </div>
-              <div class="row h_t_input h_t_h264 h_t_hls h_t_mp4 h_t_jpeg h_t_mjpeg">
-                  <div class="form-group col-md-12">
+              <div class="h_t_input h_t_h264 h_t_hls h_t_mp4 h_t_jpeg h_t_mjpeg">
+                  <div class="form-group">
                     <label><div><span><%-lang['Username']%></span></div>
                     <div><input class="form-control" detail="muser" placeholder=""></div>
                     </label>
                   </div>
-                  <div class="form-group col-md-12">
+                  <div class="form-group">
                     <label><div><span><%-lang['Password']%></span></div>
                     <div><input class="form-control" type="password" detail="mpass" placeholder=""></div>
                     </label>
@@ -154,6 +163,52 @@
                 <div><input class="form-control" detail="probesize"></div>
                 </label>
               </div>
+              <div class="form-group">
+                <label><div><span><%-lang.Accelerator%></span></div>
+                    <div><select class="form-control" detail="accelerator" selector="h_gpud">
+                        <option value="0" selected><%-lang.No%></option>
+                        <option value="1"><%-lang.Yes%></option>
+                    </select></div>
+                </label>
+              </div>
+              <div class="h_gpud_input h_gpud_1">
+                  <div class="form-group">
+                    <label><div><span><%-lang.hwaccel%></span></div>
+                        <div><select class="form-control" detail="hwaccel">
+                            <option value="qsv"><%-lang.qsv%></option>
+                            <option value="vdpau"><%-lang.vdpau%></option>
+                            <option value="vaapi"><%-lang.vaapi%></option>
+                            <option value="dxva2"><%-lang.dxva2%></option>
+                            <option value="cuvid"><%-lang.cuvid%></option>
+                            <option value="vdpau"><%-lang.vda%></option>
+                            <option value="vdpau"><%-lang.videotoolbox%></option>
+                        </select></div>
+                    </label>
+                  </div>
+                  <div class="form-group">
+                    <label><div><span><%-lang.hwaccel_vcodec%></span></div>
+                        <div><select class="form-control" detail="hwaccel_vcodec">
+                            <option value=""><%-lang.Auto%> (<%-lang.Recommended%>)</option>
+                            <optgroup label="NVIDIA">
+                                <option value="h264_cuvid"><%-lang['h264_cuvid']%></option>
+                                <option value="hevc_cuvid"><%-lang['hevc_cuvid']%></option>
+                                <option value="mjpeg_cuvid"><%-lang['mjpeg_cuvid']%></option>
+                                <option value="mpeg4_cuvid"><%-lang['mpeg4_cuvid']%></option>
+                            </optgroup>
+                            <optgroup label="QuickSync Video">
+                                <option value="h264_qsv"><%-lang['h264_qsv']%></option>
+                                <option value="hevc_qsv"><%-lang['hevc_qsv']%></option>
+                                <option value="mpeg2_qsv"><%-lang['mpeg2_qsv']%></option>
+                            </optgroup>
+                        </select></div>
+                    </label>
+                  </div>
+                  <div class="form-group">
+                    <label><div><span><%-lang.hwaccel_device%></span></div>
+                    <div><input class="form-control" detail="hwaccel_device"></div>
+                    </label>
+                  </div>
+              </div>
           </div>
 <!--     END of Input     -->
 <!--     START of Stream     -->
@@ -178,29 +233,36 @@
                 </label>
               </div>
               <div class="h_st_input h_st_hls">
-                  <div class="row">
-                      <div class="form-group col-md-12">
-                        <label><div><span><%-lang['HLS Video Encoder']%></span></div>
-                            <div><select class="form-control" detail="stream_vcodec" selector="h_hls_v">
-                                <option value="no" selected><%-lang['Auto']%></option>
-                                <option value="libx264" selected><%-lang['libx264']%></option>
-                                <option value="libx265"><%-lang['libx265']%></option>
-                                <option value="copy"><%-lang['copy']%></option>
-                            </select></div>
-                        </label>
-                      </div>
-                      <div class="form-group col-md-12">
-                        <label><div><span><%-lang['HLS Audio Encoder']%></span></div>
-                            <div><select class="form-control" detail="stream_acodec">
-                                <option value="no" selected><%-lang['No Audio']%></option>
-                                <option value="" selected><%-lang['Auto']%></option>
-                                <option value="aac"><%-lang['aac']%></option>
-                                <option value="ac3"><%-lang['ac3']%></option>
-                                <option value="libmp3lame"><%-lang['libmp3lame']%></option>
-                                <option value="copy"><%-lang['copy']%></option>
-                            </select></div>
-                        </label>
-                      </div>
+                  <div class="form-group">
+                    <label><div><span><%-lang['HLS Video Encoder']%></span></div>
+                        <div><select class="form-control" detail="stream_vcodec" selector="h_hls_v">
+                            <option value="no" selected><%-lang['Auto']%></option>
+                            <option value="libx264" selected><%-lang['libx264']%></option>
+                            <option value="libx265"><%-lang['libx265']%></option>
+                            <option value="copy"><%-lang['copy']%></option>
+                            <optgroup label="<%-lang['Hardware Accelerated']%>">
+                                <option value="h264_vaapi"><%-lang['h264_vaapi']%></option>
+                                <option value="hevc_vaapi"><%-lang['hevc_vaapi']%></option>
+                                <option value="h264_nvenc"><%-lang['h264_nvenc']%></option>
+                                <option value="hevc_nvenc"><%-lang['hevc_nvenc']%></option>
+                                <option value="h264_qsv"><%-lang['h264_qsv']%></option>
+                                <option value="hevc_qsv"><%-lang['hevc_qsv']%></option>
+                                <option value="mpeg2_qsv"><%-lang['mpeg2_qsv']%></option>
+                            </optgroup>
+                        </select></div>
+                    </label>
+                  </div>
+                  <div class="form-group">
+                    <label><div><span><%-lang['HLS Audio Encoder']%></span></div>
+                        <div><select class="form-control" detail="stream_acodec">
+                            <option value="no" selected><%-lang['No Audio']%></option>
+                            <option value="" selected><%-lang['Auto']%></option>
+                            <option value="aac"><%-lang['aac']%></option>
+                            <option value="ac3"><%-lang['ac3']%></option>
+                            <option value="libmp3lame"><%-lang['libmp3lame']%></option>
+                            <option value="copy"><%-lang['copy']%></option>
+                        </select></div>
+                    </label>
                   </div>
                   <div class="form-group">
                     <label><div><span><%-lang['HLS Segment Length']%></span></div>
@@ -233,7 +295,7 @@
                       </label>
                   </div>
               </div>
-              <div class=" h_st_input h_st_mjpeg h_st_b64 h_st_hls h_hls_v_input h_hls_v_libx264 h_hls_v_libx265 h_hls_v_no">
+              <div class=" h_st_input h_st_mjpeg h_st_b64 h_st_hls h_hls_v_input h_hls_v_libx264 h_hls_v_libx265 h_hls_v_h264_nvenc h_hls_v_hevc_nvenc h_hls_v_no">
                   <div class="row">
                       <div class="form-group col-md-12">
                         <label><div><span><%-lang['Quality']%></span></div>
@@ -473,10 +535,24 @@
                             <option value="libx264"><%-lang['libx264 (Default)']%></option>
                             <option value="copy"><%-lang['copy']%></option>
                         </optgroup>
+                        <optgroup label="MP4 <%-lang['Hardware Accelerated']%>">
+                            <option value="h264_vaapi"><%-lang['h264_vaapi']%></option>
+                            <option value="hevc_vaapi"><%-lang['hevc_vaapi']%></option>
+                            <option value="h264_nvenc"><%-lang['h264_nvenc']%></option>
+                            <option value="hevc_nvenc"><%-lang['hevc_nvenc']%></option>
+                            <option value="h264_qsv"><%-lang['h264_qsv']%></option>
+                            <option value="hevc_qsv"><%-lang['hevc_qsv']%></option>
+                            <option value="mpeg2_qsv"><%-lang['mpeg2_qsv']%></option>
+                        </optgroup>
+                        <optgroup label="WebM <%-lang['Hardware Accelerated']%>">
+                            <option value="vp8_cuvid"><%-lang['vp8_cuvid']%></option>
+                            <option value="vp9_cuvid"><%-lang['vp9_cuvid']%></option>
+                            <option value="vp8_qsv"><%-lang['vp8_qsv']%></option>
+                        </optgroup>
                     </select></div>
                 </label>
               </div>
-              <div class="h_vc_input h_vc_libvpx h_vc_libvpx-vp9 h_vc_libx264 h_vc_libx265 h_vc_default h_vc_none">
+              <div class="h_vc_input h_vc_libvpx h_vc_libvpx-vp9 h_vc_libx264 h_vc_libx265 h_vc_hevc_nvenc h_vc_h264_nvenc h_vc_default h_vc_none">
                   <div class="form-group">
                     <label><div><span><%-lang['Quality']%></span></div>
                     <div><input class="form-control" detail="crf" placeholder=""></div>
@@ -507,7 +583,7 @@
                     </select></div>
                 </label>
               </div>
-              <div class="h_vc_input h_vc_libvpx h_vc_libvpx-vp9 h_vc_libx264 h_vc_libx265 h_vc_default h_vc_none">
+              <div class="h_vc_input h_vc_libvpx h_vc_libvpx-vp9 h_vc_libx2ibx265 h_vc_hevc_nvenc h_vc_h264_nvenc h_vc_default h_vc_none">
                    <div class="form-group">
                     <label><div><span><%-lang['Video Record Rate']%></span></div>
                     <div><input class="form-control" name="fps"></div>
@@ -539,7 +615,7 @@
                 <div><input class="form-control" detail="cutoff" placeholder="15"></div>
                 </label>
               </div>
-              <div class="h_vc_input h_vc_libvpx h_vc_libvpx-vp9 h_vc_libx264 h_vc_libx265 h_vc_default h_vc_none">
+              <div class="h_vc_input h_vc_libvpx h_vc_libvpx-vp9 h_vc_libx264 h_vc_libx265 h_vc_hevc_nvenc h_vc_h264_nvenc h_vc_default h_vc_none">
                   <div class="form-group">
                     <label><div><span><%-lang['Rotate']%></span></div>
                             <div><select class="form-control" detail="rotate_record">
@@ -560,7 +636,7 @@
               </div>
           </div>
           <div class="h_us_input h_us_advanced" style="display:none">
-              <div class="h_vc_input h_vc_libvpx h_vc_libvpx-vp9 h_vc_libx264 h_vc_libx265 h_vc_default h_vc_none">
+              <div class="h_vc_input h_vc_libvpx h_vc_libvpx-vp9 h_vc_libx264 h_vc_libx265 h_vc_hevc_nvenc h_vc_h264_nvenc h_vc_default h_vc_none">
                   <div class="form-group-group red h_m_input h_m_record h_m_idle" section id="monSectionRecordingTimestamp">
                   <h4><%-lang['Recording Timestamp']%></h4>
                       <div class="form-group">
@@ -607,7 +683,7 @@
                       </div>
                   </div>
               </div>
-              <div class="h_vc_input h_vc_libvpx h_vc_libvpx-vp9 h_vc_libx264 h_vc_libx265 h_vc_default h_vc_none">
+              <div class="h_vc_input h_vc_libvpx h_vc_libvpx-vp9 h_vc_libx264 h_vc_libx265 h_vc_hevc_nvenc h_vc_h264_nvenc h_vc_default h_vc_none">
                   <div class="form-group-group red h_m_input h_m_record h_m_idle" section id="monSectionRecordingWatermark">
                   <h4><%-lang['Recording Watermark']%></h4>
                       <div class="form-group">

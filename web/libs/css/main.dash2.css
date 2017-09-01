@@ -89,8 +89,8 @@ img{max-width:100%}
 .monitor_item.selected .stream-element{height:600px}
 .monitor_item.selected .fa-expand:before{content:"\f066"}
 .monitor_item .mdl-card__supporting-text{background:#222;color:#fff!important;display:block;min-height:auto}
-.monitor_item.detector_triggered .indifference{opacity:1}
-.monitor_item .indifference{opacity:0}
+.monitor_item.detector_triggered .detector-fade{opacity:1}
+.monitor_item .detector-fade{opacity:0}
 .monitor_item .indifference{position:absolute;width:100%;left:0;top:0;transition:0.2s;}
 .monitor_item .indifference .progress{width:100%;background:#333;box-shadow:0;}
 .monitor_item .indifference:hover .progress{height:20px;transition:0.2s}
@@ -243,10 +243,12 @@ img.circle-img,div.circle-img{border-radius:50%;height:50px;width:50px}
 .upload_file input{display:none}
 #video_preview .stream-objects{right:0;margin:auto}
 .stream-objects{position:absolute;top:0;left:0;width:100%;height:100%;z-index:1}
-.stream-objects .stream-detected-object{position:absolute;top:0;left:0;border:3px solid red;background:transparent}
-.monitor_item .stream-hud{opacity:0;position:absolute;top:0;left:0;width:100%;height:calc(100% - 30px);z-index:2}
+.stream-objects .stream-detected-object{position:absolute;top:0;left:0;border:3px inset red;background:transparent}
+.stream-objects .point{position:absolute;top:0;left:0;border:3px solid red;border-radius:50%}
+.monitor_item .stream-hud{opacity:0;position:absolute;top:0;left:0;width:100%;height:100%;z-index:2}
 .monitor_item .stream-hud .controls{position:absolute;top:10px;left:10px;}
 .monitor_item .stream-hud:hover{opacity:1}
+.monitor_item .stream-hud .bottom-text{position:absolute;bottom:0;left:0;width:100%;padding:5px}
 .monitor_item .stream-hud .lamp{position:absolute;top:5px;right:5px;z-index:1;text-shadow: 0 0 15px #333;}
 .monitor_item[mode="Disabled"] .stream-hud .lamp{color:#5d5d5d}
 .monitor_item[mode="Watch Only"] .stream-hud .lamp{color:#5da8e8}

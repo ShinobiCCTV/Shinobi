@@ -36,6 +36,24 @@ switch($.ccio.userDetails.lang){
     $.ccio.init=function(x,d,z,k){
         if(!k){k={}};k.tmp='';
         switch(x){
+            case'streamURL':
+                var streamURL
+                switch(JSON.parse(d.details).stream_type){
+                    case'jpeg':
+                        streamURL='/'+$user.auth_token+'/jpeg/'+d.ke+'/'+d.mid+'/s.jpg'
+                    break;
+                    case'mjpeg':
+                        streamURL='/'+$user.auth_token+'/mjpeg/'+d.ke+'/'+d.mid
+                    break;
+                    case'hls':
+                        streamURL='/'+$user.auth_token+'/hls/'+d.ke+'/'+d.mid+'/s.m3u8'
+                    break;
+                    case'b64':
+                        streamURL='Websocket'
+                    break;
+                }
+                return streamURL
+            break;
             case'humanReadMode':
                 switch(d){
                     case'idle':
@@ -520,10 +538,10 @@ switch($.ccio.userDetails.lang){
                 tmp+='<div class="mdl-card mdl-cell mdl-cell--8-col">';
                 tmp+='<div class="stream-block no-padding mdl-card__media mdl-color-text--grey-50">';
                 tmp+='<div class="stream-objects"></div>';
-                tmp+='<div class="stream-hud"><div class="lamp" title="'+k.mode+'"><i class="fa fa-eercast"></i></div><div class="controls"><span title="<%-cleanLang(lang['Currently viewing'])%>" class="label label-default"><span class="viewers"></span></span> <a class="btn-xs btn-danger btn" monitor="mode" mode="record"><i class="fa fa-circle"></i> <%-cleanLang(lang['Start Recording'])%></a> <a class="btn-xs btn-primary btn" monitor="mode" mode="start"><i class="fa fa-eye"></i> <%-cleanLang(lang['Set to Watch Only'])%></a></div></div>';
+                tmp+='<div class="stream-hud"><div class="lamp" title="'+k.mode+'"><i class="fa fa-eercast"></i></div><div class="controls"><span title="<%-cleanLang(lang['Currently viewing'])%>" class="label label-default"><span class="viewers"></span></span> <a class="btn-xs btn-danger btn" monitor="mode" mode="record"><i class="fa fa-circle"></i> <%-cleanLang(lang['Start Recording'])%></a> <a class="btn-xs btn-primary btn" monitor="mode" mode="start"><i class="fa fa-eye"></i> <%-cleanLang(lang['Set to Watch Only'])%></a></div><div class="bottom-text"><span class="detector-fade">Objects Detected : <span class="stream-detected-count"></span></span></div></div>';
                 tmp+='</div>';
                 tmp+='<div class="mdl-card__supporting-text text-center">';
-                tmp+='<div class="indifference"><div class="progress"><div class="progress-bar progress-bar-danger" role="progressbar"><span></span></div></div></div>';
+                tmp+='<div class="indifference detector-fade"><div class="progress"><div class="progress-bar progress-bar-danger" role="progressbar"><span></span></div></div></div>';
                 tmp+='<div class="monitor_details">';
                 tmp+='<div><span class="monitor_name">'+d.name+'</span><span class="monitor_not_record_copy">, <%-cleanLang(lang['Recording FPS'])%> : <span class="monitor_fps">'+d.fps+'</span></span></div>';
                 tmp+='</div>';
@@ -827,17 +845,18 @@ $.ccio.ws.on('f',function (d){
                     d.stream=d.e.find('.stream-element')
                     d.streamObjects=d.e.find('.stream-objects')
                     $.ccio.init('drawMatrices',d)
+                    d.e.find('.stream-detected-count').text(d.streamObjects.find('.stream-detected-object').length)
                 }
                 if(d.details.confidence){
-                    d.e.addClass('detector_triggered')
-                    clearTimeout($.ccio.mon[d.id].detector_trigger_timeout);
-                    $.ccio.mon[d.id].detector_trigger_timeout=setTimeout(function(){
-                        $('.monitor_item[ke="'+d.ke+'"][mid="'+d.id+'"]').removeClass('detector_triggered').find('.stream-detected-object').remove()
-                    },5000);
                     d.tt=d.details.confidence;
                     if (d.tt > 100) { d.tt = 100; }
                     d.e.find('.indifference .progress-bar').css('width',d.tt + "%").find('span').text(d.details.confidence)
                 }
+                d.e.addClass('detector_triggered')
+                clearTimeout($.ccio.mon[d.id].detector_trigger_timeout);
+                $.ccio.mon[d.id].detector_trigger_timeout=setTimeout(function(){
+                    $('.monitor_item[ke="'+d.ke+'"][mid="'+d.id+'"]').removeClass('detector_triggered').find('.stream-detected-object').remove()
+                },5000);
             }
         break;
         case'detector_cascade_list':
@@ -1152,9 +1171,11 @@ $.ccio.ws.on('f',function (d){
         break;
         case'monitor_frame':
             try{
+                if(!$.ccio.mon[d.id].ctx||$.ccio.mon[d.id].ctx.length===0){
+                    $.ccio.mon[d.id].ctx = $('#monitor_live_'+d.id+' canvas');
+                }
                 if(!$.ccio.mon[d.id].image){
                     $.ccio.mon[d.id].image = new Image();
-                    $.ccio.mon[d.id].ctx = $('#monitor_live_'+d.id+' canvas');
                     $.ccio.mon[d.id].image.onload = function() {
                         d.x = 0,d.y = 0;
                         d.ratio = Math.min($.ccio.mon[d.id].ctx.width()/$.ccio.mon[d.id].image.width,$.ccio.mon[d.id].ctx.height()/$.ccio.mon[d.id].image.height);
@@ -1167,11 +1188,10 @@ $.ccio.ws.on('f',function (d){
                         $.ccio.mon[d.id].ctx[0].getContext("2d").drawImage($.ccio.mon[d.id].image,0,0,$.ccio.mon[d.id].image.width,$.ccio.mon[d.id].image.height,d.x,d.y,d.width,d.height);
                     };
                 }
-                if($.ccio.mon[d.id].image.complete){
-                    $.ccio.mon[d.id].image.src='data:image/jpeg;base64,'+d.frame;
-                }
+                $.ccio.mon[d.id].image.src='data:image/jpeg;base64,'+d.frame;
                 $.ccio.mon[d.id].last_frame='data:image/jpeg;base64,'+d.frame;
             }catch(er){
+                console.log(er)
                 $.ccio.log('base64 frame')
             }
             $.ccio.init('signal',d);
@@ -1519,21 +1539,7 @@ $.multimon={e:$('#multi_mon')};$.multimon.table=$.multimon.e.find('.tableData tb
 $.multimon.e.on('shown.bs.modal',function() {
     var tmp=''
     $.each($.ccio.mon,function(n,v){
-        var streamURL
-        switch(JSON.parse(v.details).stream_type){
-            case'jpeg':
-                streamURL='/'+$user.auth_token+'/jpeg/'+v.ke+'/'+v.mid+'/s.jpg'
-            break;
-            case'mjpeg':
-                streamURL='/'+$user.auth_token+'/mjpeg/'+v.ke+'/'+v.mid
-            break;
-            case'hls':
-                streamURL='/'+$user.auth_token+'/hls/'+v.ke+'/'+v.mid+'/s.m3u8'
-            break;
-            case'b64':
-                streamURL='Websocket'
-            break;
-        }
+        var streamURL = $.ccio.init('streamURL',v)
         if(streamURL!=='Websocket'&&v.mode!==('idle'&&'stop')){
             streamURL='<a target="_blank" href="'+streamURL+'">'+streamURL+'</a>'
         }
@@ -1541,7 +1547,7 @@ $.multimon.e.on('shown.bs.modal',function() {
         tmp+='<tr mid="'+v.mid+'" ke="'+v.ke+'">'
         tmp+='<td><a monitor="watch"><img class="small-square-img" src="'+img+'"></a></td><td>'+v.name+'<br><small>'+v.mid+'</small></td><td class="monitor_mode">'+$.ccio.init('humanReadMode',v.mode)+'</td><td>'+streamURL+'</td>'
         //buttons
-        tmp+='<td class="text-right"><a title="<%-cleanLang(lang.Pop)%>" monitor="pop" class="btn btn-default"><i class="fa fa-external-link"></i></a> <a title="<%-cleanLang(lang.Calendar)%>" monitor="calendar" class="btn btn-default"><i class="fa fa-calendar"></i></a> <a title="<%-cleanLang(lang['Power Viewer'])%>" class="btn btn-default" monitor="powerview"><i class="fa fa-map-marker"></i></a> <a title="<%-cleanLang(lang['Time-lapse'])%>" class="btn btn-default" monitor="timelapse"><i class="fa fa-angle-double-right"></i></a> <a title="<%-cleanLang(lang['Videos List'])%>" monitor="videos_table" class="btn btn-default"><i class="fa fa-film"></i></a> <a title="<%-cleanLang(lang['Monitor Settings'])%>" class="btn btn-default permission_monitor_edit" monitor="edit"><i class="fa fa-wrench"></i></a></td>'
+        tmp+='<td class="text-right"><a title="<%-cleanLang(lang.Pop)%>" monitor="pop" class="btn btn-primary"><i class="fa fa-external-link"></i></a> <a title="<%-cleanLang(lang.Calendar)%>" monitor="calendar" class="btn btn-default"><i class="fa fa-calendar"></i></a> <a title="<%-cleanLang(lang['Power Viewer'])%>" class="btn btn-default" monitor="powerview"><i class="fa fa-map-marker"></i></a> <a title="<%-cleanLang(lang['Time-lapse'])%>" class="btn btn-default" monitor="timelapse"><i class="fa fa-angle-double-right"></i></a> <a title="<%-cleanLang(lang['Videos List'])%>" monitor="videos_table" class="btn btn-default"><i class="fa fa-film"></i></a> <a title="<%-cleanLang(lang['Monitor Settings'])%>" class="btn btn-default permission_monitor_edit" monitor="edit"><i class="fa fa-wrench"></i></a></td>'
         tmp+='</tr>'
     })
     $.multimon.table.html(tmp)
@@ -1610,7 +1616,9 @@ $.aM.e.on('click','#monedit_tabs li',function(){
     e.mid=e.e.attr('mid')
     e.ke=e.e.attr('ke')
     e.values=$.ccio.op().tabsOpen[e.mid]
-    $.aM.import(e)
+    if(e.values){
+        $.aM.import(e)
+    }
 })
 $.aM.drawList=function(){
     e={list:$.aM.e.find('.follow-list ul'),html:''}
