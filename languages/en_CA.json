@@ -568,7 +568,7 @@
    "dxva2": "dxva2 (DirectX Video, Windows)",
    "vdpau": "vdpau",
    "vaapi": "vaapi (VA-API)",
-   "vda": "vda (Video Decoder Acceleration)",
+   "vda": "vda (Apple VDA Hardware Acceleration)",
    "videotoolbox": "videotoolbox",
    "cuvid": "cuvid (NVIDIA NVENC)",
    "Main": "Main",
