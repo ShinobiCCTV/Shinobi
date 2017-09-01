@@ -121,6 +121,13 @@ s.disc=function(){
     sql = mysql.createConnection(config.db);
     sql.connect(function(err){if(err){s.systemLog(lang['Error Connecting']+' : DB',err);setTimeout(s.disc, 2000);}});
     sql.on('error',function(err) {s.systemLog(lang['DB Lost.. Retrying..']);s.systemLog(err);s.disc();return;});
+    sql.on('connect',function() {
+        sql.query('ALTER TABLE `Videos` ADD COLUMN `details` TEXT NULL DEFAULT NULL AFTER `status`;',function(err){
+            if(err){
+                s.systemLog("Already applied critical update.");
+            }
+        });
+    });
 }
 s.disc();
 //kill any ffmpeg running
