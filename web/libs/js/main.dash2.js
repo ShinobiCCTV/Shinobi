@@ -1690,7 +1690,7 @@ $.aM.f.submit(function(e){
         $.ccio.init('note',{title:'Configuration Invalid',text:e.er.join('<br>'),type:'error'});
         return;
     }
-    $.post('/'+$user.auth_token+'/configureMonitor/'+$user.ke+'/'+e.s.mid+'?data='+JSON.stringify(e.s),function(d){
+    $.post('/'+$user.auth_token+'/configureMonitor/'+$user.ke+'/'+e.s.mid,{data:JSON.stringify(e.s)},function(d){
         $.ccio.log(d)
     })
     if(!$.ccio.mon[e.s.mid]){$.ccio.mon[e.s.mid]={}}
