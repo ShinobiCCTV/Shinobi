@@ -67,16 +67,19 @@
    "Add": "Add",
    "Save": "Save",
    "Close": "Close",
+   "Secure": "Secure",
    "Check": "Check",
    "Confirm": "Confirm",
    "Enable": "Enable",
    "Enabled": "Enabled",
+   "API Key": "API Key",
    "API Keys": "API Keys",
    "Group Key": "Group Key",
    "Allowed IPs": "Allowed IPs",
    "Separate with commas, no spaces": "Separate with commas, no spaces",
    "Can Get Monitors": "Can Get Monitors",
    "Can Get Logs": "Can Get Logs",
+   "Can Authenticate Websocket": "Can Authenticate Websocket",
    "Can Control Monitors": "Can Control Monitors",
    "Can View Snapshots": "Can View Snapshots",
    "Can View Streams": "Can View Streams",
@@ -573,5 +576,6 @@
    "cuvid": "cuvid (NVIDIA NVENC)",
    "Main": "Main",
    "Storage Location": "Storage Location",
-   "Recommended": "Recommended"
+   "Recommended": "Recommended",
+   "Link Shinobi": "Link Shinobi"
 }

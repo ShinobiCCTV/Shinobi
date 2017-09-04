@@ -166,6 +166,7 @@ img.circle-img,div.circle-img{border-radius:50%;height:50px;width:50px}
 .dark .form-group label>div,.dark .form-group label>div>span{border-color:#454545;color:#fff}
 .important.form-group label>div:nth-child(2),.important.form-group label>div>span{border-color:red}
 .form-group label span small{margin-left: 2px;display:block;font-weight: 600;}
+.form-group-group .round-left{border-radius: 50px 0 0 50px;margin-left:10px}
 .form-group-group blockquote:before,.form-group-group blockquote:after{display:none!important}
 .form-group-group blockquote{letter-spacing:normal;font-style:normal}
 .form-group-group blockquote p:empty{display:none}
