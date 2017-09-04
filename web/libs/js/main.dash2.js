@@ -538,6 +538,9 @@ switch($user.details.lang){
         switch(x){
             case 0://video
                 if(!d.href&&d.hrefNoAuth){d.href=$.ccio.init('location',user)+user.auth_token+d.hrefNoAuth}
+                if(user!==$user){
+                    d.href=$.ccio.init('location',user)+(d.href.substring(1))
+                }
                 if(!d.filename){d.filename=$.ccio.init('tf',d.time)+'.'+d.ext;}
                 d.dlname=d.mid+'-'+d.filename;
                 d.mom=moment(d.time),
@@ -2238,6 +2241,9 @@ $.timelapse.drawTimeline=function(getData){
             v.filename=$.ccio.init('tf',v.time)+'.'+v.ext;
             v.videoBefore=videos.videos[n-1];
             v.videoAfter=videos.videos[n+1];
+            if(user!==$user){
+                v.href=$.ccio.init('location',user)+(v.href.substring(1))
+            }
             v.downloadLink=v.href+'?downloadName='+v.mid+'-'+v.filename
             v.position=n;
             $.timelapse.currentVideos[v.filename]=v;
@@ -3218,6 +3224,9 @@ $('body')
                         e.tmp+='<tbody>';
                         $.each(d.videos,function(n,v){
                             if(v.status!==0){
+                                if(user!==$user){
+                                    v.href=$.ccio.init('location',user)+(v.href.substring(1))
+                                }
                                 v.mon=$.ccio.mon[v.ke+v.mid+user.auth_token];
                                 v.start=v.time;
                                 v.filename=$.ccio.init('tf',v.time)+'.'+v.ext;
