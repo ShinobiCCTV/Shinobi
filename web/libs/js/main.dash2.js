@@ -1092,15 +1092,19 @@ $.ccio.globalWebsocket=(d,user)=>{
                 if(!$.ccio.mon[d.ke+d.id+user.auth_token].image){
                     $.ccio.mon[d.ke+d.id+user.auth_token].image = new Image();
                     $.ccio.mon[d.ke+d.id+user.auth_token].image.onload = function() {
-                        d.x = 0,d.y = 0;
-                        d.ratio = Math.min($.ccio.mon[d.ke+d.id+user.auth_token].ctx.width()/$.ccio.mon[d.ke+d.id+user.auth_token].image.width,$.ccio.mon[d.ke+d.id+user.auth_token].ctx.height()/$.ccio.mon[d.ke+d.id+user.auth_token].image.height);
-                        d.height = $.ccio.mon[d.ke+d.id+user.auth_token].image.height*d.ratio;
-                        d.width = $.ccio.mon[d.ke+d.id+user.auth_token].image.width*d.ratio;
-                        if( d.width < $.ccio.mon[d.ke+d.id+user.auth_token].ctx.width() )
-                            d.x = ($.ccio.mon[d.ke+d.id+user.auth_token].ctx.width() / 2) - (d.width / 2);
-                        if( d.height < $.ccio.mon[d.ke+d.id+user.auth_token].ctx.height() )
-                            d.y = ($.ccio.mon[d.ke+d.id+user.auth_token].ctx.height() / 2) - (d.height / 2);
-                        $.ccio.mon[d.ke+d.id+user.auth_token].ctx[0].getContext("2d").drawImage($.ccio.mon[d.ke+d.id+user.auth_token].image,0,0,$.ccio.mon[d.ke+d.id+user.auth_token].image.width,$.ccio.mon[d.ke+d.id+user.auth_token].image.height,d.x,d.y,d.width,d.height);
+//                        d.x = 0,d.y = 0;
+//                        d.ratio = Math.min($.ccio.mon[d.ke+d.id+user.auth_token].ctx.width()/$.ccio.mon[d.ke+d.id+user.auth_token].image.width,$.ccio.mon[d.ke+d.id+user.auth_token].ctx.height()/$.ccio.mon[d.ke+d.id+user.auth_token].image.height);
+//                        d.height = $.ccio.mon[d.ke+d.id+user.auth_token].image.height*d.ratio;
+//                        d.width = $.ccio.mon[d.ke+d.id+user.auth_token].image.width*d.ratio;
+//                        if( d.width < $.ccio.mon[d.ke+d.id+user.auth_token].ctx.width() )
+//                            d.x = ($.ccio.mon[d.ke+d.id+user.auth_token].ctx.width() / 2) - (d.width / 2);
+//                        if( d.height < $.ccio.mon[d.ke+d.id+user.auth_token].ctx.height() )
+//                            d.y = ($.ccio.mon[d.ke+d.id+user.auth_token].ctx.height() / 2) - (d.height / 2);
+//                        $.ccio.mon[d.ke+d.id+user.auth_token].ctx[0].getContext("2d").drawImage($.ccio.mon[d.ke+d.id+user.auth_token].image,0,0,$.ccio.mon[d.ke+d.id+user.auth_token].image.width,$.ccio.mon[d.ke+d.id+user.auth_token].image.height,d.x,d.y,d.width,d.height);
+                       
+                        d.height=$.ccio.mon[d.ke+d.id+user.auth_token].ctx.height()
+                        d.width=$.ccio.mon[d.ke+d.id+user.auth_token].ctx.width()
+                        $.ccio.mon[d.ke+d.id+user.auth_token].ctx[0].getContext("2d").drawImage($.ccio.mon[d.ke+d.id+user.auth_token].image,0,0,d.width,d.height);
                     };
                 }
                 $.ccio.mon[d.ke+d.id+user.auth_token].image.src='data:image/jpeg;base64,'+d.frame;
@@ -2247,13 +2251,14 @@ $.timelapse.drawTimeline=function(getData){
             v.filename=$.ccio.init('tf',v.time)+'.'+v.ext;
             v.videoBefore=videos.videos[n-1];
             v.videoAfter=videos.videos[n+1];
-            if(user!==$user&&v.href.charAt(0)==='/'){
-                v.href=$.ccio.init('location',user)+(v.href.substring(1))
-            }
+//            if(v.href.charAt(0)==='/'){
+//                v.href=$.ccio.init('location',user)+(v.href.substring(1))
+//                v.videoURL=$.ccio.init('location',user)+(v.videoURL.substring(1))
+//            }
             v.downloadLink=v.href+'?downloadName='+v.mid+'-'+v.filename
             v.position=n;
             $.timelapse.currentVideos[v.filename]=v;
-            e.tmp+='<li class="glM'+v.mid+user.auth_token+' list-group-item timelapse_video flex-block" timelapse="video" file="'+v.filename+'" href="'+v.href+'" mid="'+v.mid+'" ke="'+v.ke+'">'
+            e.tmp+='<li class="glM'+v.mid+$user.auth_token+' list-group-item timelapse_video flex-block" timelapse="video" file="'+v.filename+'" href="'+v.href+'" mid="'+v.mid+'" ke="'+v.ke+'">'
             e.tmp+='<div class="flex-block">'
             e.tmp+='<div class="flex-unit-3"><div class="frame" style="background-image:url('+$.timelapse.placeholder+')"></div></div>'
             e.tmp+='<div class="flex-unit-3"><div><span title="'+v.time+'" class="livestamp"></span></div><div>'+v.filename+'</div></div>'
