@@ -895,7 +895,7 @@ $.ccio.globalWebsocket=(d,user)=>{
                     $.ccio.mon[v.ke+v.mid+user.auth_token]=v;
                     v.user=user;
                     $.ccio.tm(1,v,null,user)
-                    if(d.o[v.ke]&&d.o[v.ke][v.mid]===1){$.ccio.cx({f:'monitor',ff:'watch_on',id:v.mid},user)}
+                    if(d.o[v.ke+user.auth_token]&&d.o[v.ke+user.auth_token][v.mid]===1){$.ccio.cx({f:'monitor',ff:'watch_on',id:v.mid},user)}
                 }
                 if(f.mid){
                     g(null,f)
@@ -998,7 +998,7 @@ $.ccio.globalWebsocket=(d,user)=>{
             delete($.ccio.mon[d.ke+d.mid+user.auth_token]);
         break;
         case'monitor_watch_off':case'monitor_stopping':
-            d.o=$.ccio.op().watch_on;if(!d.o[d.ke]){d.o[d.ke]={}};d.o[d.ke][d.id]=0;$.ccio.op('watch_on',d.o);
+            d.o=$.ccio.op().watch_on;if(!d.o[d.ke+user.auth_token]){d.o[d.ke+user.auth_token]={}};d.o[d.ke+user.auth_token][d.id]=0;$.ccio.op('watch_on',d.o);
             if($.ccio.mon[d.ke+d.id+user.auth_token]){
                 $.ccio.init('jpegModeStop',{mid:d.id,ke:d.ke});
                 $.ccio.init('clearTimers',d)
@@ -1009,7 +1009,7 @@ $.ccio.globalWebsocket=(d,user)=>{
             }
         break;
         case'monitor_watch_on':
-            d.o=$.ccio.op().watch_on;if(!d.o){d.o={}};if(!d.o[d.ke]){d.o[d.ke]={}};d.o[d.ke][d.id]=1;$.ccio.op('watch_on',d.o);
+            d.o=$.ccio.op().watch_on;if(!d.o){d.o={}};if(!d.o[d.ke+user.auth_token]){d.o[d.ke+user.auth_token]={}};d.o[d.ke+user.auth_token][d.id]=1;$.ccio.op('watch_on',d.o);
             $.ccio.mon[d.ke+d.id+user.auth_token].watch=1;
             delete($.ccio.mon[d.ke+d.id+user.auth_token].image)
             delete($.ccio.mon[d.ke+d.id+user.auth_token].ctx)
@@ -1135,7 +1135,7 @@ $.ccio.globalWebsocket=(d,user)=>{
             if(d.new===true){$.ccio.tm(1,d.mon,null,user)}
             switch(d.mon.mode){
                 case'start':case'record':
-                    if(d.o[d.ke]&&d.o[d.ke][d.mid]===1){
+                    if(d.o[d.ke+user.auth_token]&&d.o[d.ke+user.auth_token][d.mid]===1){
                         $.ccio.cx({f:'monitor',ff:'watch_on',id:d.mid})
                     }
                 break;
@@ -3038,7 +3038,9 @@ $('body')
         e.mon=$.ccio.mon[e.ke+e.mid+e.auth];//monitor configuration
         var user
         if($.users[e.auth]){user=$.users[e.auth]}else{user=$user}
-        var user = e.mon.user
+        if(!user){
+            user=$user
+        }
     switch(e.a){
         case'pop':
             e.fin=function(img){
