@@ -126,17 +126,21 @@ switch($user.details.lang){
                 d.streamObjects.find('.stream-detected-object[name="'+d.details.name+'"]').remove()
                 d.tmp=''
                 $.each(d.details.matrices,function(n,v){
-                    d.tmp+='<div class="stream-detected-object" name="'+d.details.name+'" style="height:'+(d.heightRatio*v.height)+'px;width:'+(d.widthRatio*v.width)+'px;top:'+(d.heightRatio*v.y)+'px;left:'+(d.widthRatio*v.x)+'px;"></div>'
+                    d.tmp+='<div class="stream-detected-object" name="'+d.details.name+'" style="height:'+(d.heightRatio*v.height)+'px;width:'+(d.widthRatio*v.width)+'px;top:'+(d.heightRatio*v.y)+'px;left:'+(d.widthRatio*v.x)+'px;">'
+                    if(v.tag){d.tmp+='<span class="tag">'+v.tag+'</span>'}
+                    d.tmp+='</div>'
                 })
                 d.streamObjects.append(d.tmp)
             break;
             case'clearTimers':
                 if(!d.mid){d.mid=d.id}
-                clearTimeout($.ccio.mon[d.ke+d.mid+user.auth_token]._signal);
-                clearInterval($.ccio.mon[d.ke+d.mid+user.auth_token].hlsGarbageCollectorTimer)
-                clearTimeout($.ccio.mon[d.ke+d.mid+user.auth_token].jpegInterval);
-                clearInterval($.ccio.mon[d.ke+d.mid+user.auth_token].signal);
-                clearInterval($.ccio.mon[d.ke+d.mid+user.auth_token].m3uCheck);
+                if($.ccio.mon[d.ke+d.mid+user.auth_token]){
+                    clearTimeout($.ccio.mon[d.ke+d.mid+user.auth_token]._signal);
+                    clearInterval($.ccio.mon[d.ke+d.mid+user.auth_token].hlsGarbageCollectorTimer)
+                    clearTimeout($.ccio.mon[d.ke+d.mid+user.auth_token].jpegInterval);
+                    clearInterval($.ccio.mon[d.ke+d.mid+user.auth_token].signal);
+                    clearInterval($.ccio.mon[d.ke+d.mid+user.auth_token].m3uCheck);
+                }
             break;
             case'note':
                 k.o=$.ccio.op().switches
@@ -1124,7 +1128,7 @@ $.ccio.globalWebsocket=(d,user)=>{
             $.each(d.mon,function(n,v){
                 $.ccio.mon[d.ke+d.mid+user.auth_token][n]=v;
             });
-            if(d.new===true){$.ccio.tm(1,d.mon,'#monitors_list',user)}
+            if(d.new===true){$.ccio.tm(1,d.mon,null,user)}
             switch(d.mon.mode){
                 case'start':case'record':
                     if(d.o[d.ke]&&d.o[d.ke][d.mid]===1){
@@ -1164,36 +1168,38 @@ $user.ws.on('connect',function (d){
     $(document).ready(function(e){
         $.ccio.init('id',$user);
         $.ccio.cx({f:'init',ke:$user.ke,auth:$user.auth_token,uid:$user.uid})
-        $.each($user.details.links,function(n,v){
-            if(v.secure==='0'){
-                v.protocol='http'
-            }else{
-                v.protocol='https'
-            }
-            if(v.host.indexOf('://')>-1){
-                v.URL=v.protocol+'://'+v.host.split('://')[1]
-            }else{
-                v.URL=v.protocol+'://'+v.host
-            }
-            $.get(v.URL+'/'+v.api+'/userInfo/'+v.ke,function(e){
-                if(e.ok===true){
-                    e.user.auth_token=v.api
-                    $.users[v.api]=e.user
-                    $.users[v.api].info=v
-                    $.users[v.api].ws=io(v.host)
-                    $.users[v.api].ws.on('ping', function(d){
-                        $.users[v.api].ws.emit('pong',{beat:1});
-                    });
-                    $.users[v.api].ws.on('connect',function (d){
-                        console.log(v.host,'connected')
-                        $.ccio.cx({f:'init',ke:e.user.ke,auth:v.api,uid:e.user.uid},$.users[v.api])
-                    })
-                    $.users[v.api].ws.on('f',function (d){
-                        $.ccio.globalWebsocket(d,$.users[v.api])
-                    })
+        if($user.details&&$user.details.links){
+            $.each($user.details.links,function(n,v){
+                if(v.secure==='0'){
+                    v.protocol='http'
+                }else{
+                    v.protocol='https'
                 }
+                if(v.host.indexOf('://')>-1){
+                    v.URL=v.protocol+'://'+v.host.split('://')[1]
+                }else{
+                    v.URL=v.protocol+'://'+v.host
+                }
+                $.get(v.URL+'/'+v.api+'/userInfo/'+v.ke,function(e){
+                    if(e.ok===true){
+                        e.user.auth_token=v.api
+                        $.users[v.api]=e.user
+                        $.users[v.api].info=v
+                        $.users[v.api].ws=io(v.host)
+                        $.users[v.api].ws.on('ping', function(d){
+                            $.users[v.api].ws.emit('pong',{beat:1});
+                        });
+                        $.users[v.api].ws.on('connect',function (d){
+                            console.log(v.host,'connected')
+                            $.ccio.cx({f:'init',ke:e.user.ke,auth:v.api,uid:e.user.uid},$.users[v.api])
+                        })
+                        $.users[v.api].ws.on('f',function (d){
+                            $.ccio.globalWebsocket(d,$.users[v.api])
+                        })
+                    }
+                })
             })
-        })
+        }
     })
 })
 PNotify.prototype.options.styling = "fontawesome";
