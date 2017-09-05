@@ -1301,7 +1301,7 @@ $user.ws.on('f',function (d){
             $.aM.drawList()
         break;
         case'detector_unplugged':
-            $('.stream-objects').empty()
+            $('.stream-objects .stream-detected-object').remove()
             $('.shinobi-detector').hide()
             $('.shinobi-detector-msg').empty()
             $('.shinobi-detector_name').empty()
@@ -2574,7 +2574,7 @@ $.pwrvid.e.on('click','[preview]',function(e){
                 .attr('download',e.filename)
                 .attr('href',e.href)
                 $.pwrvid.vp.find('video').off('loadeddata').on('loadeddata',function(){
-                    $.pwrvid.vp.find('.stream-objects').empty().css('width',$(this).width())
+                    $.pwrvid.vp.find('.stream-objects .stream-detected-object').remove()
                 })
             if(e.status==1){
                 $.get(e.href.split('?')[0]+'/status/2',function(d){

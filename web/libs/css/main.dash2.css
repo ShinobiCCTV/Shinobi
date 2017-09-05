@@ -242,8 +242,9 @@ img.circle-img,div.circle-img{border-radius:50%;height:50px;width:50px}
 #monitors_list .monitor_block{transition:none}
 .dropdown-menu.scrollable{max-height:300px}
 .upload_file input{display:none}
-#video_preview .stream-objects{right:0;margin:auto}
+#video_preview .stream-objects{right:0;margin:auto;display:inline-block;position:relative;width:auto}
 .stream-objects{position:absolute;top:0;left:0;width:100%;height:100%;z-index:1}
+.stream-objects .tag{position:absolute;top:-10px;left:0;background:red;color:#fff;}
 .stream-objects .stream-detected-object{position:absolute;top:0;left:0;border:3px inset red;background:transparent}
 .stream-objects .point{position:absolute;top:0;left:0;border:3px solid red;border-radius:50%}
 .monitor_item .stream-hud{opacity:0;position:absolute;top:0;left:0;width:100%;height:100%;z-index:2}
