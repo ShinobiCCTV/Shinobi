@@ -92,7 +92,7 @@ switch($user.details.lang){
             break;
             case'monitorInfo':
                 d.e=$('.glM'+d.mon.mid+user.auth_token);
-                if(d.mon.details.vcodec!=='copy'&&d.mon.mode=='record'){
+                if(JSON.parse(d.mon.details).vcodec!=='copy'&&d.mon.mode=='record'){
                     d.e.find('.monitor_not_record_copy').show()
                 }else{
                     d.e.find('.monitor_not_record_copy').hide()
