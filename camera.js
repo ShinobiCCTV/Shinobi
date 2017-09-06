@@ -37,7 +37,12 @@ var jsonfile = require("jsonfile");
 var connectionTester = require('connection-tester');
 var events = require('events');
 var Cam = require('onvif').Cam;
-var config = require('./conf.json');
+var location = {}
+location.super = __dirname+'/super.json'
+location.config = __dirname+'/conf.json'
+location.languages = __dirname+'/languages'
+location.definitions = __dirname+'/definitions'
+var config = require(location.config);
 if(!config.productType){
     config.productType='CE'
 }
@@ -48,18 +53,18 @@ if(!config.language){
     config.language='en_CA'
 }
 try{
-    var lang = require('./languages/'+config.language+'.json');
+    var lang = require(location.languages+'/'+config.language+'.json');
 }catch(er){
     console.error(er)
     console.log('There was an error loading your language file.')
-    var lang = require('./languages/en_CA.json');
+    var lang = require(location.languages+'/en_CA.json');
 }
 try{
-    var definitions = require('./definitions/'+config.language+'.json');
+    var definitions = require(location.definitions+'/'+config.language+'.json');
 }catch(er){
     console.error(er)
     console.log('There was an error loading your language file.')
-    var definitions = require('./definitions/en_CA.json');
+    var definitions = require(location.definitions+'/en_CA.json');
 }
 process.send = process.send || function () {};
 if(config.mail){
@@ -87,7 +92,7 @@ s.getLanguageFile=function(rule){
         var file=s.loadedLanguages[file]
         if(!file){
             try{
-                s.loadedLanguages[rule]=require('./languages/'+rule+'.json')
+                s.loadedLanguages[rule]=require(location.languages+'/'+rule+'.json')
                 file=s.loadedLanguages[rule]
             }catch(err){
                 file=lang
@@ -106,7 +111,7 @@ s.getDefinitonFile=function(rule){
         var file=s.loadedDefinitons[file]
         if(!file){
             try{
-                s.loadedDefinitons[rule]=require('./definitions/'+rule+'.json')
+                s.loadedDefinitons[rule]=require(location.definitions+'/'+rule+'.json')
                 file=s.loadedDefinitons[rule]
             }catch(err){
                 file=definitions
@@ -372,7 +377,7 @@ s.dir={
     videos:s.checkCorrectPathEnding(config.videosDir),
     streams:s.checkCorrectPathEnding(config.streamDir),
     addStorage:config.addStorage,
-    languages:'./languages/'
+    languages:location.languages+'/'
 };
 //streams dir
 if(!fs.existsSync(s.dir.streams)){
@@ -2393,8 +2398,8 @@ var tx;
                                 }
                             break;
                             case'configure':
-                                s.systemLog('conf.json Modified',{by:cn.mail,ip:cn.ip,old:jsonfile.readFileSync('./conf.json')})
-                                jsonfile.writeFile('./conf.json',d.data,{spaces: 2},function(){
+                                s.systemLog('conf.json Modified',{by:cn.mail,ip:cn.ip,old:jsonfile.readFileSync(location.config)})
+                                jsonfile.writeFile(location.config,d.data,{spaces: 2},function(){
                                     s.tx({f:'save_configuration'},cn.id)
                                 })
                             break;
@@ -2711,7 +2716,7 @@ s.auth=function(xx,cb,res,req){
 }
 s.superAuth=function(x,callback){
     req={};
-    req.super=require('./super.json');
+    req.super=require(location.super);
     req.super.forEach(function(v,n){
         if(x.md5===true){
             x.pass=s.md5(x.pass);
@@ -3083,7 +3088,7 @@ app.post(['/','/:screen'],function (req,res){
             })
         }else{
             if(req.body.function==='super'){
-                if(!fs.existsSync('./super.json')){
+                if(!fs.existsSync(location.super)){
                     res.end(lang.superAdminText)
                     return
                 }
@@ -3093,7 +3098,7 @@ app.post(['/','/:screen'],function (req,res){
                             r=[]
                         }
                         data.Logs=r;
-                        fs.readFile('./conf.json','utf8',function(err,file){
+                        fs.readFile(location.config,'utf8',function(err,file){
                             data.plainConfig=JSON.parse(file)
                             req.renderFunction("super",data);
                         })
