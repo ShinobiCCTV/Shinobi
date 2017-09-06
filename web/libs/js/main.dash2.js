@@ -188,7 +188,7 @@ switch($user.details.lang){
                 k.order = user.details.monitorOrder;
                 if(!k.order){
                     k.order=[];
-                    $('#monitors_list .link-monitors-list[auth="'+user.auth_token+'"][ke="'+user.ke+'"] .monitor_block').each(function(n,v){
+                    $('#monitors_list .monitor_block').each(function(n,v){
                         v=$(v).attr('mid')
                         if(v){
                             k.order.push(v)
@@ -196,7 +196,7 @@ switch($user.details.lang){
                     })
                 }
                 k.switches=$.ccio.op().switches
-                k.lists = ['#monitors_list .link-monitors-list[auth="'+user.auth_token+'"][ke="'+user.ke+'"]']
+                k.lists = ['#monitors_list']
                 if(k.switches&&k.switches.monitorOrder===1){
                     k.lists.push('#monitors_live')
                 }
@@ -212,7 +212,7 @@ switch($user.details.lang){
                 $.each(k.lists,function(n,v){
                     v = $(v);
                     for(var i = 0, len = k.order.length; i < len; ++i) {
-                        v.children('[mid=' + k.order[i] + '][auth="'+user.auth_token+'"]').appendTo(v);
+                        v.children('[mid=' + k.order[i] + ']').appendTo(v);
                     }
                     v.find('video').each(function(m,b){
                         b=$(b).parents('.monitor_item')
@@ -735,14 +735,14 @@ switch($user.details.lang){
                         handle:'.title',
                         update: function(event, ui) {
                             var arr=[]
-                            $(z+" .monitor_block").each(function(n,v){
+                            $("#monitors_list .monitor_block").each(function(n,v){
                                 arr.push($(this).attr('mid'))
                             })
                             $user.details.monitorOrder=arr;
                             $.ccio.cx({f:'monitorOrder',monitorOrder:arr})
                             event.o=$.ccio.op().switches;
                             if(event.o&&event.o.monitorOrder===1){
-                                $.ccio.init('monitorOrder',{no:['#monitors_list .link-monitors-list[auth="'+user.auth_token+'"][ke="'+d.ke+'"]']},user)
+                                $.ccio.init('monitorOrder',{no:['#monitors_list']})
                             }
                         }
                     });
@@ -888,21 +888,14 @@ $.ccio.globalWebsocket=(d,user)=>{
         break;
         case'init_success':
             $('#monitors_list .link-monitors-list[auth="'+user.auth_token+'"][ke="'+user.ke+'"]').empty();
-            if(user===$user){
-                d.chosen_set='watch_on'
-            }else{
-                d.chosen_set='watch_on_links'
-            }
-            d.o=$.ccio.op()[d.chosen_set];
+            d.o=$.ccio.op().watch_on;
             if(!d.o){d.o={}};
             $.getJSON($.ccio.init('location',user)+user.auth_token+'/monitor/'+user.ke,function(f,g){
                 g=function(n,v){
                     $.ccio.mon[v.ke+v.mid+user.auth_token]=v;
                     v.user=user;
                     $.ccio.tm(1,v,null,user)
-                    if(d.o[v.ke]&&d.o[v.ke][v.mid]===1){
-                        $.ccio.cx({f:'monitor',ff:'watch_on',id:v.mid},user)
-                    }
+                    if(d.o[v.ke+user.auth_token]&&d.o[v.ke+user.auth_token][v.mid]===1){$.ccio.cx({f:'monitor',ff:'watch_on',id:v.mid},user)}
                 }
                 if(f.mid){
                     g(null,f)
@@ -913,7 +906,7 @@ $.ccio.globalWebsocket=(d,user)=>{
                     $.ccio.cx({f:'monitor',ff:'jpeg_on'},user)
                 }
                 $.gR.drawList();
-                setTimeout(function(){$.ccio.init('monitorOrder',null,user)},300)
+                setTimeout(function(){$.ccio.init('monitorOrder')},300)
             })
             $.ccio.pm(3,d.apis,null,user);
             $('.os_platform').html(d.os.platform)
@@ -1005,13 +998,7 @@ $.ccio.globalWebsocket=(d,user)=>{
             delete($.ccio.mon[d.ke+d.mid+user.auth_token]);
         break;
         case'monitor_watch_off':case'monitor_stopping':
-            if(user===$user){
-                d.chosen_set='watch_on'
-            }else{
-                d.chosen_set='watch_on_links'
-            }
-            d.o=$.ccio.op()[d.chosen_set];
-            if(!d.o[d.ke]){d.o[d.ke]={}};d.o[d.ke][d.id]=0;$.ccio.op(d.chosen_set,d.o);
+            d.o=$.ccio.op().watch_on;if(!d.o[d.ke+user.auth_token]){d.o[d.ke+user.auth_token]={}};d.o[d.ke+user.auth_token][d.id]=0;$.ccio.op('watch_on',d.o);
             if($.ccio.mon[d.ke+d.id+user.auth_token]){
                 $.ccio.init('jpegModeStop',{mid:d.id,ke:d.ke});
                 $.ccio.init('clearTimers',d)
@@ -1022,13 +1009,7 @@ $.ccio.globalWebsocket=(d,user)=>{
             }
         break;
         case'monitor_watch_on':
-            if(user===$user){
-                d.chosen_set='watch_on'
-            }else{
-                d.chosen_set='watch_on_links'
-            }
-            d.o=$.ccio.op()[d.chosen_set];
-            if(!d.o){d.o={}};if(!d.o[d.ke]){d.o[d.ke]={}};d.o[d.ke][d.id]=1;$.ccio.op(d.chosen_set,d.o);
+            d.o=$.ccio.op().watch_on;if(!d.o){d.o={}};if(!d.o[d.ke+user.auth_token]){d.o[d.ke+user.auth_token]={}};d.o[d.ke+user.auth_token][d.id]=1;$.ccio.op('watch_on',d.o);
             $.ccio.mon[d.ke+d.id+user.auth_token].watch=1;
             delete($.ccio.mon[d.ke+d.id+user.auth_token].image)
             delete($.ccio.mon[d.ke+d.id+user.auth_token].ctx)
@@ -1140,12 +1121,8 @@ $.ccio.globalWebsocket=(d,user)=>{
             d.e=$('#monitor_live_'+d.mid+user.auth_token);
             d.e.find('.stream-detected-object').remove()
             if(d.mon.details.control=="1"){d.e.find('[monitor="control_toggle"]').show()}else{d.e.find('.pad').remove();d.e.find('[monitor="control_toggle"]').hide()}
-            if(user===$user){
-                d.chosen_set='watch_on'
-            }else{
-                d.chosen_set='watch_on_links'
-            }
-            d.o=$.ccio.op()[d.chosen_set];
+            
+            d.o=$.ccio.op().watch_on;
             if(!d.o){d.o={}}
             if(d.mon.details.cords instanceof Object){d.mon.details.cords=JSON.stringify(d.mon.details.cords);}
             d.mon.details=JSON.stringify(d.mon.details);
@@ -1158,8 +1135,8 @@ $.ccio.globalWebsocket=(d,user)=>{
             if(d.new===true){$.ccio.tm(1,d.mon,null,user)}
             switch(d.mon.mode){
                 case'start':case'record':
-                    if(d.o[d.ke]&&d.o[d.ke][d.mid]===1){
-                        $.ccio.cx({f:'monitor',ff:'watch_on',id:d.mid},user)
+                    if(d.o[d.ke+user.auth_token]&&d.o[d.ke+user.auth_token][d.mid]===1){
+                        $.ccio.cx({f:'monitor',ff:'watch_on',id:d.mid})
                     }
                 break;
             }
@@ -1445,20 +1422,13 @@ $.gR.e.on('click','[group]',function(){
   var e={};
     e.e=$(this),
     e.a=e.e.attr('group');
-    var user=$.users[e.e.attr('auth')];
-    if(!user){user=$user}
-    if(user===$user){
-        e.chosen_set='watch_on'
-    }else{
-        e.chosen_set='watch_on_links'
-    }
-    $.each($.ccio.op()[e.chosen_set],function(n,v){
+    $.each($.ccio.op().watch_on,function(n,v){
         $.each(v,function(m,b){
-            $.ccio.cx({f:'monitor',ff:'watch_off',id:m,ke:n},user)
+            $.ccio.cx({f:'monitor',ff:'watch_off',id:m,ke:n})
         })
     })
     $.each($.ccio.mon_groups[e.a],function(n,v){
-        $.ccio.cx({f:'monitor',ff:'watch_on',id:v.mid,ke:v.ke},user)
+        $.ccio.cx({f:'monitor',ff:'watch_on',id:v.mid,ke:v.ke})
     })
 })
 //Region Editor
@@ -3008,12 +2978,7 @@ $('body')
             $.ccio.op('switches',e.o)
             switch(e.switch){
                 case'monitorOrder':
-                    $.ccio.init('monitorOrder',{no:['#monitors_list .link-monitors-list[auth="'+$user.auth_token+'"][ke="'+$user.ke+'"]']},$user)
-                    if($user.details.links){
-                        $.each($user.details.links,function(n,v){
-                            $.ccio.init('monitorOrder',{no:['#monitors_list .link-monitors-list[auth="'+v.auth_token+'"][ke="'+v.ke+'"]']},v)
-                        })
-                    }
+                    $.ccio.init('monitorOrder',{no:'#monitors_list'})
                 break;
             }
             switch(e.e.attr('type')){

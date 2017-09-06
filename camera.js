@@ -2276,10 +2276,8 @@ var tx;
     cn.on('ocv',function(d){
         if(!cn.ocv&&d.f==='init'){
             if(config.pluginKeys[d.plug]===d.pluginKey){
-                s.api[cn.id]={ocvID:cn.id,permissions:{},details:{},ip:'0.0.0.0'};
                 s.ocv={started:moment(),id:cn.id,plug:d.plug,notice:d.notice};
                 cn.ocv=1;
-                s.tx({f:'api_key',key:cn.id},cn.id)
                 s.tx({f:'detector_plugged',plug:d.plug,notice:d.notice},'CPU')
                 s.tx({f:'readPlugins',ke:d.ke},'CPU')
                 s.systemLog('Connected to plugin : Detector - '+d.plug)
@@ -2647,7 +2645,6 @@ var tx;
         if(cn.ocv){
             s.tx({f:'detector_unplugged',plug:s.ocv.plug},'CPU')
             delete(s.ocv);
-            delete(s.api[cn.id])
         }
         if(cn.cron){
             delete(s.cron);
