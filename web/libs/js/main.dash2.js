@@ -1709,7 +1709,7 @@ $.multimon.e.on('shown.bs.modal',function() {
     })
     $.multimon.table.html(tmp)
 })
-//add Monitor
+//Monitor Editor
 $.aM={e:$('#add_monitor')};$.aM.f=$.aM.e.find('form')
 $.aM.e.find('.follow-list ul').affix();
 $.each(<%-JSON.stringify(define["Monitor Settings"].blocks)%>,function(n,v){
@@ -1736,7 +1736,7 @@ $.aM.tab=function(x,e){
     var k={e:$('#monedit_tabs')}
     k.tabs=$.ccio.op().tabsOpen
     k.append=function(e){
-        k.e.append('<li class="mdl-menu__item" mid="'+e.mid+'" ke="'+e.ke+'"><a title="Delete Pending Changes" class="delete btn btn-default btn-xs">&nbsp;<i class="fa fa-trash-o"></i>&nbsp;</a> &nbsp; <span class="name">'+e.name+'</span> <small>'+e.mid+'</small></li>')
+        k.e.append('<li class="mdl-menu__item" mid="'+e.mid+'" ke="'+e.ke+'" auth="'+$user.auth_token+'"><a title="Delete Pending Changes" class="delete btn btn-default btn-xs">&nbsp;<i class="fa fa-trash-o"></i>&nbsp;</a> &nbsp; <span class="name">'+e.name+'</span> <small>'+e.mid+'</small></li>')
     }
     if(!x){
         $.each(k.tabs,function(n,v){
@@ -2288,7 +2288,7 @@ $.timelapse.drawTimeline=function(getData){
             v.downloadLink=v.href+'?downloadName='+v.mid+'-'+v.filename
             v.position=n;
             $.timelapse.currentVideos[v.filename]=v;
-            e.tmp+='<li class="glM'+v.mid+$user.auth_token+' list-group-item timelapse_video flex-block" timelapse="video" file="'+v.filename+'" href="'+v.href+'" mid="'+v.mid+'" ke="'+v.ke+'">'
+            e.tmp+='<li class="glM'+v.mid+$user.auth_token+' list-group-item timelapse_video flex-block" timelapse="video" file="'+v.filename+'" href="'+v.href+'" mid="'+v.mid+'" ke="'+v.ke+'" auth="'+$user.auth_token+'">'
             e.tmp+='<div class="flex-block">'
             e.tmp+='<div class="flex-unit-3"><div class="frame" style="background-image:url('+$.timelapse.placeholder+')"></div></div>'
             e.tmp+='<div class="flex-unit-3"><div><span title="'+v.time+'" class="livestamp"></span></div><div>'+v.filename+'</div></div>'
@@ -3241,7 +3241,7 @@ $('body')
                                 eventLimit: true,
                                 events:e.ar,
                                 eventClick:function(f){
-                                    $('#temp').html('<div mid="'+f.mid+'" ke="'+f.ke+'" file="'+f.filename+'"><div video="launch" href="'+f.href+'"></div></div>').find('[video="launch"]').click();
+                                    $('#temp').html('<div mid="'+f.mid+'" ke="'+f.ke+'" auth="'+user.auth_token+'" file="'+f.filename+'"><div video="launch" href="'+f.href+'"></div></div>').find('[video="launch"]').click();
                                     $(this).css('border-color', 'red');
                                 }
                             });

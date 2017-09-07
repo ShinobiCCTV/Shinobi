@@ -153,6 +153,7 @@ img.circle-img,div.circle-img{border-radius:50%;height:50px;width:50px}
 .flex-container-modal-body .flex-block>div{flex:1;float:none}
 
 .modal{overflow:auto!important}
+.modal-body .flex-modal-block{height:auto!important}
 #region_editor .modal-body{text-align:center;overflow:auto;max-height:800px}
 #region_editor .canvas_holder{position:relative;display:inline-block;overflow:auto;min-height:450px}
 #region_editor .cord_element{position:absolute;background:rgba(221, 221, 221, 0.8);z-index:11;padding:5px;}
