@@ -3249,7 +3249,7 @@ $('body')
             }
             $.aM.selected=e.mid;
             e.openTabs=$.ccio.op().tabsOpen
-            if(e.openTabs[e.mid]){
+            if(e.openTabs[e.mid] && !e.values){
                 e.values=e.openTabs[e.mid]
             }
             $.aM.import(e)
