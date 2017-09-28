@@ -14,7 +14,7 @@ var sql=mysql.createConnection(config.db);
 s={lock:{}};
 if(config.cron===undefined)config.cron={};
 if(config.cron.deleteOld===undefined)config.cron.deleteOld=true;
-if(config.cron.deleteOrphans===undefined)config.cron.deleteOrphans=false;
+if(config.cron.deleteOrphans===undefined)config.cron.deleteOrphans=true; // default false
 if(config.cron.deleteNoVideo===undefined)config.cron.deleteNoVideo=true;
 if(config.cron.deleteOverMax===undefined)config.cron.deleteOverMax=true;
 if(config.cron.deleteLogs===undefined)config.cron.deleteLogs=true;
@@ -119,35 +119,46 @@ s.checkFilterRules=function(v){
 }
 s.checkForOrphanedFiles=function(v){
     if(config.cron.deleteOrphans===true){
-        e={};
         sql.query('SELECT * FROM Monitors WHERE ke=?',[v.ke],function(arr,b) {
             b.forEach(function(mon,m){
-                mon.dir=s.
-                fs.readdir(s.getVideoDirectory(mon), function(err, items) {
-                    e.query=[];
-                    e.filesFound=[mon.ke,mon.mid];
-                    if(items&&items.length>0){
-                        items.forEach(function(v,n){
-                            e.query.push('time=?')
-                            e.filesFound.push(s.nameToTime(v))
-                        })
-                        sql.query('SELECT * FROM Videos WHERE ke=? AND mid=? AND ('+e.query.join(' OR ')+')',e.filesFound,function(arr,r) {
-                            if(!r){r=[]};
-                            e.foundSQLrows=[];
-                            r.forEach(function(v,n){
-                                v.index=e.filesFound.indexOf(s.moment(v.time,'YYYY-MM-DD HH:mm:ss'));
-                                if(v.index>-1){
-                                    delete(items[v.index-2]);
-                                }
-                            });
+                // FIXME:
+                // mon.dir=s.
+                (function(mon) {
+                    fs.readdir(s.getVideoDirectory(mon), function(err, items) {
+                        var e = {};
+                        e.query=[];
+                        e.filesFound=[mon.ke,mon.mid];
+                        if(items&&items.length>0){
                             items.forEach(function(v,n){
-                                if(v&&v!==null){
-                                    exec('rm '+s.getVideoDirectory(mon)+v);
-                                }
+                                e.query.push('time=?')
+                                e.filesFound.push(s.nameToTime(v))
                             })
-                        })
-                    }
-                })
+                            sql.query('SELECT * FROM Videos WHERE ke=? AND mid=? AND ('+e.query.join(' OR ')+')',
+                            e.filesFound,function(arr,r) {
+                                if(!r){r=[]};
+                                    e.foundSQLrows=[];
+                                    r.forEach(function(v,n){
+                                        v.index=e.filesFound.indexOf(s.moment(v.time,'YYYY-MM-DD HH:mm:ss'));
+                                        if(v.index>-1){
+                                            delete(items[v.index-2]);
+                                        }
+                                    });
+                                    items.forEach(function(v,n){
+                                        if(v&&v!==null){
+                                            var filePath = path.join(s.getVideoDirectory(mon), v);
+                                            fs.unlink(filePath, function(err) {
+                                                if (err) {
+                                                    console.log('Video Delete Failed');
+                                                } else {
+                                                    console.log('Video Delete Success');
+                                                }
+                                            });
+                                        }
+                                    })
+                                })
+                        }
+                    })
+                })(mon)
             });
         });
     }

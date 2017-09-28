@@ -21,10 +21,12 @@
     "body-parser": "^1.15.2",
     "circular-json": "0.3.1",
     "connection-tester": "^0.1.1",
+    "cors": "^2.8.4",
     "crypto": "^0.0.3",
     "ejs": "^2.5.5",
     "express": "^4.14.0",
     "jsonfile": "^3.0.1",
+    "ldapauth-fork": "^4.0.2",
     "moment": "^2.17.0",
     "mysql": "^2.12.0",
     "nodemailer": "^4.0.1",
@@ -33,8 +35,7 @@
     "request": "^2.79.0",
     "socket.io": "^1.7.1",
     "socket.io-client": "^1.7.2",
-    "webdav": "^0.3.1",
-    "ldapauth-fork": "^4.0.2"
+    "webdav": "^0.3.1"
   },
   "devDependencies": {}
 }

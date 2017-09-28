@@ -9,3 +9,9 @@ conf.json
 super.json
 dbdata
 npm-debug.log
+
+# windows
+/ffmpeg/*
+
+# vscode
+/.vscode/*
