@@ -186,7 +186,7 @@
                {
                   "name": "detail=rtsp_transport",
                   "field": "RTSP Transport",
-                  "description": "The password for your camera",
+                  "description": "The path to your camera",
                   "default": "",
                   "example": "",
                   "possible": [
