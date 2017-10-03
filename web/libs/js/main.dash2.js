@@ -568,8 +568,13 @@ switch($user.details.lang){
                 tmp+='<div class="mdl-card mdl-cell mdl-cell--8-col">';
                 tmp+='<div class="stream-block no-padding mdl-card__media mdl-color-text--grey-50">';
                 tmp+='<div class="stream-objects"></div>';
-                tmp+='<div class="stream-hud"><div class="lamp" title="'+k.mode+'"><i class="fa fa-eercast"></i></div><div class="controls"><span title="<%-cleanLang(lang['Currently viewing'])%>" class="label label-default"><span class="viewers"></span></span> <a class="btn-xs btn-danger btn" monitor="mode" mode="record"><i class="fa fa-circle"></i> <%-cleanLang(lang['Start Recording'])%></a> <a class="btn-xs btn-primary btn" monitor="mode" mode="start"><i class="fa fa-eye"></i> <%-cleanLang(lang['Set to Watch Only'])%></a></div><div class="bottom-text"><span class="detector-fade">Objects Detected : <span class="stream-detected-count"></span></span></div></div>';
-                tmp+='</div>';
+                tmp+='<div class="stream-hud"><div class="lamp" title="'+k.mode+'"><i class="fa fa-eercast"></i></div><div class="controls"><span title="<%-cleanLang(lang['Currently viewing'])%>" class="label label-default"><span class="viewers"></span></span> <a class="btn-xs btn-danger btn" monitor="mode" mode="record"><i class="fa fa-circle"></i> <%-cleanLang(lang['Start Recording'])%></a> <a class="btn-xs btn-primary btn" monitor="mode" mode="start"><i class="fa fa-eye"></i> <%-cleanLang(lang['Set to Watch Only'])%></a></div><div class="bottom-text monospace"><div class="detector-fade">'
+                    $.each([
+                        {label:'Currently Detected',tag:'stream-detected-count'}
+                    ],function(n,v){
+                        tmp+='<div>'+v.label+' : <span class="'+v.tag+'"></span></div>'
+                    })
+                tmp+='</div></div></div></div>';
                 tmp+='<div class="mdl-card__supporting-text text-center">';
                 tmp+='<div class="indifference detector-fade"><div class="progress"><div class="progress-bar progress-bar-danger" role="progressbar"><span></span></div></div></div>';
                 tmp+='<div class="monitor_details">';
@@ -873,6 +878,8 @@ $.ccio.globalWebsocket=(d,user)=>{
                     d.streamObjects=d.e.find('.stream-objects')
                     $.ccio.init('drawMatrices',d)
                     d.e.find('.stream-detected-count').text(d.streamObjects.find('.stream-detected-object').length)
+                }else{
+                    d.e.find('.stream-detected-count').text(1)
                 }
                 if(d.details.confidence){
                     d.tt=d.details.confidence;
@@ -1891,6 +1898,15 @@ $.aM.e.on('change','[group]',function(){
         e.s.push($(v).val())
     });
     $.aM.e.find('[detail="groups"]').val(JSON.stringify(e.s)).change()
+})
+$.aM.e.on('change','[group_detector]',function(){
+  var e={};
+    e.e=$.aM.e.find('[group_detector]:checked');
+    e.s=[];
+    e.e.each(function(n,v){
+        e.s.push($(v).val())
+    });
+    $.aM.e.find('[detail="group_detector"]').val(JSON.stringify(e.s)).change()
 })
 $.aM.e.on('change','.detector_cascade_selection',function(){
   var e={};
@@ -3109,7 +3125,7 @@ $('body')
                 if($.ccio.mon[e.ke+e.mid+user.auth_token].popOut){
                     $.ccio.mon[e.ke+e.mid+user.auth_token].popOut.close()
                 }
-                $.ccio.mon[e.ke+e.mid+user.auth_token].popOut = window.open($.ccio.init('location',user)+user.auth_token+'/embed/'+e.ke+'/'+e.mid+'/fullscreen|jquery','pop_'+e.mid+user.auth_token,'height='+img.height+',width='+img.width);
+                $.ccio.mon[e.ke+e.mid+user.auth_token].popOut = window.open($.ccio.init('location',user)+user.auth_token+'/embed/'+e.ke+'/'+e.mid+'/fullscreen|jquery|gui','pop_'+e.mid+user.auth_token,'height='+img.height+',width='+img.width);
             }
             if(e.mon.watch===1){
                 $.ccio.snapshot(e,function(url){
