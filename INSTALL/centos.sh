@@ -16,6 +16,7 @@ if [ "$nodejsinstall" = "y" ]; then
     chmod +x setup_8.x
     ./setup_8.x
     sudo yum install nodejs -y
+    rm setup_8.x
 fi
 echo "============="
 echo "Shinobi - Do you want to Install MariaDB?"
