@@ -260,6 +260,7 @@
    "\"No Motion\" Detector": "\"No Motion\" Detector",
    "Control": "Control",
    "Grouping": "Grouping <small>Add groups in <b>Settings</b></small>",
+   "Detector Grouping": "Detector Grouping <small>Add groups in <b>Settings</b></small>",
    "Logging": "Logging",
    "IdentityText1": "This is how the system will identify the data for this stream. You cannot change the <b>Monitor ID</b> once you have pressed save. If you want you can make the <b>Monitor ID</b> more human readable before you continue.",
    "IdentityText2": "You can duplicate a monitor by modifying the <b>Monitor ID</b> then pressing save. You <b>cannot</b> use the ID of a monitor that already exists or it will save over that monitor's database information.",
@@ -443,6 +444,7 @@
    "Webdav Error": "Webdav Error",
    "WebdavErrorText": "Cannot save. Did you make the camera folders inside your chosen save directory?",
    "File Not Exist": "File Not Exist",
+   "No Videos Found": "No Videos Found",
    "FileNotExistText": "Cannot save non existant file. Something went wrong.",
    "CameraNotRecordingText": "Settings may be incompatible. Check encoders. Restarting...",
    "Camera is not recording": "Camera is not recording",
@@ -577,5 +579,6 @@
    "Main": "Main",
    "Storage Location": "Storage Location",
    "Recommended": "Recommended",
+   "Please Wait for Completion": "Please Wait for Completion, Depending on the number of files selected this may take some time. Refresh to check again.",
    "Link Shinobi": "Link Shinobi"
 }
