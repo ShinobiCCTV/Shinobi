@@ -7,14 +7,14 @@ if [ "$nodejsinstall" = "y" ]; then
     chmod +x setup_8.x
     ./setup_8.x
     sudo apt install nodejs -y
+    rm setup_8.x
 fi
 echo "============="
 echo "Shinobi - Get FFMPEG 3.x from ppa:jonathonf/ffmpeg-3"
-sudo apt-get install software-properties-common python-software-properties -y
 sudo add-apt-repository ppa:jonathonf/ffmpeg-3 -y
 sudo apt update -y && sudo apt install ffmpeg libav-tools x264 x265 -y
 echo "============="
-echo "Shinobi - Do you want to Install MariaDB? Choose Mo if you have MySQL."
+echo "Shinobi - Do you want to Install MariaDB? Choose No if you have MySQL."
 echo "(y)es or (N)o"
 read mysqlagree
 if [ "$mysqlagree" = "y" ]; then
@@ -47,9 +47,30 @@ if [ "$mysqlagreeData" = "y" ]; then
     echo "(y)es or (N)o"
     read mysqlDefaultData
     if [ "$mysqlDefaultData" = "y" ]; then
-        echo "Default Username : ccio@m03.ca"
-        echo "Default Password : password"
-        mysql -u $sqluser -p$sqlpass --database ccio -e "source sql/default_data.sql" || true
+        escapeReplaceQuote='\\"'
+        groupKey=$(cat /dev/urandom | tr -dc 'a-zA-Z0-9' | fold -w 7 | head -n 1)
+        userID=$(cat /dev/urandom | tr -dc 'a-zA-Z0-9' | fold -w 6 | head -n 1)
+        userEmail=$(cat /dev/urandom | tr -dc 'a-zA-Z0-9' | fold -w 6 | head -n 1)"@"$(cat /dev/urandom | tr -dc 'a-zA-Z0-9' | fold -w 6 | head -n 1)".com"
+        userPasswordPlain=$(cat /dev/urandom | tr -dc 'a-zA-Z0-9' | fold -w 6 | head -n 1)
+        userPasswordMD5=$(echo   -n   "$userPasswordPlain" | md5sum | awk '{print $1}')
+        userDetails='{"days":"10"}'
+        userDetails=$(echo "$userDetails" | sed -e 's/"/'$escapeReplaceQuote'/g')
+        echo $userDetailsNew
+        apiIP='0.0.0.0'
+        apiKey=$(cat /dev/urandom | tr -dc 'a-zA-Z0-9' | fold -w 32 | head -n 1)
+        apiDetails='{"auth_socket":"1","get_monitors":"1","control_monitors":"1","get_logs":"1","watch_stream":"1","watch_snapshot":"1","watch_videos":"1","delete_videos":"1"}'
+        apiDetails=$(echo "$apiDetails" | sed -e 's/"/'$escapeReplaceQuote'/g')
+        rm sql/default_user.sql || true
+        echo "USE ccio;INSERT INTO Users (\`ke\`,\`uid\`,\`auth\`,\`mail\`,\`pass\`,\`details\`) VALUES (\"$groupKey\",\"$userID\",\"$apiKey\",\"$userEmail\",\"$userPasswordMD5\",\"$userDetails\");INSERT INTO API (\`code\`,\`ke\`,\`uid\`,\`ip\`,\`details\`) VALUES (\"$apiKey\",\"$groupKey\",\"$userID\",\"$apiIP\",\"$apiDetails\");" > "sql/default_user.sql"
+        mysql -u $sqluser -p$sqlpass --database ccio -e "source sql/default_user.sql" > "INSTALL/log.txt"
+        echo "====================================="
+        echo "=======!! Login Credentials !!======="
+        echo "|| Username : $userEmail"
+        echo "|| Password : $userPasswordPlain"
+        echo "|| API Key : $apiKey"
+        echo "====================================="
+        echo "====================================="
+        echo "** To change these settings login to either to the Superuser panel or login to the dashboard as the user that was just created and open the Settings window. **"
     fi
 fi
 echo "============="
