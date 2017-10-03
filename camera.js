@@ -129,8 +129,15 @@ s.disc=function(){
     sql.on('connect',function() {
         sql.query('ALTER TABLE `Videos` ADD COLUMN `details` TEXT NULL DEFAULT NULL AFTER `status`;',function(err){
             if(err){
-                s.systemLog("Already applied critical update.");
+                s.systemLog("Critical update 1/2 already applied");
             }
+            sql.query("CREATE TABLE IF NOT EXISTS `Files` (`ke` varchar(50) NOT NULL,`mid` varchar(50) NOT NULL,`name` tinytext NOT NULL,`size` float NOT NULL DEFAULT '0',`details` text NOT NULL,`status` int(1) NOT NULL DEFAULT '0') ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;",function(err){
+                if(err){
+                    s.systemLog("Critical update 2/2 NOT applied, this could be bad");
+                }else{
+                    s.systemLog("Critical update 2/2 already applied");
+                }
+            });
         });
     });
 }
@@ -372,10 +379,12 @@ if(!config.streamDir){
     }
 }
 if(!config.videosDir){config.videosDir=__dirname+'/videos/'}
+if(!config.binDir){config.binDir=__dirname+'/fileBin/'}
 if(!config.addStorage){config.addStorage=[]}
 s.dir={
     videos:s.checkCorrectPathEnding(config.videosDir),
     streams:s.checkCorrectPathEnding(config.streamDir),
+    fileBin:s.checkCorrectPathEnding(config.binDir),
     addStorage:config.addStorage,
     languages:location.languages+'/'
 };
@@ -386,6 +395,10 @@ if(!fs.existsSync(s.dir.streams)){
 //videos dir
 if(!fs.existsSync(s.dir.videos)){
     fs.mkdirSync(s.dir.videos);
+}
+//fileBin dir
+if(!fs.existsSync(s.dir.fileBin)){
+    fs.mkdirSync(s.dir.fileBin);
 }
 //additional storage areas
 s.dir.addStorage.forEach(function(v,n){
@@ -401,6 +414,7 @@ s.init=function(x,e,k,fn){
     switch(x){
         case 0://camera
             if(!s.group[e.ke]){s.group[e.ke]={}};
+            if(!s.group[e.ke].fileBin){s.group[e.ke].fileBin={}};
             if(!s.group[e.ke].mon){s.group[e.ke].mon={}}
             if(!s.group[e.ke].users){s.group[e.ke].users={}}
             if(!s.group[e.ke].mon[e.mid]){s.group[e.ke].mon[e.mid]={}}
@@ -3705,7 +3719,67 @@ app.get(['/:auth/monitor/:ke/:id/:f','/:auth/monitor/:ke/:id/:f/:ff','/:auth/mon
         })
     },res,req);
 })
-
+//get file from fileBin bin
+app.get(['/:auth/fileBin/:ke','/:auth/fileBin/:ke/:id'],function (req,res){
+    res.setHeader('Content-Type', 'application/json');
+    res.header("Access-Control-Allow-Origin",req.headers.origin);
+    req.fn=function(user){
+        req.sql='SELECT * FROM Files WHERE ke=?';req.ar=[req.params.ke];
+        if(user.details.sub&&user.details.monitors&&user.details.allmonitors!=='1'){
+            try{user.details.monitors=JSON.parse(user.details.monitors);}catch(er){}
+            req.or=[];
+            user.details.monitors.forEach(function(v,n){
+                req.or.push('mid=?');req.ar.push(v)
+            })
+            req.sql+=' AND ('+req.or.join(' OR ')+')'
+        }else{
+            if(req.params.id&&(!user.details.sub||user.details.allmonitors!=='0'||user.details.monitors.indexOf(req.params.id)>-1)){
+                req.sql+=' and mid=?';req.ar.push(req.params.id)
+            }
+        }
+        sql.query(req.sql,req.ar,function(err,r){
+            if(!r){
+                r=[]
+            }else{
+                r.forEach(function(v){
+                    v.details=JSON.parse(v.details)
+                    v.href='/'+req.params.auth+'/fileBin/'+req.params.ke+'/'+req.params.id+'/'+v.details.year+'/'+v.details.month+'/'+v.details.day+'/'+v.name;
+                })
+            }
+            res.end(s.s(r, null, 3));
+        })
+    }
+    s.auth(req.params,req.fn,res,req);
+});
+//get file from fileBin bin
+app.get('/:auth/fileBin/:ke/:id/:year/:month/:day/:file', function (req,res){
+    res.header("Access-Control-Allow-Origin",req.headers.origin);
+    req.fn=function(user){
+        req.failed=function(){
+            res.end(user.lang['File Not Found'])
+        }
+        if (!s.group[req.params.ke].fileBin[req.params.id+'/'+req.params.file]){
+            sql.query('SELECT * FROM Files WHERE ke=? AND mid=? AND name=?',[req.params.ke,req.params.id,req.params.file],function(err,r){
+                if(r&&r[0]){
+                    r=r[0]
+                    r.details=JSON.parse(r.details)
+                    req.dir=s.dir.fileBin+req.params.ke+'/'+req.params.id+'/'+r.details.year+'/'+r.details.month+'/'+r.details.day+'/'+req.params.file;
+                    if(fs.existsSync(req.dir)){
+                        res.on('finish',function(){res.end();});
+                        fs.createReadStream(req.dir).pipe(res);
+                    }else{
+                        req.failed()
+                    }
+                }else{
+                    req.failed()
+                }
+            })
+        }else{
+            res.end(user.lang['Please Wait for Completion'])
+        }
+    }
+    s.auth(req.params,req.fn,res,req);
+});
 // Get video file
 app.get('/:auth/videos/:ke/:id/:file', function (req,res){
     s.auth(req.params,function(user){
