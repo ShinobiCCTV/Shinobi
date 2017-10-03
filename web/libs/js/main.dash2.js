@@ -1828,6 +1828,33 @@ $.aM.import=function(e){
             }
         }
     });
+    try{
+        $.each(['group','group_detector'],function(m,b){
+            e.tmp=''
+            $.each($user.mon_groups,function(n,v){
+                e.tmp+='<li class="mdl-list__item">';
+                e.tmp+='<span class="mdl-list__item-primary-content">';
+                e.tmp+=v.name;
+                e.tmp+='</span>';
+                e.tmp+='<span class="mdl-list__item-secondary-action">';
+                e.tmp+='<label class="mdl-switch mdl-js-switch mdl-js-ripple-effect">';
+                e.tmp+='<input type="checkbox" '+b+' value="'+v.id+'" class="mdl-switch__input"';
+                if(!e.ss[b]){
+                    e.ss[b]=[]
+                }
+                if(e.ss[b].indexOf(v.id)>-1){e.tmp+=' checked';}
+                e.tmp+=' />';
+                e.tmp+='</label>';
+                e.tmp+='</span>';
+                e.tmp+='</li>';
+            })
+            $('#monitor_'+b).html(e.tmp)
+        })
+        componentHandler.upgradeAllRegistered()
+    }catch(er){
+        console.log(er)
+        //no group, this 'try' will be removed in future.
+    };
     setTimeout(function(){$.aM.drawList()},1000)
 }
 $.aM.e.find('.refresh_cascades').click(function(e){
@@ -3458,27 +3485,6 @@ $('body')
                 e.values=e.openTabs[e.mid]
             }
             $.aM.import(e)
-            try{
-                e.tmp='';
-                $.each(user.mon_groups,function(n,v){
-                    e.tmp+='<li class="mdl-list__item">';
-                    e.tmp+='<span class="mdl-list__item-primary-content">';
-                    e.tmp+=v.name;
-                    e.tmp+='</span>';
-                    e.tmp+='<span class="mdl-list__item-secondary-action">';
-                    e.tmp+='<label class="mdl-switch mdl-js-switch mdl-js-ripple-effect">';
-                    e.tmp+='<input type="checkbox" group value="'+v.id+'" class="mdl-switch__input"';
-                    if(e.ss.groups.indexOf(v.id)>-1){e.tmp+=' checked';}
-                    e.tmp+=' />';
-                    e.tmp+='</label>';
-                    e.tmp+='</span>';
-                    e.tmp+='</li>';
-                })
-                $('#monitor_group').html(e.tmp)
-            }catch(er){
-                //no group, this 'try' will be removed in future.
-            };
-            componentHandler.upgradeAllRegistered()
             $('#add_monitor').modal('show')
         break;
     }
