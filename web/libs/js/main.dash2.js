@@ -67,6 +67,9 @@ switch($user.details.lang){
                     case'hls':
                         streamURL=$.ccio.init('location',user)+user.auth_token+'/hls/'+d.ke+'/'+d.mid+'/s.m3u8'
                     break;
+                    case'mpd':
+                        streamURL=$.ccio.init('location',user)+user.auth_token+'/mpd/'+d.ke+'/'+d.mid+'/s.mpd'
+                    break;
                     case'b64':
                         streamURL='Websocket'
                     break;
@@ -375,7 +378,7 @@ switch($user.details.lang){
                         case'b64':
                             d.p.resize()
                         break;
-                        case'hls':
+                        case'hls':case'mpd':
                             if(d.p.find('video')[0].paused){
                                 if(d.d.signal_check_log==1){
                                     d.log={type:'Stream Check',msg:'<%-cleanLang(lang.clientStreamFailedattemptingReconnect)%>'}
@@ -471,7 +474,7 @@ switch($user.details.lang){
                 }catch(er){}
             }
             switch(JSON.parse(e.mon.details).stream_type){
-                case'hls':
+                case'hls':case'mpd':
                     $.ccio.snapshotVideo($('[mid='+e.mon.mid+'].monitor_item video')[0],function(base64,video_data){
                         url=base64
                         image_data=video_data
@@ -643,7 +646,7 @@ switch($user.details.lang){
                     tmp+='<img class="stream-element">';
                 }else{
                     switch(k.d.stream_type){
-                        case'hls':
+                        case'hls':case'mpd':
                             tmp+='<video class="stream-element" autoplay></video>';
                         break;
                         case'mjpeg':
@@ -857,7 +860,7 @@ switch($user.details.lang){
     }
 //websocket functions
 $.users={}
-$.ccio.globalWebsocket=(d,user)=>{
+$.ccio.globalWebsocket=function(d,user){
     if(d.f!=='monitor_frame'&&d.f!=='os'&&d.f!=='video_delete'&&d.f!=='detector_trigger'&&d.f!=='detector_record_timeout_start'&&d.f!=='log'){$.ccio.log(d);}
     if(!user){
         user=$user
@@ -1025,6 +1028,7 @@ $.ccio.globalWebsocket=(d,user)=>{
                 clearInterval($.ccio.mon[d.ke+d.id+user.auth_token].signal);delete($.ccio.mon[d.ke+d.id+user.auth_token].signal);
                 $.ccio.mon[d.ke+d.id+user.auth_token].watch=0;
                 if($.ccio.mon[d.ke+d.id+user.auth_token].hls){$.ccio.mon[d.ke+d.id+user.auth_token].hls.destroy()}
+                if($.ccio.mon[d.ke+d.id+user.auth_token].dash){$.ccio.mon[d.ke+d.id+user.auth_token].dash.reset()}
                 $('#monitor_live_'+d.id+user.auth_token).remove();
             }
         break;
@@ -1054,6 +1058,10 @@ $.ccio.globalWebsocket=(d,user)=>{
                 switch(d.d.stream_type){
                     case'jpeg':
                         $.ccio.init('jpegMode',$.ccio.mon[d.ke+d.id+user.auth_token]);
+                    break;
+                    case'mpd':
+                        $.ccio.mon[d.ke+d.id+user.auth_token].dash = dashjs.MediaPlayer().create();
+                        $.ccio.mon[d.ke+d.id+user.auth_token].dash.initialize(document.querySelector('#monitor_live_'+d.id+user.auth_token),user.auth_token+'/mpd/'+d.ke+'/'+d.id+'/s.mpd', true);
                     break;
                     case'hls':
                         d.fn=function(){
@@ -1162,6 +1170,7 @@ $.ccio.globalWebsocket=(d,user)=>{
             $.each(d.mon,function(n,v){
                 $.ccio.mon[d.ke+d.mid+user.auth_token][n]=v;
             });
+            $.ccio.mon[d.ke+d.mid+user.auth_token].user=user
             if(d.new===true){$.ccio.tm(1,d.mon,null,user)}
             switch(d.mon.mode){
                 case'start':case'record':

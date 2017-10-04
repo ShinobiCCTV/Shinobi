@@ -971,6 +971,12 @@ s.ffmpeg=function(e,x){
     }
     //stream - pipe build
     switch(e.details.stream_type){
+        case'mpd':
+            if(e.details.stream_vcodec!=='h264_vaapi'){
+                if(x.stream_quality)x.stream_quality=' -crf '+x.stream_quality;
+            }
+            x.pipe=x.preset_stream+x.stream_quality+x.stream_acodec+x.stream_vcodec+x.stream_fps+' -f dash -s '+x.ratio+x.stream_video_filters+x.cust_stream+' -min_seg_duration '+x.hls_time+' -window_size '+x.hls_list_size+' -extra_window_size 0 -remove_at_exit 1 '+e.sdir+'s.mpd';
+        break;
         case'hls':
             if(e.details.stream_vcodec!=='h264_vaapi'){
                 if(x.stream_quality)x.stream_quality=' -crf '+x.stream_quality;
@@ -3156,7 +3162,7 @@ app.post(['/','/:screen'],function (req,res){
     }
 });
 // Get HLS stream (m3u8)
-app.get('/:auth/hls/:ke/:id/:file', function (req,res){
+app.get(['/:auth/hls/:ke/:id/:file','/:auth/mpd/:ke/:id/:file'], function (req,res){
     res.header("Access-Control-Allow-Origin",req.headers.origin);
     req.fn=function(user){
         req.dir=s.dir.streams+req.params.ke+'/'+req.params.id+'/'+req.params.file;
