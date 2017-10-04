@@ -1060,8 +1060,11 @@ $.ccio.globalWebsocket=function(d,user){
                         $.ccio.init('jpegMode',$.ccio.mon[d.ke+d.id+user.auth_token]);
                     break;
                     case'mpd':
+                        d.e.find('video').addClass('dashjs-player')
+                        d.e.find('video').attr('type','application/dash+xml')
+                        d.e.find('video').attr('src',user.auth_token+'/mpd/'+d.ke+'/'+d.id+'/s.mpd')
                         $.ccio.mon[d.ke+d.id+user.auth_token].dash = dashjs.MediaPlayer().create();
-                        $.ccio.mon[d.ke+d.id+user.auth_token].dash.initialize(document.querySelector('#monitor_live_'+d.id+user.auth_token),user.auth_token+'/mpd/'+d.ke+'/'+d.id+'/s.mpd', true);
+                        $.ccio.mon[d.ke+d.id+user.auth_token].dash.initialize(document.querySelector('#monitor_live_'+d.id+user.auth_token+' video'),user.auth_token+'/mpd/'+d.ke+'/'+d.id+'/s.mpd', true);
                     break;
                     case'hls':
                         d.fn=function(){

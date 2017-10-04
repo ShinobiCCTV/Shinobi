@@ -3161,8 +3161,29 @@ app.post(['/','/:screen'],function (req,res){
         }
     }
 });
+// Get MPEG-DASH stream (mpd)
+app.get('/:auth/mpd/:ke/:id/:file', function (req,res){
+    res.header("Access-Control-Allow-Origin",req.headers.origin);
+    req.fn=function(user){
+        req.extension=req.params.file.split('.')
+        req.extension=req.extension[req.extension.length-1]
+        switch(req.extension){
+            case'mpd':
+                res.header("Content-Type","application/dash+xml");
+            break;
+        }
+        req.dir=s.dir.streams+req.params.ke+'/'+req.params.id+'/'+req.params.file;
+        res.on('finish',function(){res.end();});
+        if (fs.existsSync(req.dir)){
+            fs.createReadStream(req.dir).pipe(res);
+        }else{
+            res.end(user.lang['File Not Found'])
+        }
+    }
+    s.auth(req.params,req.fn,res,req);
+});
 // Get HLS stream (m3u8)
-app.get(['/:auth/hls/:ke/:id/:file','/:auth/mpd/:ke/:id/:file'], function (req,res){
+app.get('/:auth/hls/:ke/:id/:file', function (req,res){
     res.header("Access-Control-Allow-Origin",req.headers.origin);
     req.fn=function(user){
         req.dir=s.dir.streams+req.params.ke+'/'+req.params.id+'/'+req.params.file;
