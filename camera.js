@@ -9,7 +9,8 @@
 // PayPal : paypal@m03.ca
 //
 process.on('uncaughtException', function (err) {
-    console.error('uncaughtException',err);
+    console.error('Uncaught Exception occured!');
+    console.error(err.stack);
 });
 var fs = require('fs');
 var os = require('os');
