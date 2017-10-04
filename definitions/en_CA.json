@@ -46,7 +46,7 @@
                {
                   "name": "detail=fatal_max",
                   "field": "Retry Connection",
-                  "description": "The number of times to retry for network connection between the server and camera before setting the monitor to Disabled. No decimals.",
+                  "description": "The number of times to retry for network connection between the server and camera before setting the monitor to Disabled. No decimals. Set to 0 to retry forever.",
                   "default": "10",
                   "example": "100000",
                   "possible": ""
@@ -162,7 +162,7 @@
                {
                   "name": "path",
                   "field": "Path",
-                  "description": "The password for your camera",
+                  "description": "The path to your camera",
                   "default": "",
                   "example": "/videostream.cgi",
                   "possible": ""
@@ -186,7 +186,7 @@
                {
                   "name": "detail=rtsp_transport",
                   "field": "RTSP Transport",
-                  "description": "The path to your camera",
+                  "description": "The transport protocol your camera will use. TCP is usually the best choice.",
                   "default": "",
                   "example": "",
                   "possible": [
