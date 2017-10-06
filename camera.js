@@ -3205,14 +3205,19 @@ app.get('/:auth/jpeg/:ke/:id/s.jpg', function(req,res){
             return
         }
         req.dir=s.dir.streams+req.params.ke+'/'+req.params.id+'/s.jpg';
-            res.writeHead(200, {
+        res.writeHead(200, {
             'Content-Type': 'image/jpeg',
             'Cache-Control': 'no-cache',
             'Pragma': 'no-cache'
-            });
+        });
         res.on('finish',function(){res.end();delete(res)});
         if (fs.existsSync(req.dir)){
-            fs.createReadStream(req.dir).pipe(res);
+            s.streamlag = (new Date().getTime() - fs.statSync(req.dir).mtime) / 1000;
+            if (s.streamlag > 10) {
+                fs.createReadStream(config.defaultMjpeg).pipe(res);
+	    }else{
+                fs.createReadStream(req.dir).pipe(res);
+	    }
         }else{
             fs.createReadStream(config.defaultMjpeg).pipe(res);
         }
