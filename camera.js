@@ -3212,8 +3212,8 @@ app.get('/:auth/jpeg/:ke/:id/s.jpg', function(req,res){
         });
         res.on('finish',function(){res.end();delete(res)});
         if (fs.existsSync(req.dir)){
-            s.streamlag = (new Date().getTime() - fs.statSync(req.dir).mtime) / 1000;
-            if (s.streamlag > 10) {
+            req.streamlag = (new Date().getTime() - fs.statSync(req.dir).mtime) / 1000;
+            if (req.streamlag > 10) {
                 fs.createReadStream(config.defaultMjpeg).pipe(res);
 	    }else{
                 fs.createReadStream(req.dir).pipe(res);
