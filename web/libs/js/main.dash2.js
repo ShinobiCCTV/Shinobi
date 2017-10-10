@@ -1060,11 +1060,19 @@ $.ccio.globalWebsocket=function(d,user){
                         $.ccio.init('jpegMode',$.ccio.mon[d.ke+d.id+user.auth_token]);
                     break;
                     case'mpd':
+                        if($.ccio.mon[d.ke+d.id+user.auth_token].dash){$.ccio.mon[d.ke+d.id+user.auth_token].dash.reset()}
                         d.e.find('video').addClass('dashjs-player')
                         d.e.find('video').attr('type','application/dash+xml')
                         d.e.find('video').attr('src',user.auth_token+'/mpd/'+d.ke+'/'+d.id+'/s.mpd')
                         $.ccio.mon[d.ke+d.id+user.auth_token].dash = dashjs.MediaPlayer().create();
                         $.ccio.mon[d.ke+d.id+user.auth_token].dash.initialize(document.querySelector('#monitor_live_'+d.id+user.auth_token+' video'),user.auth_token+'/mpd/'+d.ke+'/'+d.id+'/s.mpd', true);
+                        $.ccio.mon[d.ke+d.id+user.auth_token].dash.getDebug().setLogToBrowserConsole(false)
+                        $.ccio.mon[d.ke+d.id+user.auth_token].dash.on('error', function(e) {
+                            console.log(e)
+                            if(e.error==='manifestError'){
+                                $.ccio.cx({f:'monitor',ff:'watch_on',id:d.id},user)
+                            }
+                        });
                     break;
                     case'hls':
                         d.fn=function(){
