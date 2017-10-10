@@ -921,7 +921,7 @@ s.ffmpeg=function(e,x){
         x.stream_acodec=' -an';
     }
     //stream - hls segment time
-    if(e.details.hls_time&&e.details.hls_time!==''){x.hls_time=e.details.hls_time}else{x.hls_time=2}    //hls list size
+    if(e.details.hls_time&&e.details.hls_time!==''){x.hls_time=e.details.hls_time}else{x.hls_time="2"}    //hls list size
     if(e.details.hls_list_size&&e.details.hls_list_size!==''){x.hls_list_size=e.details.hls_list_size}else{x.hls_list_size=2}
     //stream - custom flags
     if(e.details.cust_stream&&e.details.cust_stream!==''){x.cust_stream=' '+e.details.cust_stream}else{x.cust_stream=''}
@@ -974,6 +974,9 @@ s.ffmpeg=function(e,x){
         case'mpd':
             if(e.details.stream_vcodec!=='h264_vaapi'){
                 if(x.stream_quality)x.stream_quality=' -crf '+x.stream_quality;
+            }
+            if(parseFloat(x.hls_time)<20000){
+                x.hls_time=20000
             }
             x.pipe=x.preset_stream+x.stream_quality+x.stream_acodec+x.stream_vcodec+x.stream_fps+' -f dash -s '+x.ratio+x.stream_video_filters+x.cust_stream+' -min_seg_duration '+x.hls_time+' -window_size '+x.hls_list_size+' -extra_window_size 0 -remove_at_exit 1 '+e.sdir+'s.mpd';
         break;
