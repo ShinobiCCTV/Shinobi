@@ -3060,12 +3060,13 @@ app.post(['/','/:screen'],function (req,res){
                                     ke:req.body.key,
                                     uid:user.uid,
                                     auth:s.md5(s.gid()),
-                                    mail:user.cn,
+                                    mail:user.mail,
                                     pass:s.md5(req.body.pass),
                                     details:JSON.stringify({
                                         sub:'1',
                                         ldap:'1',
-                                        allmonitors:'1'
+                                        allmonitors:'1',
+					filter: {}
                                     })
                                 }
                                 user.post=[]
