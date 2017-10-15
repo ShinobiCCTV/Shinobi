@@ -151,7 +151,7 @@
    "Account Info": "Account Info",
    "blankPassword": "Leave blank to keep same password",
    "2-Factor Authentication": "2-Factor Authentication",
-   "Max Storage Amount": "Max Storage Amount <small>in Megabytes</small>",
+   "Max Storage Amount": "Max Storage Amount Quota <small>in Megabytes</small>",
    "Number of Days to keep": "Number of Days to keep",
    "Monitor Groups": "Monitor Groups",
    "Group Name": "Group Name",
