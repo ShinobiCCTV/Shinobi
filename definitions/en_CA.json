@@ -162,7 +162,7 @@
                {
                   "name": "path",
                   "field": "Path",
-                  "description": "The password for your camera",
+                  "description": "Path to RTSP stream",
                   "default": "",
                   "example": "/videostream.cgi",
                   "possible": ""
@@ -186,7 +186,7 @@
                {
                   "name": "detail=rtsp_transport",
                   "field": "RTSP Transport",
-                  "description": "The password for your camera",
+                  "description": "Specify which protocol to pull RTSP stream",
                   "default": "",
                   "example": "",
                   "possible": [
