@@ -7,7 +7,6 @@ rm -rf $distro master_temp
 wget https://github.com/ShinobiCCTV/Shinobi/tarball/$distro
 mkdir master_temp
 tar -xzf $distro -C master_temp --strip-components=1
-rm -rf camera.js web UPDATE.sh package.json cron.js languages LICENSE COPYING
 pm2 stop camera.js
 pm2 stop cron.js
 pm2 kill

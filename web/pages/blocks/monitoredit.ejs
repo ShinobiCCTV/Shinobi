@@ -175,11 +175,12 @@
                   <div class="form-group">
                     <label><div><span><%-lang.hwaccel%></span></div>
                         <div><select class="form-control" detail="hwaccel">
+                            <option value="auto"><%-lang.Auto%></option>
+                            <option value="cuvid"><%-lang.cuvid%></option>
+                            <option value="vaapi"><%-lang.vaapi%></option>
                             <option value="qsv"><%-lang.qsv%></option>
                             <option value="vdpau"><%-lang.vdpau%></option>
-                            <option value="vaapi"><%-lang.vaapi%></option>
                             <option value="dxva2"><%-lang.dxva2%></option>
-                            <option value="cuvid"><%-lang.cuvid%></option>
                             <option value="vdpau"><%-lang.vda%></option>
                             <option value="vdpau"><%-lang.videotoolbox%></option>
                         </select></div>
@@ -224,6 +225,7 @@
                         <option value="jpeg"><%-lang['JPEG (Auto Enables JPEG API)']%></option>
                         <option value="mjpeg"><%-lang['MJPEG']%></option>
                         <option value="hls"><%-lang['HLS (includes Audio)']%></option>
+                        <option value="mpd"><%-lang['MPEG-DASH (includes Audio)']%></option>
                     </select></div>
                 </label>
               </div>
@@ -232,7 +234,7 @@
                     <div><input class="form-control" detail="stream_mjpeg_clients" placeholder="20"></div>
                 </label>
               </div>
-              <div class="h_st_input h_st_hls">
+              <div class="h_st_input h_st_hls h_st_mpd">
                   <div class="form-group">
                     <label><div><span><%-lang['HLS Video Encoder']%></span></div>
                         <div><select class="form-control" detail="stream_vcodec" selector="h_hls_v">
@@ -295,7 +297,7 @@
                       </label>
                   </div>
               </div>
-              <div class=" h_st_input h_st_mjpeg h_st_b64 h_st_hls h_hls_v_input h_hls_v_libx264 h_hls_v_libx265 h_hls_v_h264_nvenc h_hls_v_hevc_nvenc h_hls_v_no">
+              <div class=" h_st_input h_st_mjpeg h_st_b64 h_st_hls h_st_mpd h_hls_v_input h_hls_v_libx264 h_hls_v_libx265 h_hls_v_h264_nvenc h_hls_v_hevc_nvenc h_hls_v_no">
                   <div class="row">
                       <div class="form-group col-md-12">
                         <label><div><span><%-lang['Quality']%></span></div>
@@ -583,7 +585,7 @@
                     </select></div>
                 </label>
               </div>
-              <div class="h_vc_input h_vc_libvpx h_vc_libvpx-vp9 h_vc_libx2ibx265 h_vc_hevc_nvenc h_vc_h264_nvenc h_vc_default h_vc_none">
+              <div class="h_vc_input h_vc_libvpx h_vc_libvpx-vp9 h_vc_libx264 h_vc_libx265 h_vc_hevc_nvenc h_vc_h264_nvenc h_vc_default h_vc_none">
                    <div class="form-group">
                     <label><div><span><%-lang['Video Record Rate']%></span></div>
                     <div><input class="form-control" name="fps"></div>
@@ -895,24 +897,20 @@
                             </select></div>
                         </label>
                       </div>
-                      <div class="h_det_web_input h_det_fra_1">
                       <div class="form-group">
                         <label><div><span><%-lang['Detector Rate']%></span></div>
                         <div><input class="form-control" detail="detector_fps" placeholder="2"></div>
                         </label>
                       </div>
-                      <div class="row">
-                          <div class="form-group col-md-12">
-                            <label><div><span><%-lang['Feed-in Image Width']%></span></div>
-                            <div><input class="form-control" detail="detector_scale_x" placeholder="320"></div>
-                            </label>
-                          </div>
-                          <div class="form-group col-md-12">
-                            <label><div><span><%-lang['Feed-in Image Height']%></span></div>
-                            <div><input class="form-control" detail="detector_scale_y" placeholder="240"></div>
-                            </label>
-                          </div>
+                      <div class="form-group">
+                        <label><div><span><%-lang['Feed-in Image Width']%></span></div>
+                        <div><input class="form-control" detail="detector_scale_x" placeholder="320"></div>
+                        </label>
                       </div>
+                      <div class="form-group">
+                        <label><div><span><%-lang['Feed-in Image Height']%></span></div>
+                        <div><input class="form-control" detail="detector_scale_y" placeholder="240"></div>
+                        </label>
                       </div>
                   </div>
                   <div class="shinobi-detector-opencv shinobi-detector_plug" style="display:none">
