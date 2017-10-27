@@ -1746,7 +1746,7 @@ s.camera=function(x,e,cn,tx){
                 }).end();
             }
             //mailer
-            if(config.mail&&!s.group[d.ke].mon[d.id].detector_mail&&d.mon.details.detector_mail==='1'){
+            if(config.mail&&s.group[d.ke].mon[d.id].detector_mail&&d.mon.details.detector_mail==='1'){
                 sql.query('SELECT mail FROM Users WHERE ke=? AND details NOT LIKE ?',[d.ke,'%"sub"%'],function(err,r){
                     r=r[0];
                     if(!d.mon.details.detector_mail_timeout||d.mon.details.detector_mail_timeout===''){
@@ -2701,55 +2701,66 @@ var tx;
 //Authenticator functions
 s.api={};
 //auth handler
-s.auth=function(xx,cb,res,req){
+//params = parameters
+//cb = callback
+//res = response, only needed for express (http server)
+//request = request, only needed for express (http server)
+s.auth=function(params,cb,res,req){
     if(req){
-        xx.ip=req.headers['cf-connecting-ip'] || req.headers['x-forwarded-for'] || req.connection.remoteAddress;
-        xx.failed=function(){
+        //express (http server) use of auth function
+        params.ip=req.headers['cf-connecting-ip'] || req.headers['x-forwarded-for'] || req.connection.remoteAddress;
+        var failed=function(){
             if(!req.ret){req.ret={ok:false}}
             req.ret.msg=lang['Not Authorized'];
             res.end(s.s(req.ret, null, 3));
         }
     }else{
-        xx.failed=function(){
+        //socket.io use of auth function
+        var failed=function(){
             //maybe log
         }
     }
-    xx.checkIP=function(ee){
-        if(s.api[xx.auth].ip.indexOf('0.0.0.0')>-1||s.api[xx.auth].ip.indexOf(xx.ip)>-1){
-            cb(s.api[xx.auth]);
+    //check IP address of connecting user
+    var checkIP=function(ee){
+        if(s.api[params.auth].ip.indexOf('0.0.0.0')>-1||s.api[params.auth].ip.indexOf(params.ip)>-1){
+            cb(s.api[params.auth]);
         }else{
-            xx.failed();
+            failed();
         }
     }
-    if(s.group[xx.ke]&&s.group[xx.ke].users&&s.group[xx.ke].users[xx.auth]){
-        s.group[xx.ke].users[xx.auth].permissions={};
-        cb(s.group[xx.ke].users[xx.auth]);
+    //check if auth key is user's temporary session key
+    if(s.group[params.ke]&&s.group[params.ke].users&&s.group[params.ke].users[params.auth]){
+        s.group[params.ke].users[params.auth].permissions={};
+        cb(s.group[params.ke].users[params.auth]);
     }else{
-        if(s.api[xx.auth]&&s.api[xx.auth].details){
-            xx.checkIP();
+        //check if key is already in memory to save query time
+        if(s.api[params.auth]&&s.api[params.auth].details){
+            checkIP();
         }else{
-            sql.query('SELECT * FROM API WHERE code=? AND ke=?',[xx.auth,xx.ke],function(err,r){
+            //no key in memory, query db to see if key exists
+            sql.query('SELECT * FROM API WHERE code=? AND ke=?',[params.auth,params.ke],function(err,r){
                 if(r&&r[0]){
                     r=r[0];
-                    s.api[xx.auth]={ip:r.ip,uid:r.uid,ke:r.ke,permissions:JSON.parse(r.details),details:{}};
+                    s.api[params.auth]={ip:r.ip,uid:r.uid,ke:r.ke,permissions:JSON.parse(r.details),details:{}};
                     sql.query('SELECT details FROM Users WHERE uid=? AND ke=?',[r.uid,r.ke],function(err,rr){
                         if(rr&&rr[0]){
                             rr=rr[0];
                             try{
-                                s.api[xx.auth].mail=rr.mail
-                                s.api[xx.auth].details=JSON.parse(rr.details)
-                                s.api[xx.auth].lang=s.getLanguageFile(s.api[xx.auth].details.lang)
+                                s.api[params.auth].mail=rr.mail
+                                s.api[params.auth].details=JSON.parse(rr.details)
+                                s.api[params.auth].lang=s.getLanguageFile(s.api[params.auth].details.lang)
                             }catch(er){}
                         }
-                        xx.checkIP();
+                        checkIP();
                     })
                 }else{
-                    xx.failed();
+                    failed();
                 }
             })
         }
     }
 }
+//super user authentication handler
 s.superAuth=function(x,callback){
     req={};
     req.super=require(location.super);
