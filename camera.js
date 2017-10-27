@@ -1746,7 +1746,7 @@ s.camera=function(x,e,cn,tx){
                 }).end();
             }
             //mailer
-            if(config.mail&&!s.group[d.ke].mon[d.id].detector_mail&&d.mon.details.detector_mail==='1'){
+            if(config.mail&&s.group[d.ke].mon[d.id].detector_mail&&d.mon.details.detector_mail==='1'){
                 sql.query('SELECT mail FROM Users WHERE ke=? AND details NOT LIKE ?',[d.ke,'%"sub"%'],function(err,r){
                     r=r[0];
                     if(!d.mon.details.detector_mail_timeout||d.mon.details.detector_mail_timeout===''){
