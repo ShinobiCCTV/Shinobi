@@ -1664,6 +1664,18 @@ s.camera=function(x,e,cn,tx){
             if(s.group[d.ke].mon[d.id].motion_lock){
                 return
             }
+            if(!d.mon.details.detector_lock_timeout||d.mon.details.detector_lock_timeout===''){
+                d.mon.details.detector_lock_timeout=2000
+            }
+            d.mon.details.detector_lock_timeout=parseFloat(d.mon.details.detector_lock_timeout);
+            if(!s.group[d.ke].mon[d.id].detector_lock_timeout){
+                s.group[d.ke].mon[d.id].detector_lock_timeout=setTimeout(function(){
+                    clearTimeout(s.group[d.ke].mon[d.id].detector_lock_timeout)
+                    delete(s.group[d.ke].mon[d.id].detector_lock_timeout)
+                },d.mon.details.detector_lock_timeout)
+            }else{
+                return
+            }
             d.cx={f:'detector_trigger',id:d.id,ke:d.ke,details:d.details};
             s.tx(d.cx,'GRP_'+d.ke);
             if(d.mon.details.detector_notrigger=='1'){
@@ -1783,7 +1795,7 @@ s.camera=function(x,e,cn,tx){
             if(d.mon.details.detector_save==='1'){
                 sql.query('INSERT INTO Events (ke,mid,details) VALUES (?,?,?)',[d.ke,d.id,JSON.stringify(d.details)])
             }
-            if(d.mon.details.detector_command_enable==='1'){
+            if(d.mon.details.detector_command_enable==='1'&&!s.group[d.ke].mon[d.id].detector_command){
                 if(!d.mon.details.detector_command_timeout||d.mon.details.detector_command_timeout===''){
                     d.mon.details.detector_command_timeout=1000*60*10;
                 }else{
