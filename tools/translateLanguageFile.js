@@ -14,7 +14,6 @@ var source=require(langDir+process.argv[2]+'.json')
 var list = Object.keys(source)
 console.log(list.length)
 var extra = ''
-if(process.argv[4]==='he'){process.argv[4]=='ar'}
 var current = 1
 var currentItem = list[0]
 var chosenFile = langDir+process.argv[4]+'.json'
