@@ -1070,7 +1070,9 @@ $.ccio.globalWebsocket=function(d,user){
                         $.ccio.mon[d.ke+d.id+user.auth_token].dash.on('error', function(e) {
                             console.log(e)
                             if(e.error==='manifestError'){
-                                $.ccio.cx({f:'monitor',ff:'watch_on',id:d.id},user)
+                                setTimeout(function(){
+                                    $.ccio.cx({f:'monitor',ff:'watch_on',id:d.id},user)
+                                },5000)
                             }
                         });
                     break;
