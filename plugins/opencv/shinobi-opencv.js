@@ -115,7 +115,7 @@ s.detectObject=function(buffer,d){
                                 tag:v.plate
                               })
                           })
-                          s.cx({f:'trigger',id:d.id,ke:d.ke,details:{plug:config.plug,name:'licensePlate',reason:'object',matrices:scan.mats,confidence:d.average,imgHeight:d.mon.detector_scale_y,imgWidth:d.mon.detector_scale_x,frame:d.base64}})
+                          tx({f:'trigger',id:d.id,ke:d.ke,details:{plug:config.plug,name:'licensePlate',reason:'object',matrices:scan.mats,confidence:d.average,imgHeight:d.mon.detector_scale_y,imgWidth:d.mon.detector_scale_x,frame:d.base64}})
                       }
                   }catch(err){
                       s.systemLog(scan,err);
@@ -210,13 +210,11 @@ s.blenderRegion=function(d,cord){
     }
     d.average = (d.average / (blendedData.data.length * 0.25))*10;
     if (d.average > parseFloat(cord.sensitivity)){
-          if(d.mon.detector_cascades&&d.mon.detector_cascades instanceof Object){
-              var buffer=s.group[d.ke][d.id].canvas[cord.name].toBuffer();
-              if(d.mon.detector_use_detect_object==="1"){
-                  s.detectObject(buffer,d)
-              }else{
-                  s.cx({f:'trigger',id:d.id,ke:d.ke,details:{plug:config.plug,name:cord.name,reason:'motion',confidence:d.average,frame:d.base64}})
-              }
+          var buffer=s.group[d.ke][d.id].canvas[cord.name].toBuffer();
+          if(d.mon.detector_use_detect_object==="1"){
+              s.detectObject(buffer,d)
+          }else{
+              s.cx({f:'trigger',id:d.id,ke:d.ke,details:{plug:config.plug,name:cord.name,reason:'motion',confidence:d.average,frame:d.base64}})
           }
     }
     s.group[d.ke][d.id].canvasContext[cord.name].clearRect(0, 0, d.width, d.height);
