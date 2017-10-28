@@ -2720,10 +2720,17 @@ s.auth=function(params,cb,res,req){
             //maybe log
         }
     }
+    var clearAfterTime=function(){
+        //remove temp key from memory
+        clearTimeout(s.api[params.auth].timeout)
+        s.api[params.auth].timeout=setTimeout(function(){
+            delete(s.api[params.auth])
+        },1000*60*5)
+    }
     //check IP address of connecting user
-    var checkIP=function(ee){
+    var finish=function(user){
         if(s.api[params.auth].ip.indexOf('0.0.0.0')>-1||s.api[params.auth].ip.indexOf(params.ip)>-1){
-            cb(s.api[params.auth]);
+            cb(user);
         }else{
             failed();
         }
@@ -2735,7 +2742,10 @@ s.auth=function(params,cb,res,req){
     }else{
         //check if key is already in memory to save query time
         if(s.api[params.auth]&&s.api[params.auth].details){
-            checkIP();
+            finish(s.api[params.auth]);
+            if(s.api[params.auth].timeout){
+               clearAfterTime()
+            }
         }else{
             //no key in memory, query db to see if key exists
             sql.query('SELECT * FROM API WHERE code=? AND ke=?',[params.auth,params.ke],function(err,r){
@@ -2751,10 +2761,20 @@ s.auth=function(params,cb,res,req){
                                 s.api[params.auth].lang=s.getLanguageFile(s.api[params.auth].details.lang)
                             }catch(er){}
                         }
-                        checkIP();
+                        finish(s.api[params.auth]);
                     })
                 }else{
-                    failed();
+                    sql.query('SELECT * FROM Users WHERE auth=? AND ke=?',[params.auth,params.ke],function(err,r){
+                        if(r&&r[0]){
+                            r=r[0];
+                            r.ip='0.0.0.0'
+                            s.api[params.auth]=r
+                            clearAfterTime()
+                            finish(r)
+                        }else{
+                            failed();
+                        }
+                    })
                 }
             })
         }
