@@ -128,11 +128,20 @@ s.disc=function(){
     sql.connect(function(err){if(err){s.systemLog(lang['Error Connecting']+' : DB',err);setTimeout(s.disc, 2000);}});
     sql.on('error',function(err) {s.systemLog(lang['DB Lost.. Retrying..']);s.systemLog(err);s.disc();return;});
     sql.on('connect',function() {
-        sql.query('ALTER TABLE `Videos` ADD COLUMN `details` TEXT NULL DEFAULT NULL AFTER `status`;',function(err){
+        s.sqlQuery = function(query,values,callback){
+            if(!values){values=[]}
+            return sql.query(query,values,function(err,r){
+                if(err)
+                    console.error('s.sqlQuery',err)
+                if(callback)
+                    callback(err,r)
+            })
+        }
+        s.sqlQuery('ALTER TABLE `Videos` ADD COLUMN `details` TEXT NULL DEFAULT NULL AFTER `status`;',function(err){
             if(err){
                 s.systemLog("Critical update 1/2 already applied");
             }
-            sql.query("CREATE TABLE IF NOT EXISTS `Files` (`ke` varchar(50) NOT NULL,`mid` varchar(50) NOT NULL,`name` tinytext NOT NULL,`size` float NOT NULL DEFAULT '0',`details` text NOT NULL,`status` int(1) NOT NULL DEFAULT '0') ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;",function(err){
+            s.sqlQuery("CREATE TABLE IF NOT EXISTS `Files` (`ke` varchar(50) NOT NULL,`mid` varchar(50) NOT NULL,`name` tinytext NOT NULL,`size` float NOT NULL DEFAULT '0',`details` text NOT NULL,`status` int(1) NOT NULL DEFAULT '0') ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;",function(err){
                 if(err){
                     s.systemLog("Critical update 2/2 NOT applied, this could be bad");
                 }else{
@@ -304,7 +313,7 @@ s.kill=function(x,e,p){
 s.log=function(e,x){
     if(!x||!e.mid){return}
     if((e.details&&e.details.sqllog==='1')||e.mid.indexOf('$')>-1){
-        sql.query('INSERT INTO Logs (ke,mid,info) VALUES (?,?,?)',[e.ke,e.mid,s.s(x)]);
+        s.sqlQuery('INSERT INTO Logs (ke,mid,info) VALUES (?,?,?)',[e.ke,e.mid,s.s(x)]);
     }
     s.tx({f:'log',ke:e.ke,mid:e.mid,log:x,time:moment()},'GRPLOG_'+e.ke);
 //    s.systemLog('s.log : ',{f:'log',ke:e.ke,mid:e.mid,log:x,time:moment()},'GRP_'+e.ke)
@@ -315,7 +324,7 @@ s.systemLog=function(q,w,e){
     if(!e){e=''}
     if(config.systemLog===true){
         if(typeof q==='string'&&sql){
-            sql.query('INSERT INTO Logs (ke,mid,info) VALUES (?,?,?)',['$','$SYSTEM',s.s({type:q,msg:w})]);
+            s.sqlQuery('INSERT INTO Logs (ke,mid,info) VALUES (?,?,?)',['$','$SYSTEM',s.s({type:q,msg:w})]);
             s.tx({f:'log',log:{time:moment(),ke:'$',mid:'$SYSTEM',time:moment(),info:s.s({type:q,msg:w})}},'$');
         }
         return console.log(moment().format(),q,w,e)
@@ -432,7 +441,7 @@ s.init=function(x,e,k,fn){
                 s.group[e.ke].init={};
             }
             if(!s.group[e.ke].webdav||!s.group[e.ke].init.size){
-                sql.query('SELECT * FROM Users WHERE ke=? AND details NOT LIKE ?',[e.ke,'%"sub"%'],function(ar,r){
+                s.sqlQuery('SELECT * FROM Users WHERE ke=? AND details NOT LIKE ?',[e.ke,'%"sub"%'],function(ar,r){
                     if(r&&r[0]){
                         r=r[0];
                         ar=JSON.parse(r.details);
@@ -596,7 +605,7 @@ s.video=function(x,e){
             if(!e.filename&&e.time){e.filename=s.moment(e.time)}
             if(!e.status){e.status=0}
             e.save=[e.id,e.ke,s.nameToTime(e.filename)];
-            sql.query('UPDATE Videos SET status=3 WHERE `mid`=? AND `ke`=? AND `time`=?',e.save,function(err,r){
+            s.sqlQuery('UPDATE Videos SET status=3 WHERE `mid`=? AND `ke`=? AND `time`=?',e.save,function(err,r){
                 s.tx({f:'video_edit',status:3,filename:e.filename+'.'+e.ext,mid:e.mid,ke:e.ke,time:s.nameToTime(e.filename)},'GRP_'+e.ke);
             });
         break;
@@ -604,11 +613,11 @@ s.video=function(x,e){
             if(!e.filename&&e.time){e.filename=s.moment(e.time)}
             if(!e.status){e.status=0}
             e.save=[e.id,e.ke,s.nameToTime(e.filename)];
-            sql.query('SELECT * FROM Videos WHERE `mid`=? AND `ke`=? AND `time`=?',e.save,function(err,r){
+            s.sqlQuery('SELECT * FROM Videos WHERE `mid`=? AND `ke`=? AND `time`=?',e.save,function(err,r){
                 if(r&&r[0]){
                     r=r[0]
                     e.dir=s.video('getDir',r)
-                    sql.query('DELETE FROM Videos WHERE `mid`=? AND `ke`=? AND `time`=?',e.save,function(){
+                    s.sqlQuery('DELETE FROM Videos WHERE `mid`=? AND `ke`=? AND `time`=?',e.save,function(){
                         fs.stat(e.dir+e.filename+'.'+e.ext,function(err,file){
                             if(err){
                                 s.systemLog('File Delete Error : '+e.ke+' : '+' : '+e.mid,err)
@@ -630,7 +639,7 @@ s.video=function(x,e){
                 k.details.dir=e.details.dir
             }
             e.save.push(s.s(k.details))
-            sql.query('INSERT INTO Videos (mid,ke,time,ext,status,details) VALUES (?,?,?,?,?,?)',e.save)
+            s.sqlQuery('INSERT INTO Videos (mid,ke,time,ext,status,details) VALUES (?,?,?,?,?,?)',e.save)
             s.tx({f:'video_build_start',filename:e.filename+'.'+e.ext,mid:e.id,ke:e.ke,time:s.nameToTime(e.filename),end:s.moment(new Date,'YYYY-MM-DD HH:mm:ss')},'GRP_'+e.ke);
         break;
         case'close':
@@ -661,7 +670,7 @@ s.video=function(x,e){
                         e.end_time=s.moment(k.stat.mtime,'YYYY-MM-DD HH:mm:ss');
                         e.save=[e.filesize,1,e.end_time,e.id,e.ke,s.nameToTime(e.filename)];
                         if(!e.status){e.save.push(0)}else{e.save.push(e.status)}
-                        sql.query('UPDATE Videos SET `size`=?,`status`=?,`end`=? WHERE `mid`=? AND `ke`=? AND `time`=? AND `status`=?',e.save)
+                        s.sqlQuery('UPDATE Videos SET `size`=?,`status`=?,`end`=? WHERE `mid`=? AND `ke`=? AND `time`=? AND `status`=?',e.save)
                         s.txWithSubPermissions({f:'video_build_success',hrefNoAuth:'/videos/'+e.ke+'/'+e.mid+'/'+k.file,filename:k.file,mid:e.id,ke:e.ke,time:moment(s.nameToTime(e.filename)).format(),size:e.filesize,end:moment(e.end_time).format()},'GRP_'+e.ke,'video_view');
 
                         //cloud auto savers
@@ -689,7 +698,7 @@ s.video=function(x,e){
                                 //check space
                                 var check=function(){
                                     if(s.group[e.ke].init.used_space>(s.group[e.ke].init.size*config.cron.deleteOverMaxOffset)){
-                                        sql.query('SELECT * FROM Videos WHERE status != 0 AND ke=? ORDER BY `time` ASC LIMIT 2',[e.ke],function(err,evs){
+                                        s.sqlQuery('SELECT * FROM Videos WHERE status != 0 AND ke=? ORDER BY `time` ASC LIMIT 2',[e.ke],function(err,evs){
                                             k.del=[];k.ar=[e.ke];
                                             evs.forEach(function(ev){
                                                 ev.dir=s.video('getDir',ev)+s.moment(ev.time)+'.'+ev.ext;
@@ -702,7 +711,7 @@ s.video=function(x,e){
                                             });
                                             if(k.del.length>0){
                                                 k.qu=k.del.join(' OR ');
-                                                sql.query('DELETE FROM Videos WHERE ke =? AND ('+k.qu+')',k.ar,function(){
+                                                s.sqlQuery('DELETE FROM Videos WHERE ke =? AND ('+k.qu+')',k.ar,function(){
                                                     check()
                                                 })
                                             }
@@ -1168,7 +1177,7 @@ s.camera=function(x,e,cn,tx){
            if(!cn.monitor_watching[e.id]){cn.monitor_watching[e.id]={ke:e.ke}}
            s.group[e.ke].mon[e.id].watch[cn.id]={};
 //            if(Object.keys(s.group[e.ke].mon[e.id].watch).length>0){
-//                sql.query('SELECT * FROM Monitors WHERE ke=? AND mid=?',[e.ke,e.id],function(err,r) {
+//                s.sqlQuery('SELECT * FROM Monitors WHERE ke=? AND mid=?',[e.ke,e.id],function(err,r) {
 //                    if(r&&r[0]){
 //                        r=r[0];
 //                        r.url=s.init('url',r);
@@ -1286,7 +1295,7 @@ s.camera=function(x,e,cn,tx){
                     e.details.detector_notrigger_timeout=10
                 }
                 e.detector_notrigger_timeout=parseFloat(e.details.detector_notrigger_timeout)*1000*60;
-                sql.query('SELECT mail FROM Users WHERE ke=? AND details NOT LIKE ?',[e.ke,'%"sub"%'],function(err,r){
+                s.sqlQuery('SELECT mail FROM Users WHERE ke=? AND details NOT LIKE ?',[e.ke,'%"sub"%'],function(err,r){
                     r=r[0];
                     s.group[e.ke].mon[e.id].detector_notrigger_timeout_function=function(){
                         if(config.mail&&e.details.detector_notrigger_mail=='1'){
@@ -1747,7 +1756,7 @@ s.camera=function(x,e,cn,tx){
             }
             //mailer
             if(config.mail&&s.group[d.ke].mon[d.id].detector_mail&&d.mon.details.detector_mail==='1'){
-                sql.query('SELECT mail FROM Users WHERE ke=? AND details NOT LIKE ?',[d.ke,'%"sub"%'],function(err,r){
+                s.sqlQuery('SELECT mail FROM Users WHERE ke=? AND details NOT LIKE ?',[d.ke,'%"sub"%'],function(err,r){
                     r=r[0];
                     if(!d.mon.details.detector_mail_timeout||d.mon.details.detector_mail_timeout===''){
                         d.mon.details.detector_mail_timeout=1000*60*10;
@@ -1793,7 +1802,7 @@ s.camera=function(x,e,cn,tx){
             }
             //save this detection result in SQL, only coords. not image.
             if(d.mon.details.detector_save==='1'){
-                sql.query('INSERT INTO Events (ke,mid,details) VALUES (?,?,?)',[d.ke,d.id,JSON.stringify(d.details)])
+                s.sqlQuery('INSERT INTO Events (ke,mid,details) VALUES (?,?,?)',[d.ke,d.id,JSON.stringify(d.details)])
             }
             if(d.mon.details.detector_command_enable==='1'&&!s.group[d.ke].mon[d.id].detector_command){
                 if(!d.mon.details.detector_command_timeout||d.mon.details.detector_command_timeout===''){
@@ -1858,7 +1867,7 @@ var tx;
                 s.tx({f:'user_status_change',ke:d.ke,uid:cn.uid,status:1,user:s.group[d.ke].users[d.auth]},'GRP_'+d.ke)
                 s.init('diskUsed',d)
                 s.init('apps',d)
-                sql.query('SELECT * FROM API WHERE ke=? && uid=?',[d.ke,d.uid],function(err,rrr) {
+                s.sqlQuery('SELECT * FROM API WHERE ke=? && uid=?',[d.ke,d.uid],function(err,rrr) {
                     tx({
                         f:'init_success',
                         users:s.group[d.ke].vid,
@@ -1892,16 +1901,16 @@ var tx;
                     });
                 })
             }
-            sql.query('SELECT ke,uid,auth,mail,details FROM Users WHERE ke=? AND auth=? AND uid=?',[d.ke,d.auth,d.uid],function(err,r) {
+            s.sqlQuery('SELECT ke,uid,auth,mail,details FROM Users WHERE ke=? AND auth=? AND uid=?',[d.ke,d.auth,d.uid],function(err,r) {
                 if(r&&r[0]){
                     d.success(r)
                 }else{
-                    sql.query('SELECT * FROM API WHERE ke=? AND code=? AND uid=?',[d.ke,d.auth,d.uid],function(err,r) {
+                    s.sqlQuery('SELECT * FROM API WHERE ke=? AND code=? AND uid=?',[d.ke,d.auth,d.uid],function(err,r) {
                         if(r&&r[0]){
                             r=r[0]
                             r.details=JSON.parse(r.details)
                             if(r.details.auth_socket==='1'){
-                                sql.query('SELECT ke,uid,auth,mail,details FROM Users WHERE ke=? AND uid=?',[r.ke,r.uid],function(err,r) {
+                                s.sqlQuery('SELECT ke,uid,auth,mail,details FROM Users WHERE ke=? AND uid=?',[r.ke,r.uid],function(err,r) {
                                     if(r&&r[0]){
                                         d.success(r)
                                     }else{
@@ -1929,11 +1938,11 @@ var tx;
                 break;
                 case'monitorOrder':
                     if(d.monitorOrder&&d.monitorOrder instanceof Array){
-                        sql.query('SELECT details FROM Users WHERE uid=? AND ke=?',[cn.uid,cn.ke],function(err,r){
+                        s.sqlQuery('SELECT details FROM Users WHERE uid=? AND ke=?',[cn.uid,cn.ke],function(err,r){
                             if(r&&r[0]){
                                 r=JSON.parse(r[0].details);
                                 r.monitorOrder=d.monitorOrder;
-                                sql.query('UPDATE Users SET details=? WHERE uid=? AND ke=?',[JSON.stringify(r),cn.uid,cn.ke])
+                                s.sqlQuery('UPDATE Users SET details=? WHERE uid=? AND ke=?',[JSON.stringify(r),cn.uid,cn.ke])
                             }
                         })
                     }
@@ -1964,7 +1973,7 @@ var tx;
                             d.for.forEach(function(v){
                                 d.set.push(v+'=?'),d.ar.push(d.form[v]);
                             });
-                            sql.query('DELETE FROM API WHERE '+d.set.join(' AND '),d.ar,function(err,r){
+                            s.sqlQuery('DELETE FROM API WHERE '+d.set.join(' AND '),d.ar,function(err,r){
                                 if(!err){
                                     tx({f:'api_key_deleted',form:d.form});
                                     delete(s.api[d.form.code]);
@@ -1981,7 +1990,7 @@ var tx;
                                 d.set.push(v),d.qu.push('?'),d.ar.push(d.form[v]);
                             });
                             d.ar.push(cn.ke);
-                            sql.query('INSERT INTO API ('+d.set.join(',')+') VALUES ('+d.qu.join(',')+')',d.ar,function(err,r){
+                            s.sqlQuery('INSERT INTO API ('+d.set.join(',')+') VALUES ('+d.qu.join(',')+')',d.ar,function(err,r){
                                 d.form.time=s.moment(new Date,'YYYY-DD-MM HH:mm:ss');
                                 if(!err){tx({f:'api_key_added',form:d.form});}else{s.systemLog(err)}
                             });
@@ -1993,7 +2002,7 @@ var tx;
                         case'filters':
                             switch(d.fff){
                                 case'save':case'delete':
-                                    sql.query('SELECT details FROM Users WHERE ke=? AND uid=?',[d.ke,d.uid],function(err,r){
+                                    s.sqlQuery('SELECT details FROM Users WHERE ke=? AND uid=?',[d.ke,d.uid],function(err,r){
                                         if(r&&r[0]){
                                             r=r[0];
                                             d.d=JSON.parse(r.details);
@@ -2005,7 +2014,7 @@ var tx;
                                             }else{
                                                 delete(d.d.filters[d.form.id]);
                                             }
-                                            sql.query('UPDATE Users SET details=? WHERE ke=? AND uid=?',[JSON.stringify(d.d),d.ke,d.uid],function(err,r){
+                                            s.sqlQuery('UPDATE Users SET details=? WHERE ke=? AND uid=?',[JSON.stringify(d.d),d.ke,d.uid],function(err,r){
                                                 tx({f:'filters_change',uid:d.uid,ke:d.ke,filters:d.d.filters});
                                             });
                                         }
@@ -2014,7 +2023,7 @@ var tx;
                             }
                         break;
                         case'edit':
-                            sql.query('SELECT details FROM Users WHERE ke=? AND uid=?',[d.ke,d.uid],function(err,r){
+                            s.sqlQuery('SELECT details FROM Users WHERE ke=? AND uid=?',[d.ke,d.uid],function(err,r){
                                 if(r&&r[0]){
                                     r=r[0];
                                     d.d=JSON.parse(r.details);
@@ -2060,7 +2069,7 @@ var tx;
                                         d.set.push(v+'=?'),d.ar.push(d.form[v]);
                                     });
                                     d.ar.push(d.ke),d.ar.push(d.uid);
-                                    sql.query('UPDATE Users SET '+d.set.join(',')+' WHERE ke=? AND uid=?',d.ar,function(err,r){
+                                    s.sqlQuery('UPDATE Users SET '+d.set.join(',')+' WHERE ke=? AND uid=?',d.ar,function(err,r){
                                         if(!d.d.sub){
                                             delete(s.group[d.ke].webdav)
                                             s.init('apps',d)
@@ -2169,7 +2178,7 @@ var tx;
                             s.tx({viewers:d.ob,ke:d.ke,id:d.id},'MON_'+d.id)
                         break;
                         case'start':case'stop':
-                    sql.query('SELECT * FROM Monitors WHERE ke=? AND mid=?',[cn.ke,d.id],function(err,r) {
+                    s.sqlQuery('SELECT * FROM Monitors WHERE ke=? AND mid=?',[cn.ke,d.id],function(err,r) {
                         if(r&&r[0]){r=r[0]
                             s.camera(d.ff,{type:r.type,url:s.init('url',r),id:d.id,mode:d.ff,ke:cn.ke});
                         }
@@ -2337,7 +2346,7 @@ var tx;
                         s.tx(d.data,d.to)
                     break;
                     case'sql':
-                        sql.query(d.query,d.values);
+                        s.sqlQuery(d.query,d.values);
                     break;
                     case'log':
                         s.systemLog('PLUGIN : '+d.plug+' : ',d)
@@ -2406,7 +2415,7 @@ var tx;
                     case'logs':
                         switch(d.ff){
                             case'delete':
-                                sql.query('DELETE FROM Logs WHERE ke=?',[d.ke])
+                                s.sqlQuery('DELETE FROM Logs WHERE ke=?',[d.ke])
                             break;
                         }
                     break;
@@ -2446,7 +2455,7 @@ var tx;
                             case'register':
                                 if(d.form.mail!==''&&d.form.pass!==''){
                                     if(d.form.pass===d.form.password_again){
-                                        sql.query('SELECT * FROM Users WHERE mail=?',[d.form.mail],function(err,r) {
+                                        s.sqlQuery('SELECT * FROM Users WHERE mail=?',[d.form.mail],function(err,r) {
                                             if(r&&r[0]){//found one exist
                                                 d.msg='Email address is in use.';
                                                 s.tx({f:'error',ff:'account_register',msg:d.msg},cn.id)
@@ -2457,7 +2466,7 @@ var tx;
                                                 if(!d.form.ke||d.form.ke===''){
                                                     d.form.ke=s.gid()
                                                 }
-                                                sql.query('INSERT INTO Users (ke,uid,mail,pass,details) VALUES (?,?,?,?,?)',[d.form.ke,d.form.uid,d.form.mail,s.md5(d.form.pass),d.form.details])
+                                                s.sqlQuery('INSERT INTO Users (ke,uid,mail,pass,details) VALUES (?,?,?,?,?)',[d.form.ke,d.form.uid,d.form.mail,s.md5(d.form.pass),d.form.details])
                                                 s.tx({f:'add_account',details:d.form.details,ke:d.form.ke,uid:d.form.uid,mail:d.form.mail},'$');
                                             }
                                         })
@@ -2492,7 +2501,7 @@ var tx;
                                     d.values.push(d.form[v])
                                 })
                                 d.values.push(d.account.mail)
-                                sql.query('UPDATE Users SET '+d.set.join(',')+' WHERE mail=?',d.values,function(err,r) {
+                                s.sqlQuery('UPDATE Users SET '+d.set.join(',')+' WHERE mail=?',d.values,function(err,r) {
                                     if(err){
                                         s.tx({f:'error',ff:'account_edit',msg:lang.AccountEditText1},cn.id)
                                         return
@@ -2503,8 +2512,8 @@ var tx;
                                 })
                             break;
                             case'delete':
-                                sql.query('DELETE FROM Users WHERE uid=? AND ke=? AND mail=?',[d.account.uid,d.account.ke,d.account.mail])
-                                sql.query('DELETE FROM API WHERE uid=? AND ke=?',[d.account.uid,d.account.ke])
+                                s.sqlQuery('DELETE FROM Users WHERE uid=? AND ke=? AND mail=?',[d.account.uid,d.account.ke,d.account.mail])
+                                s.sqlQuery('DELETE FROM API WHERE uid=? AND ke=?',[d.account.uid,d.account.ke])
                                 s.tx({f:'delete_account',ke:d.account.ke,uid:d.account.uid,mail:d.account.mail},'$');
                             break;
                         }
@@ -2516,7 +2525,7 @@ var tx;
     // admin page socket functions
     cn.on('a',function(d){
         if(!cn.init&&d.f=='init'){
-            sql.query('SELECT * FROM Users WHERE auth=? && uid=?',[d.auth,d.uid],function(err,r){
+            s.sqlQuery('SELECT * FROM Users WHERE auth=? && uid=?',[d.auth,d.uid],function(err,r){
                 if(r&&r[0]){
                     r=r[0];
                     if(!s.group[d.ke]){s.group[d.ke]={users:{}}}
@@ -2546,12 +2555,12 @@ var tx;
                                         d.value.push(d.form[v])
                                     })
                                     d.value=d.value.concat([cn.ke,d.$uid])
-                                    sql.query("UPDATE Users SET "+d.condition.join(',')+" WHERE ke=? AND uid=?",d.value)
+                                    s.sqlQuery("UPDATE Users SET "+d.condition.join(',')+" WHERE ke=? AND uid=?",d.value)
                                     s.tx({f:'edit_sub_account',ke:cn.ke,uid:d.$uid,mail:d.mail,form:d.form},'ADM_'+d.ke);
                                 break;
                                 case'delete':
-                                    sql.query('DELETE FROM Users WHERE uid=? AND ke=? AND mail=?',[d.$uid,cn.ke,d.mail])
-                                    sql.query('DELETE FROM API WHERE uid=? AND ke=?',[d.$uid,cn.ke])
+                                    s.sqlQuery('DELETE FROM Users WHERE uid=? AND ke=? AND mail=?',[d.$uid,cn.ke,d.mail])
+                                    s.sqlQuery('DELETE FROM API WHERE uid=? AND ke=?',[d.$uid,cn.ke])
                                     s.tx({f:'delete_sub_account',ke:cn.ke,uid:d.$uid,mail:d.mail},'ADM_'+d.ke);
                                 break;
                             }
@@ -2564,7 +2573,7 @@ var tx;
     //functions for webcam recorder
     cn.on('r',function(d){
         if(!cn.ke&&d.f==='init'){
-            sql.query('SELECT ke,uid,auth,mail,details FROM Users WHERE ke=? AND auth=? AND uid=?',[d.ke,d.auth,d.uid],function(err,r) {
+            s.sqlQuery('SELECT ke,uid,auth,mail,details FROM Users WHERE ke=? AND auth=? AND uid=?',[d.ke,d.auth,d.uid],function(err,r) {
                 if(r&&r[0]){
                     r=r[0]
                     cn.ke=d.ke,cn.uid=d.uid,cn.auth=d.auth;
@@ -2611,7 +2620,7 @@ var tx;
                         s.child_nodes[cn.ip].cpu=d.cpu;
                     break;
                     case'sql':
-                        sql.query(d.query,d.values);
+                        s.sqlQuery(d.query,d.values);
                     break;
                     case'camera':
                         s.camera(d.mode,d.data)
@@ -2748,11 +2757,11 @@ s.auth=function(params,cb,res,req){
             }
         }else{
             //no key in memory, query db to see if key exists
-            sql.query('SELECT * FROM API WHERE code=? AND ke=?',[params.auth,params.ke],function(err,r){
+            s.sqlQuery('SELECT * FROM API WHERE code=? AND ke=?',[params.auth,params.ke],function(err,r){
                 if(r&&r[0]){
                     r=r[0];
                     s.api[params.auth]={ip:r.ip,uid:r.uid,ke:r.ke,permissions:JSON.parse(r.details),details:{}};
-                    sql.query('SELECT details FROM Users WHERE uid=? AND ke=?',[r.uid,r.ke],function(err,rr){
+                    s.sqlQuery('SELECT details FROM Users WHERE uid=? AND ke=?',[r.uid,r.ke],function(err,rr){
                         if(rr&&rr[0]){
                             rr=rr[0];
                             try{
@@ -2764,7 +2773,7 @@ s.auth=function(params,cb,res,req){
                         finish(s.api[params.auth]);
                     })
                 }else{
-                    sql.query('SELECT * FROM Users WHERE auth=? AND ke=?',[params.auth,params.ke],function(err,r){
+                    s.sqlQuery('SELECT * FROM Users WHERE auth=? AND ke=?',[params.auth,params.ke],function(err,r){
                         if(r&&r[0]){
                             r=r[0];
                             r.ip='0.0.0.0'
@@ -2791,7 +2800,7 @@ s.superAuth=function(x,callback){
         if(x.mail.toLowerCase()===v.mail.toLowerCase()&&x.pass===v.pass){
             req.found=1;
             if(x.users===true){
-                sql.query('SELECT * FROM Users WHERE details NOT LIKE ?',['%"sub"%'],function(err,r) {
+                s.sqlQuery('SELECT * FROM Users WHERE details NOT LIKE ?',['%"sub"%'],function(err,r) {
                     callback({$user:v,users:r,config:config,lang:lang})
                 })
             }else{
@@ -2860,18 +2869,18 @@ app.post('/:auth/register/:ke/:uid',function (req,res){
     req.resp={ok:false};
     res.setHeader('Content-Type', 'application/json');
     s.auth(req.params,function(user){
-        sql.query('SELECT * FROM Users WHERE uid=? AND ke=? AND details NOT LIKE ? LIMIT 1',[req.params.uid,req.params.ke,'%"sub"%'],function(err,u) {
+        s.sqlQuery('SELECT * FROM Users WHERE uid=? AND ke=? AND details NOT LIKE ? LIMIT 1',[req.params.uid,req.params.ke,'%"sub"%'],function(err,u) {
             if(u&&u[0]){
                 if(req.body.mail!==''&&req.body.pass!==''){
                     if(req.body.pass===req.body.password_again){
-                        sql.query('SELECT * FROM Users WHERE mail=?',[req.body.mail],function(err,r) {
+                        s.sqlQuery('SELECT * FROM Users WHERE mail=?',[req.body.mail],function(err,r) {
                             if(r&&r[0]){//found one exist
                                 req.resp.msg='Email address is in use.';
                             }else{//create new
                                 req.resp.msg='New Account Created';req.resp.ok=true;
                                 req.gid=s.gid();
                                 req.body.details='{"sub":"1","allmonitors":"1"}';
-                                sql.query('INSERT INTO Users (ke,uid,mail,pass,details) VALUES (?,?,?,?,?)',[req.params.ke,req.gid,req.body.mail,s.md5(req.body.pass),req.body.details])
+                                s.sqlQuery('INSERT INTO Users (ke,uid,mail,pass,details) VALUES (?,?,?,?,?)',[req.params.ke,req.gid,req.body.mail,s.md5(req.body.pass),req.body.details])
                                 s.tx({f:'add_sub_account',details:req.body.details,ke:req.params.ke,uid:req.gid,mail:req.body.mail},'ADM_'+req.params.ke);
                             }
                             res.end(s.s(req.resp,null,3));
@@ -2936,7 +2945,7 @@ app.post(['/','/:screen'],function (req,res){
         if(board==='super'){
             s.log(req.logTo,req.logData)
         }else{
-            sql.query('SELECT ke,uid,details FROM Users WHERE mail=?',[req.body.mail],function(err,r) {
+            s.sqlQuery('SELECT ke,uid,details FROM Users WHERE mail=?',[req.body.mail],function(err,r) {
                 if(r&&r[0]){
                     r=r[0]
                     r.details=JSON.parse(r.details);
@@ -2952,21 +2961,21 @@ app.post(['/','/:screen'],function (req,res){
     req.fn=function(r){
         switch(req.body.function){
             case'cam':
-                sql.query('SELECT * FROM Monitors WHERE ke=? AND type=?',[r.ke,"dashcam"],function(err,rr){
+                s.sqlQuery('SELECT * FROM Monitors WHERE ke=? AND type=?',[r.ke,"dashcam"],function(err,rr){
                     req.resp.mons=rr;
                     req.renderFunction("dashcam",{$user:req.resp,lang:r.lang,define:s.getDefinitonFile(r.details.lang)});
                 })
             break;
             case'streamer':
-                sql.query('SELECT * FROM Monitors WHERE ke=? AND type=?',[r.ke,"socket"],function(err,rr){
+                s.sqlQuery('SELECT * FROM Monitors WHERE ke=? AND type=?',[r.ke,"socket"],function(err,rr){
                     req.resp.mons=rr;
                     req.renderFunction("streamer",{$user:req.resp,lang:r.lang,define:s.getDefinitonFile(r.details.lang)});
                 })
             break;
             case'admin':
                 if(!r.details.sub){
-                    sql.query('SELECT uid,mail,details FROM Users WHERE ke=? AND details LIKE \'%"sub"%\'',[r.ke],function(err,rr) {
-                        sql.query('SELECT * FROM Monitors WHERE ke=?',[r.ke],function(err,rrr) {
+                    s.sqlQuery('SELECT uid,mail,details FROM Users WHERE ke=? AND details LIKE \'%"sub"%\'',[r.ke],function(err,rr) {
+                        s.sqlQuery('SELECT * FROM Monitors WHERE ke=?',[r.ke],function(err,rrr) {
                             req.renderFunction("admin",{$user:req.resp,$subs:rr,$mons:rrr,lang:r.lang,define:s.getDefinitonFile(r.details.lang)});
                         })
                     })
@@ -2984,11 +2993,11 @@ app.post(['/','/:screen'],function (req,res){
     }
     if(req.body.mail&&req.body.pass){
         req.default=function(){
-            sql.query('SELECT * FROM Users WHERE mail=? AND pass=?',[req.body.mail,s.md5(req.body.pass)],function(err,r) {
+            s.sqlQuery('SELECT * FROM Users WHERE mail=? AND pass=?',[req.body.mail,s.md5(req.body.pass)],function(err,r) {
                 req.resp={ok:false};
                 if(!err&&r&&r[0]){
                     r=r[0];r.auth=s.md5(s.gid());
-                    sql.query("UPDATE Users SET auth=? WHERE ke=? AND uid=?",[r.auth,r.ke,r.uid])
+                    s.sqlQuery("UPDATE Users SET auth=? WHERE ke=? AND uid=?",[r.auth,r.ke,r.uid])
                     req.resp={ok:true,auth_token:r.auth,ke:r.ke,uid:r.uid,mail:r.mail,details:r.details};
                     r.details=JSON.parse(r.details);
                     r.lang=s.getLanguageFile(r.details.lang)
@@ -3034,7 +3043,7 @@ app.post(['/','/:screen'],function (req,res){
                         }
                     }
                     if(r.details.sub){
-                        sql.query('SELECT details FROM Users WHERE ke=? AND details NOT LIKE ?',[r.ke,'%"sub"%'],function(err,rr) {
+                        s.sqlQuery('SELECT details FROM Users WHERE ke=? AND details NOT LIKE ?',[r.ke,'%"sub"%'],function(err,rr) {
                             rr=rr[0];
                             rr.details=JSON.parse(rr.details);
                             r.details.mon_groups=rr.details.mon_groups;
@@ -3050,7 +3059,7 @@ app.post(['/','/:screen'],function (req,res){
             })
         }
         if(LdapAuth&&req.body.function==='ldap'&&req.body.key!==''){
-            sql.query('SELECT * FROM Users WHERE  ke=? AND details NOT LIKE ?',[req.body.key,'%"sub"%'],function(err,r) {
+            s.sqlQuery('SELECT * FROM Users WHERE  ke=? AND details NOT LIKE ?',[req.body.key,'%"sub"%'],function(err,r) {
                 if(r&&r[0]){
                     r=r[0]
                     r.details=JSON.parse(r.details)
@@ -3117,7 +3126,7 @@ app.post(['/','/:screen'],function (req,res){
                                     user.post.push(req.resp[v])
                                 })
                                 s.log({ke:req.body.key,mid:'$USER'},{type:r.lang['LDAP Success'],msg:{user:user}})
-                                sql.query('SELECT * FROM Users WHERE  ke=? AND mail=?',[req.body.key,user.cn],function(err,rr){
+                                s.sqlQuery('SELECT * FROM Users WHERE  ke=? AND mail=?',[req.body.key,user.cn],function(err,rr){
                                     if(rr&&rr[0]){
                                         //already registered
                                         rr=rr[0]
@@ -3125,12 +3134,12 @@ app.post(['/','/:screen'],function (req,res){
                                         rr.details=JSON.parse(rr.details)
                                         req.resp.lang=s.getLanguageFile(rr.details.lang)
                                         s.log({ke:req.body.key,mid:'$USER'},{type:r.lang['LDAP User Authenticated'],msg:{user:user,shinobiUID:rr.uid}})
-                                        sql.query("UPDATE Users SET auth=? WHERE ke=? AND uid=?",[req.resp.auth,req.resp.ke,rr.uid])
+                                        s.sqlQuery("UPDATE Users SET auth=? WHERE ke=? AND uid=?",[req.resp.auth,req.resp.ke,rr.uid])
                                     }else{
                                         //new ldap login
                                         s.log({ke:req.body.key,mid:'$USER'},{type:r.lang['LDAP User is New'],msg:{info:r.lang['Creating New Account'],user:user}})
                                         req.resp.lang=r.lang
-                                        sql.query('INSERT INTO Users (ke,uid,auth,mail,pass,details) VALUES (?,?,?,?,?,?)',user.post)
+                                        s.sqlQuery('INSERT INTO Users (ke,uid,auth,mail,pass,details) VALUES (?,?,?,?,?,?)',user.post)
                                     }
                                     req.resp.details=JSON.stringify(req.resp.details)
                                     req.resp.auth_token=req.resp.auth
@@ -3161,7 +3170,7 @@ app.post(['/','/:screen'],function (req,res){
                     return
                 }
                 req.ok=s.superAuth({mail:req.body.mail,pass:req.body.pass,users:true,md5:true},function(data){
-                    sql.query('SELECT * FROM Logs WHERE ke=? ORDER BY `time` DESC LIMIT 30',['$'],function(err,r) {
+                    s.sqlQuery('SELECT * FROM Logs WHERE ke=? ORDER BY `time` DESC LIMIT 30',['$'],function(err,r) {
                         if(!r){
                             r=[]
                         }
@@ -3191,7 +3200,7 @@ app.post(['/','/:screen'],function (req,res){
                         }
                         if(!req.details.acceptedMachines[req.body.machineID]){
                             req.details.acceptedMachines[req.body.machineID]={}
-                            sql.query("UPDATE Users SET details=? WHERE ke=? AND uid=?",[s.s(req.details),req.body.ke,req.body.id])
+                            s.sqlQuery("UPDATE Users SET details=? WHERE ke=? AND uid=?",[s.s(req.details),req.body.ke,req.body.id])
                         }
                     }
                     req.resp=s.factorAuth[req.body.ke][req.body.id].info
@@ -3353,7 +3362,7 @@ app.get(['/:auth/monitor/:ke','/:auth/monitor/:ke/:id'], function (req,res){
                 return;
             }
         }
-        sql.query(req.sql,req.ar,function(err,r){
+        s.sqlQuery(req.sql,req.ar,function(err,r){
             if(r.length===1){r=r[0];}
             res.end(s.s(r, null, 3));
         })
@@ -3431,12 +3440,12 @@ app.get(['/:auth/videos/:ke','/:auth/videos/:ke/:id'], function (req,res){
         if(req.query.limit!=='0'){
             req.sql+=' LIMIT '+req.query.limit
         }
-        sql.query(req.sql,req.ar,function(err,r){
+        s.sqlQuery(req.sql,req.ar,function(err,r){
             if(!r){
                 res.end(s.s({total:0,limit:req.query.limit,skip:0,videos:[]}, null, 3));
                 return
             }
-        sql.query(req.count_sql,req.count_ar,function(err,count){
+        s.sqlQuery(req.count_sql,req.count_ar,function(err,count){
             r.forEach(function(v){
                 v.href='/'+req.params.auth+'/videos/'+v.ke+'/'+v.mid+'/'+s.moment(v.time)+'.'+v.ext;
             })
@@ -3494,7 +3503,7 @@ app.get(['/:auth/events/:ke','/:auth/events/:ke/:id','/:auth/events/:ke/:id/:lim
         }
         if(!req.params.limit||req.params.limit==''){req.params.limit=100}
         req.sql+=' ORDER BY `time` DESC LIMIT '+req.params.limit+'';
-        sql.query(req.sql,req.ar,function(err,r){
+        s.sqlQuery(req.sql,req.ar,function(err,r){
             if(err){
                 err.sql=req.sql;
                 res.end(s.s(err, null, 3));
@@ -3538,7 +3547,7 @@ app.get(['/:auth/logs/:ke','/:auth/logs/:ke/:id','/:auth/logs/:ke/:limit','/:aut
         }
         if(!req.params.limit||req.params.limit==''){req.params.limit=100}
         req.sql+=' ORDER BY `time` DESC LIMIT '+req.params.limit+'';
-        sql.query(req.sql,req.ar,function(err,r){
+        s.sqlQuery(req.sql,req.ar,function(err,r){
             if(err){
                 err.sql=req.sql;
                 res.end(s.s(err, null, 3));
@@ -3571,7 +3580,7 @@ app.get('/:auth/smonitor/:ke', function (req,res){
             })
             req.sql+=' AND ('+req.or.join(' OR ')+')'
         }
-        sql.query(req.sql,req.ar,function(err,r){
+        s.sqlQuery(req.sql,req.ar,function(err,r){
             if(r&&r[0]){
                 req.ar=[];
                 r.forEach(function(v){
@@ -3629,7 +3638,7 @@ app.all(['/:auth/configureMonitor/:ke/:id','/:auth/configureMonitor/:ke/:id/:f']
                         }
                         req.monitor.ke=req.params.ke
                         req.logObject={details:JSON.parse(req.monitor.details),ke:req.params.ke,mid:req.params.id}
-                        sql.query('SELECT * FROM Monitors WHERE ke=? AND mid=?',[req.monitor.ke,req.monitor.mid],function(er,r){
+                        s.sqlQuery('SELECT * FROM Monitors WHERE ke=? AND mid=?',[req.monitor.ke,req.monitor.mid],function(er,r){
                             req.tx={f:'monitor_edit',mid:req.monitor.mid,ke:req.monitor.ke,mon:req.monitor};
                             if(r&&r[0]){
                                 req.tx.new=false;
@@ -3642,7 +3651,7 @@ app.all(['/:auth/configureMonitor/:ke/:id','/:auth/configureMonitor/:ke/:id/:f']
                                 req.ar.push(req.monitor.ke),req.ar.push(req.monitor.mid);
                                 s.log(req.monitor,{type:'Monitor Updated',msg:'by user : '+user.uid});
                                 req.ret.msg=user.lang['Monitor Updated by user']+' : '+user.uid;
-                                sql.query('UPDATE Monitors SET '+req.set+' WHERE ke=? AND mid=?',req.ar)
+                                s.sqlQuery('UPDATE Monitors SET '+req.set+' WHERE ke=? AND mid=?',req.ar)
                                 req.finish=1;
                             }else{
                                 if(!s.group[req.monitor.ke].init.max_camera||s.group[req.monitor.ke].init.max_camera==''||Object.keys(s.group[req.monitor.ke].mon).length <= parseInt(s.group[req.monitor.ke].init.max_camera)){
@@ -3657,7 +3666,7 @@ app.all(['/:auth/configureMonitor/:ke/:id','/:auth/configureMonitor/:ke/:id/:f']
                                     req.set=req.set.join(','),req.st=req.st.join(',');
                                     s.log(req.monitor,{type:'Monitor Added',msg:'by user : '+user.uid});
                                     req.ret.msg=user.lang['Monitor Added by user']+' : '+user.uid;
-                                    sql.query('INSERT INTO Monitors ('+req.set+') VALUES ('+req.st+')',req.ar)
+                                    s.sqlQuery('INSERT INTO Monitors ('+req.set+') VALUES ('+req.st+')',req.ar)
                                     req.finish=1;
                                 }else{
                                     req.tx.f='monitor_edit_failed';
@@ -3693,7 +3702,7 @@ app.all(['/:auth/configureMonitor/:ke/:id','/:auth/configureMonitor/:ke/:id/:f']
                 s.log(s.group[req.params.ke].mon_conf[req.params.id],{type:'Monitor Deleted',msg:'by user : '+user.uid});
                 req.params.delete=1;s.camera('stop',req.params);
                 s.tx({f:'monitor_delete',uid:user.uid,mid:req.params.id,ke:req.params.ke},'GRP_'+req.params.ke);
-                sql.query('DELETE FROM Monitors WHERE ke=? AND mid=?',[req.params.ke,req.params.id])
+                s.sqlQuery('DELETE FROM Monitors WHERE ke=? AND mid=?',[req.params.ke,req.params.id])
                 req.ret.ok=true;
                 req.ret.msg='Monitor Deleted by user : '+user.uid
                 res.end(s.s(req.ret, null, 3))
@@ -3716,7 +3725,7 @@ app.get(['/:auth/monitor/:ke/:id/:f','/:auth/monitor/:ke/:id/:f/:ff','/:auth/mon
             res.end(s.s(req.ret, null, 3));
             return;
         }
-        sql.query('SELECT * FROM Monitors WHERE ke=? AND mid=?',[req.params.ke,req.params.id],function(err,r){
+        s.sqlQuery('SELECT * FROM Monitors WHERE ke=? AND mid=?',[req.params.ke,req.params.id],function(err,r){
             if(r&&r[0]){
                 r=r[0];
                 if(req.query.reset==='1'||(s.group[r.ke]&&s.group[r.ke].mon_conf[r.mid].mode!==req.params.f)||req.query.fps&&(!s.group[r.ke].mon[r.mid].currentState||!s.group[r.ke].mon[r.mid].currentState.trigger_on)){
@@ -3736,7 +3745,7 @@ app.get(['/:auth/monitor/:ke/:id/:f','/:auth/monitor/:ke/:id/:f/:ff','/:auth/mon
                             s.group[r.ke].mon[r.mid].currentState.detector_trigger_record_fps=r.fps
                         }
                         r.id=r.mid;
-                        sql.query('UPDATE Monitors SET mode=? WHERE ke=? AND mid=?',[r.mode,r.ke,r.mid]);
+                        s.sqlQuery('UPDATE Monitors SET mode=? WHERE ke=? AND mid=?',[r.mode,r.ke,r.mid]);
                         s.group[r.ke].mon_conf[r.mid]=r;
                         s.tx({f:'monitor_edit',mid:r.mid,ke:r.ke,mon:r},'GRP_'+r.ke);
                         s.tx({f:'monitor_edit',mid:r.mid,ke:r.ke,mon:r},'STR_'+r.ke);
@@ -3769,7 +3778,7 @@ app.get(['/:auth/monitor/:ke/:id/:f','/:auth/monitor/:ke/:id/:f/:ff','/:auth/mon
                         }
                         s.group[r.ke].mon[r.mid].trigger_timer=setTimeout(function(){
                             delete(s.group[r.ke].mon[r.mid].trigger_timer)
-                            sql.query('UPDATE Monitors SET mode=? WHERE ke=? AND mid=?',[s.group[r.ke].mon[r.mid].currentState.mode,r.ke,r.mid]);
+                            s.sqlQuery('UPDATE Monitors SET mode=? WHERE ke=? AND mid=?',[s.group[r.ke].mon[r.mid].currentState.mode,r.ke,r.mid]);
                             r.neglectTriggerTimer=1;
                             r.mode=s.group[r.ke].mon[r.mid].currentState.mode;
                             r.fps=s.group[r.ke].mon[r.mid].currentState.fps;
@@ -3812,7 +3821,7 @@ app.get(['/:auth/fileBin/:ke','/:auth/fileBin/:ke/:id'],function (req,res){
                 req.sql+=' and mid=?';req.ar.push(req.params.id)
             }
         }
-        sql.query(req.sql,req.ar,function(err,r){
+        s.sqlQuery(req.sql,req.ar,function(err,r){
             if(!r){
                 r=[]
             }else{
@@ -3834,7 +3843,7 @@ app.get('/:auth/fileBin/:ke/:id/:year/:month/:day/:file', function (req,res){
             res.end(user.lang['File Not Found'])
         }
         if (!s.group[req.params.ke].fileBin[req.params.id+'/'+req.params.file]){
-            sql.query('SELECT * FROM Files WHERE ke=? AND mid=? AND name=?',[req.params.ke,req.params.id,req.params.file],function(err,r){
+            s.sqlQuery('SELECT * FROM Files WHERE ke=? AND mid=? AND name=?',[req.params.ke,req.params.id,req.params.file],function(err,r){
                 if(r&&r[0]){
                     r=r[0]
                     r.details=JSON.parse(r.details)
@@ -3862,7 +3871,7 @@ app.get('/:auth/videos/:ke/:id/:file', function (req,res){
             res.end(user.lang['Not Permitted'])
             return
         }
-        sql.query('SELECT * FROM Videos WHERE ke=? AND mid=? AND time=?',[req.params.ke,req.params.id,s.nameToTime(req.params.file)],function(err,r){
+        s.sqlQuery('SELECT * FROM Videos WHERE ke=? AND mid=? AND time=?',[req.params.ke,req.params.id,s.nameToTime(req.params.file)],function(err,r){
             if(r&&r[0]){
                 req.dir=s.video('getDir',r[0])+req.params.file
                 if (fs.existsSync(req.dir)){
@@ -3937,7 +3946,7 @@ app.get(['/:auth/videos/:ke/:id/:file/:mode','/:auth/videos/:ke/:id/:file/:mode/
         }
         req.sql='SELECT * FROM Videos WHERE ke=? AND mid=? AND time=?';
         req.ar=[req.params.ke,req.params.id,s.nameToTime(req.params.file)];
-        sql.query(req.sql,req.ar,function(err,r){
+        s.sqlQuery(req.sql,req.ar,function(err,r){
             if(r&&r[0]){
                 r=r[0];r.filename=s.moment(r.time)+'.'+r.ext;
                 switch(req.params.mode){
@@ -3951,7 +3960,7 @@ app.get(['/:auth/videos/:ke/:id/:file/:mode','/:auth/videos/:ke/:id/:file/:mode/
                             req.ret.msg='Not a valid value.';
                         }else{
                             req.ret.ok=true;
-                            sql.query('UPDATE Videos SET status=? WHERE ke=? AND mid=? AND time=?',[req.params.f,req.params.ke,req.params.id,s.nameToTime(req.params.file)])
+                            s.sqlQuery('UPDATE Videos SET status=? WHERE ke=? AND mid=? AND time=?',[req.params.f,req.params.ke,req.params.id,s.nameToTime(req.params.file)])
                             s.tx({f:'video_edit',status:req.params.f,filename:r.filename,mid:r.mid,ke:r.ke,time:s.nameToTime(r.filename),end:s.moment(new Date,'YYYY-MM-DD HH:mm:ss')},'GRP_'+r.ke);
                         }
                     break;
@@ -4040,14 +4049,14 @@ s.beat=function(){
 s.beat();
 setTimeout(function(){
     //get current disk used for each isolated account (admin user) on startup
-    sql.query('SELECT * FROM Users WHERE details NOT LIKE ?',['%"sub"%'],function(err,r){
+    s.sqlQuery('SELECT * FROM Users WHERE details NOT LIKE ?',['%"sub"%'],function(err,r){
         if(r&&r[0]){
             var count = r.length
             var countFinished = 0
             r.forEach(function(v,n){
                 v.size=0;
                 v.limit=JSON.parse(v.details).size
-                sql.query('SELECT * FROM Videos WHERE ke=? AND status!=?',[v.ke,0],function(err,rr){
+                s.sqlQuery('SELECT * FROM Videos WHERE ke=? AND status!=?',[v.ke,0],function(err,rr){
                     ++countFinished
                     if(r&&r[0]){
                         rr.forEach(function(b){
@@ -4072,7 +4081,7 @@ setTimeout(function(){
                     if(countFinished===count){
                         s.systemLog(lang.startUpText2)
                         ////close open videos
-                        sql.query('SELECT * FROM Videos WHERE status=?',[0],function(err,r){
+                        s.sqlQuery('SELECT * FROM Videos WHERE status=?',[0],function(err,r){
                             if(r&&r[0]){
                                 r.forEach(function(v){
                                     s.init(0,v)
@@ -4084,7 +4093,7 @@ setTimeout(function(){
                             setTimeout(function(){
                                 s.systemLog(lang.startUpText4)
                                 //preliminary monitor start
-                                sql.query('SELECT * FROM Monitors', function(err,r) {
+                                s.sqlQuery('SELECT * FROM Monitors', function(err,r) {
                                     if(err){s.systemLog(err)}
                                     if(r&&r[0]){
                                         r.forEach(function(v){
