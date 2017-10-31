@@ -1,5 +1,11 @@
 #!/bin/bash
-echo "Shinobi - Updating"
+echo "========================================================="
+echo "==!! Shinobi : The Open Source CCTV and NVR Solution !!=="
+echo "========================================================="
+echo "To answer yes type the letter (y) in lowercase and press ENTER."
+echo "Default is no (N). Skip any components you already have or don't need."
+echo "============="
+echo "Shinobi - Run yum update"
 sudo yum update -y
 echo "Shinobi - Get dependencies"
 #Install EPEL Repo
@@ -62,7 +68,7 @@ if [ "$mysqlagreeData" = "y" ]; then
         sudo mysql -u $sqluser -p$sqlpass --database ccio -e "source sql/default_user.sql" > "INSTALL/log.txt"
         echo "The following details will be shown again at the end of the installation."
         echo "====================================="
-        echo "=======!! Login Credentials !!======="
+        echo "=======   Login Credentials   ======="
         echo "|| Username : $userEmail"
         echo "|| Password : $userPasswordPlain"
         echo "|| API Key : $apiKey"
@@ -89,13 +95,13 @@ echo "Shinobi - Finished"
 sudo chmod -R 755 .
 touch INSTALL/installed.txt
 echo "=====================================" > INSTALL/installed.txt
-echo "=======!! Login Credentials !!=======" >> INSTALL/installed.txt
+echo "=======   Login Credentials   =======" >> INSTALL/installed.txt
 echo "|| Username : $userEmail" >> INSTALL/installed.txt
 echo "|| Password : $userPasswordPlain" >> INSTALL/installed.txt
 echo "|| API Key : $apiKey" >> INSTALL/installed.txt
 echo "=====================================" >> INSTALL/installed.txt
 echo "=====================================" >> INSTALL/installed.txt
-echo "Shinobi - Start Shinobi?"
+echo "Shinobi - Start Shinobi and set to start on boot?"
 echo "(y)es or (N)o"
 read startShinobi
 if [ "$startShinobi" = "y" ]; then
@@ -105,8 +111,9 @@ if [ "$startShinobi" = "y" ]; then
     sudo pm2 save
     sudo pm2 list
 fi
+echo "details written to INSTALL/installed.txt"
 echo "====================================="
-echo "=======!! Login Credentials !!======="
+echo "=======   Login Credentials   ======="
 echo "|| Username : $userEmail"
 echo "|| Password : $userPasswordPlain"
 echo "|| API Key : $apiKey"
