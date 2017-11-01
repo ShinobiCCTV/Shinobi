@@ -132,7 +132,7 @@ s.disc=function(){
             if(!values){values=[]}
             return sql.query(query,values,function(err,r){
                 if(err)
-                    console.error('s.sqlQuery',err)
+                    s.systemLog('s.sqlQuery',err)
                 if(callback)
                     callback(err,r)
             })
@@ -422,12 +422,13 @@ s.init=function(x,e,k,fn){
     if(!e){e={}}
     if(!k){k={}}
     switch(x){
-        case 0://camera
+        case 0://init camera
             if(!s.group[e.ke]){s.group[e.ke]={}};
             if(!s.group[e.ke].fileBin){s.group[e.ke].fileBin={}};
             if(!s.group[e.ke].mon){s.group[e.ke].mon={}}
             if(!s.group[e.ke].users){s.group[e.ke].users={}}
             if(!s.group[e.ke].mon[e.mid]){s.group[e.ke].mon[e.mid]={}}
+            if(!s.group[e.ke].mon[e.mid].streamIn){s.group[e.ke].mon[e.mid].streamIn={}};
             if(!s.group[e.ke].mon[e.mid].watch){s.group[e.ke].mon[e.mid].watch={}};
             if(!s.group[e.ke].mon[e.mid].fixingVideos){s.group[e.ke].mon[e.mid].fixingVideos={}};
             if(!s.group[e.ke].mon[e.mid].record){s.group[e.ke].mon[e.mid].record={yes:e.record}};
@@ -1023,6 +1024,28 @@ s.ffmpeg=function(e,x){
         if(e.details.snap_scale_x&&e.details.snap_scale_x!==''&&e.details.snap_scale_y&&e.details.snap_scale_y!==''){x.sratio=' -s '+e.details.snap_scale_x+'x'+e.details.snap_scale_y}else{x.sratio=''}
         if(e.details.cust_snap&&e.details.cust_snap!==''){x.cust_snap=' '+e.details.cust_snap;}else{x.cust_snap=''}
         x.pipe+=' -update 1 -r '+e.details.snap_fps+x.cust_snap+x.sratio+x.snap_vf+' '+e.sdir+'s.jpg -y';
+    }
+    //Raw H.264 stream over HTTP (RTSP simulation)
+    if(e.details.rawh264==='1'){
+        if(e.details.rawh264_vcodec&&e.details.rawh264_vcodec!==''){x.rawh264_vcodec=' -c:v '+e.details.rawh264_vcodec}else{x.rawh264_vcodec=' -c:v copy'}
+        if(e.details.rawh264_acodec==='no'){
+            
+        }else{
+            if(e.details.rawh264_acodec&&e.details.rawh264_acodec!==''){x.rawh264_acodec=' -c:a '+e.details.rawh264_acodec}else{x.rawh264_acodec=' -c:a aac'}
+        }
+        x.rawh264_fps=''
+        x.cust_rawh264=''
+        x.rawh264_ratio=''
+        x.rawh264_vf=''
+        x.rawh264_crf=''
+        if(x.rawh264_vcodec!=='copy'){
+            if(e.details.rawh264_crf&&e.details.rawh264_crf!==''){x.rawh264_crf=' -crf '+e.details.rawh264_crf}else{x.rawh264_crf=''}
+            if(e.details.rawh264_fps&&e.details.rawh264_fps!==''){x.rawh264_fps=e.details.rawh264_fps}else{x.rawh264_fps=''}
+            if(e.details.rawh264_vf&&e.details.rawh264_vf!==''){x.rawh264_vf=' -vf '+e.details.rawh264_vf}else{x.rawh264_vf=''}
+            if(e.details.rawh264_scale_x&&e.details.rawh264_scale_x!==''&&e.details.rawh264_scale_y&&e.details.rawh264_scale_y!==''){x.rawh264_ratio=' -s '+e.details.rawh264_scale_x+'x'+e.details.rawh264_scale_y}else{x.rawh264_ratio=''}
+        }
+        if(e.details.cust_rawh264&&e.details.cust_rawh264!==''){x.cust_rawh264=' '+e.details.cust_rawh264;}else{x.cust_rawh264=''}
+        x.pipe+=' -f mpegts '+x.rawh264_vcodec+x.rawh264_acodec+x.rawh264_fps+x.cust_rawh264+x.rawh264_ratio+x.rawh264_vf+' http://127.0.0.1:'+config.port+'/streamIn/'+e.ke+'/'+e.mid+'/1';
     }
 //    //Stream to YouTube (Stream out to server)
 //    if(e.details.stream_server==='1'){
@@ -3979,6 +4002,52 @@ app.get(['/:auth/videos/:ke/:id/:file/:mode','/:auth/videos/:ke/:id/:file/:mode/
         })
     },res,req);
 })
+//ffmpeg pushed stream in here to make a pipe
+app.all(['/streamIn/:ke/:id','/streamIn/:ke/:id/:feed'], function (req, res) {
+    var checkOrigin = function(search){return req.headers.host.indexOf(search)>-1}
+    if(checkOrigin('127.0.0.1')){
+        if(!req.params.feed){req.params.feed='1'}
+        if(!s.group[req.params.ke].mon[req.params.id].streamIn[req.params.feed]){
+            s.group[req.params.ke].mon[req.params.id].streamIn[req.params.feed] = new events.EventEmitter().setMaxListeners(0)
+        }
+        //req.params.feed = Feed Number
+        res.connection.setTimeout(0);
+        req.on('data', function(buffer){
+            s.group[req.params.ke].mon[req.params.id].streamIn[req.params.feed].emit('data',buffer)
+        });
+        req.on('end',function(){
+            console.log('streamIn closed',req.params);
+        });
+    }else{
+        res.end('Local connection is only allowed.')
+    }
+})
+//simulate RTSP over HTTP
+app.get(['/:auth/h264/:ke/:id/:feed','/:auth/h264/:ke/:id'], function (req, res) {
+    res.header("Access-Control-Allow-Origin",req.headers.origin);
+    s.auth(req.params,function(user){
+        if(!req.params.feed){req.params.feed='1'}
+        if(!s.group[req.params.ke].mon[req.params.id].streamIn[req.params.feed]){
+            s.group[req.params.ke].mon[req.params.id].streamIn[req.params.feed] = new events.EventEmitter().setMaxListeners(0)
+        }
+        var contentWriter
+        var date = new Date();
+        res.writeHead(200, {
+            'Date': date.toUTCString(),
+            'Connection': 'keep-alive',
+            'Cache-Control': 'no-cache',
+            'Pragma': 'no-cache',
+            'Content-Type': 'video/mp4',
+            'Server': 'Shinobi H.264 Test Stream',
+        });
+        s.group[req.params.ke].mon[req.params.id].streamIn[req.params.feed].on('data',contentWriter=function(buffer){
+            res.write(buffer)
+        })
+        res.on('close', function () {
+            s.group[req.params.ke].mon[req.params.id].streamIn[req.params.feed].removeListener('data',contentWriter)
+        })
+    })
+});
 try{
 s.cpuUsage=function(e){
     k={}
