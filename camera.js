@@ -2610,16 +2610,12 @@ var tx;
                 case'monitor_chunk':
                     if(!s.group[d.ke]||!s.group[d.ke].mon[d.mid]){return}
                     if(s.group[d.ke].mon[d.mid].started!==1){s.tx({error:'Not Started'},cn.id);return false};
-                    if(s.group[d.ke].mon[d.mid].record.yes===1){
-                        s.group[d.ke].mon[d.mid].spawn.stdin.write(new Buffer(d.chunk, "binary"));
-                    }
+                    s.group[d.ke].mon[d.mid].spawn.stdin.write(new Buffer(d.chunk, "binary"));
                 break;
                 case'monitor_frame':
                     if(!s.group[d.ke]||!s.group[d.ke].mon[d.mid]){return}
                     if(s.group[d.ke].mon[d.mid].started!==1){s.tx({error:'Not Started'},cn.id);return false};
-                    if(s.group[d.ke].mon[d.mid].record.yes===1){
-                        s.group[d.ke].mon[d.mid].spawn.stdin.write(d.frame);
-                    }
+                    s.group[d.ke].mon[d.mid].spawn.stdin.write(d.frame);
                 break;
             }
         }
@@ -2713,7 +2709,7 @@ var tx;
                 if(s.group[cn.ke].users[cn.auth].login_type==='Dashboard'){
                     s.tx({f:'user_status_change',ke:cn.ke,uid:cn.uid,status:0})
                 }
-                s.log({ke:cn.ke,mid:'$USER'},{type:s.group[cn.ke].users[cn.auth].lang['Websocket Disconnected'],msg:{mail:s.group[cn.ke].users[cn.auth].mail,id:cn.uid,ip:cn.ip}})
+                s.log({ke:cn.ke,mid:'$USER'},{type:lang['Websocket Disconnected'],msg:{mail:s.group[cn.ke].users[cn.auth].mail,id:cn.uid,ip:cn.ip}})
                 delete(s.group[cn.ke].users[cn.auth]);
             }
         }
