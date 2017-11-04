@@ -426,6 +426,7 @@ s.init=function(x,e,k,fn){
             if(!s.group[e.ke]){s.group[e.ke]={}};
             if(!s.group[e.ke].fileBin){s.group[e.ke].fileBin={}};
             if(!s.group[e.ke].mon){s.group[e.ke].mon={}}
+            if(!s.group[e.ke].sizeChangeQueue){s.group[e.ke].sizeChangeQueue=[]}
             if(!s.group[e.ke].users){s.group[e.ke].users={}}
             if(!s.group[e.ke].mon[e.mid]){s.group[e.ke].mon[e.mid]={}}
             if(!s.group[e.ke].mon[e.mid].streamIn){s.group[e.ke].mon[e.mid].streamIn={}};
@@ -441,7 +442,7 @@ s.init=function(x,e,k,fn){
             if(!s.group[e.ke].init){
                 s.group[e.ke].init={};
             }
-            if(!s.group[e.ke].webdav||!s.group[e.ke].init.size){
+            if(!s.group[e.ke].webdav||!s.group[e.ke].sizeLimit){
                 s.sqlQuery('SELECT * FROM Users WHERE ke=? AND details NOT LIKE ?',[e.ke,'%"sub"%'],function(ar,r){
                     if(r&&r[0]){
                         r=r[0];
@@ -487,6 +488,7 @@ s.init=function(x,e,k,fn){
             return x.ar;
         break;
         case'url':
+            //build a complete url from pieces
             e.authd='';
             if(e.details.muser&&e.details.muser!==''&&e.host.indexOf('@')===-1) {
                 e.authd=e.details.muser+':'+e.details.mpass+'@';
@@ -504,9 +506,38 @@ s.init=function(x,e,k,fn){
             if(e.port==80&&e.details.port_force!=='1'){e.porty=''}else{e.porty=':'+e.port}
             e.url=e.protocol+'://'+e.authd+e.host+e.porty;return e.url;
         break;
-        case'diskUsed':
+        case'diskUsedEmit':
+            //send the amount used disk space to connected users
             if(s.group[e.ke]&&s.group[e.ke].init){
-                s.tx({f:'diskUsed',size:s.group[e.ke].init.used_space,limit:s.group[e.ke].init.size},'GRP_'+e.ke);
+                s.tx({f:'diskUsed',size:s.group[e.ke].usedSpace,limit:s.group[e.ke].sizeLimit},'GRP_'+e.ke);
+            }
+        break;
+        case'diskUsedSet':
+            //`k` will be used as the value to add or substract
+            s.group[e.ke].sizeChangeQueue.push(k)
+            if(s.group[e.ke].sizeChanging!==true){
+                //lock this function
+                s.group[e.ke].sizeChanging=true
+                //validate current values
+                if(!s.group[e.ke].usedSpace){s.group[e.ke].usedSpace=0}else{s.group[e.ke].usedSpace=parseFloat(s.group[e.ke].usedSpace)}
+                if(s.group[e.ke].usedSpace<0){s.group[e.ke].usedSpace=0}
+                //set queue processor
+                var checkQueue=function(){
+                    //get first in queue
+                    var currentChange = s.group[e.ke].sizeChangeQueue[0]
+                    //change global size value
+                    s.group[e.ke].usedSpace=s.group[e.ke].usedSpace+currentChange
+                    //remove value just used from queue
+                    s.group[e.ke].sizeChangeQueue = s.group[e.ke].sizeChangeQueue.splice(1,s.group[e.ke].sizeChangeQueue.length+10)
+                    //do next one
+                    if(s.group[e.ke].sizeChangeQueue.length>0){
+                        checkQueue()
+                    }else{
+                        s.group[e.ke].sizeChanging=false
+                        s.init('diskUsedEmit',e)
+                    }
+                }
+                checkQueue()
             }
         break;
     }
@@ -623,8 +654,7 @@ s.video=function(x,e){
                             if(err){
                                 s.systemLog('File Delete Error : '+e.ke+' : '+' : '+e.mid,err)
                             }
-                            s.group[e.ke].init.used_space=s.group[e.ke].init.used_space-(r.size/1000000)
-                            s.init('diskUsed',e)
+                            s.init('diskUsedSet',e,-(r.size/1000000))
                         })
                         s.tx({f:'video_delete',filename:e.filename+'.'+e.ext,mid:e.mid,ke:e.ke,time:s.nameToTime(e.filename),end:s.moment(new Date,'YYYY-MM-DD HH:mm:ss')},'GRP_'+e.ke);
                         s.file('delete',e.dir+e.filename+'.'+e.ext)
@@ -633,6 +663,7 @@ s.video=function(x,e){
             })
         break;
         case'open':
+            //on video open
             e.save=[e.id,e.ke,s.nameToTime(e.filename),e.ext];
             if(!e.status){e.save.push(0)}else{e.save.push(e.status)}
             k.details={}
@@ -644,6 +675,7 @@ s.video=function(x,e){
             s.tx({f:'video_build_start',filename:e.filename+'.'+e.ext,mid:e.id,ke:e.ke,time:s.nameToTime(e.filename),end:s.moment(new Date,'YYYY-MM-DD HH:mm:ss')},'GRP_'+e.ke);
         break;
         case'close':
+            //on video close
             if(s.group[e.ke]&&s.group[e.ke].mon[e.id]){
                 if(s.group[e.ke].mon[e.id].open&&!e.filename){e.filename=s.group[e.ke].mon[e.id].open;e.ext=s.group[e.ke].mon[e.id].open_ext}
                 if(s.group[e.ke].mon[e.id].child_node){
@@ -686,19 +718,11 @@ s.video=function(x,e){
                             });
                         }
                         if(s.group[e.ke].init){
-                            if(!s.group[e.ke].init.used_space){s.group[e.ke].init.used_space=0}else{s.group[e.ke].init.used_space=parseFloat(s.group[e.ke].init.used_space)}
-                            if(s.group[e.ke].init.used_space<0){s.group[e.ke].init.used_space=0}
-                            s.group[e.ke].init.used_space=s.group[e.ke].init.used_space+e.filesizeMB;
-                            clearTimeout(s.group[e.ke].checkSpaceLockTimeout)
-                            s.group[e.ke].checkSpaceLockTimeout=setTimeout(function(){
-                                s.group[e.ke].checkSpaceLock=0
-                                s.init('diskUsed',e)
-                            },1000*60*5)
-                            if(config.cron.deleteOverMax===true&&s.group[e.ke].checkSpaceLock!==1){
-                                s.group[e.ke].checkSpaceLock=1;
+                            s.init('diskUsedSet',e,e.filesizeMB)
+                            if(config.cron.deleteOverMax===true){
                                 //check space
                                 var check=function(){
-                                    if(s.group[e.ke].init.used_space>(s.group[e.ke].init.size*config.cron.deleteOverMaxOffset)){
+                                    if(s.group[e.ke].usedSpace>(s.group[e.ke].sizeLimit*config.cron.deleteOverMaxOffset)){
                                         s.sqlQuery('SELECT * FROM Videos WHERE status != 0 AND ke=? ORDER BY `time` ASC LIMIT 2',[e.ke],function(err,evs){
                                             k.del=[];k.ar=[e.ke];
                                             evs.forEach(function(ev){
@@ -706,9 +730,8 @@ s.video=function(x,e){
                                                 k.del.push('(mid=? AND time=?)');
                                                 k.ar.push(ev.mid),k.ar.push(ev.time);
                                                 s.file('delete',ev.dir);
-                                                s.group[e.ke].init.used_space-=ev.size/1000000;
-
-                                                s.tx({f:'video_delete',ff:'over_max',size:s.group[e.ke].init.used_space,limit:s.group[e.ke].init.size,filename:s.moment(ev.time)+'.'+ev.ext,mid:ev.mid,ke:ev.ke,time:ev.time,end:s.moment(new Date,'YYYY-MM-DD HH:mm:ss')},'GRP_'+e.ke);
+                                                s.init('diskUsedSet',e,-(ev.size/1000000))
+                                                s.tx({f:'video_delete',ff:'over_max',filename:s.moment(ev.time)+'.'+ev.ext,mid:ev.mid,ke:ev.ke,time:ev.time,end:s.moment(new Date,'YYYY-MM-DD HH:mm:ss')},'GRP_'+e.ke);
                                             });
                                             if(k.del.length>0){
                                                 k.qu=k.del.join(' OR ');
@@ -718,15 +741,12 @@ s.video=function(x,e){
                                             }
                                         })
                                     }else{
-                                        clearTimeout(s.group[e.ke].checkSpaceLockTimeout)
-                                        s.group[e.ke].checkSpaceLock=0
-                                        s.init('diskUsed',e)
+                                        s.init('diskUsedEmit',e)
                                     }
                                 }
                                 check()
                             }else{
-                                clearTimeout(s.group[e.ke].checkSpaceLockTimeout)
-                                s.init('diskUsed',e)
+                                s.init('diskUsedEmit',e)
                             }
                         }
                     }else{
@@ -1873,7 +1893,7 @@ var tx;
 //                    s.group[d.ke].vid[cn.id]={uid:d.uid};
                 s.group[d.ke].users[d.auth]={cnid:cn.id,uid:r.uid,mail:r.mail,details:JSON.parse(r.details),logged_in_at:moment(new Date).format(),login_type:'Dashboard'}
                 try{s.group[d.ke].users[d.auth].details=JSON.parse(r.details)}catch(er){}
-                if(s.group[d.ke].users[d.auth].details.get_server_log&&s.group[d.ke].users[d.auth].details.get_server_log!=='0'){
+                if(s.group[d.ke].users[d.auth].details.get_server_log!=='0'){
                     cn.join('GRPLOG_'+d.ke)
                 }
                 s.group[d.ke].users[d.auth].lang=s.getLanguageFile(s.group[d.ke].users[d.auth].details.lang)
@@ -1888,7 +1908,7 @@ var tx;
                 }
                 tx({f:'users_online',users:s.group[d.ke].users})
                 s.tx({f:'user_status_change',ke:d.ke,uid:cn.uid,status:1,user:s.group[d.ke].users[d.auth]},'GRP_'+d.ke)
-                s.init('diskUsed',d)
+                s.init('diskUsedEmit',d)
                 s.init('apps',d)
                 s.sqlQuery('SELECT * FROM API WHERE ke=? && uid=?',[d.ke,d.uid],function(err,rrr) {
                     tx({
@@ -4137,11 +4157,11 @@ setTimeout(function(){
                     }
                     if(!v.limit||v.limit===''){v.limit=10000}else{v.limit=parseFloat(v.limit)}
                     //save global space limit for group key (mb)
-                    s.group[v.ke].init.size=v.limit;
+                    s.group[v.ke].sizeLimit=v.limit;
                     //save global used space as megabyte value
-                    s.group[v.ke].init.used_space=v.size/1000000;
+                    s.group[v.ke].usedSpace=v.size/1000000;
                     //emit the changes to connected users
-                    s.init('diskUsed',v)
+                    s.init('diskUsedEmit',v)
                     s.systemLog(v.mail+' : '+lang.startUpText1,countFinished+'/'+count)
                     if(countFinished===count){
                         s.systemLog(lang.startUpText2)
