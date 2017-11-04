@@ -2134,6 +2134,7 @@ var tx;
                                     d.ar.push(d.ke),d.ar.push(d.uid);
                                     s.sqlQuery('UPDATE Users SET '+d.set.join(',')+' WHERE ke=? AND uid=?',d.ar,function(err,r){
                                         if(!d.d.sub){
+                                            s.group[d.ke].sizeLimit = parseFloat(d.form.details.size)
                                             delete(s.group[d.ke].webdav)
                                             s.init('apps',d)
                                         }
