@@ -1,0 +1,32 @@
+#main_header {
+    background: #122444;
+    color: #fff;
+}
+.demo-drawer {
+    background: #1b2d4c;
+    color: #fff;
+}
+#main_canvas {
+    background: #2b3a50;
+    color: #333;
+}
+.monitor_item .mdl-card__media {
+    background: #fbfbfb;
+}
+.monitor_item .stream-block {
+    background: #000;
+}
+.monitor_item .mdl-card {
+    border: 1px solid #b7b7b7;
+}
+.monitor_item .mdl-card__supporting-text {
+    background: #122444;
+    color: #fff!important;
+}
+.progress-bar-warning {
+    background-color: #b59f00;
+}
+.monitor_item .side-menu {
+    background: #1b2431;
+    color: #fff;
+}
