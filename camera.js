@@ -726,42 +726,53 @@ s.video=function(x,e){
                                 if(s.group[e.ke].sizePurging!==true){
                                     //lock this function
                                     s.group[e.ke].sizePurging=true
-                                    //validate current values
-                                    if(!s.group[e.ke].usedSpace){s.group[e.ke].usedSpace=0}else{s.group[e.ke].usedSpace=parseFloat(s.group[e.ke].usedSpace)}
-                                    if(s.group[e.ke].usedSpace<0){s.group[e.ke].usedSpace=0}
                                     //set queue processor
-                                    var checkQueue=function(){
-                                        //get first in queue
-                                        var currentChange = s.group[e.ke].sizePurgeQueue[0]
-                                        //run purge command
-                                        if(s.group[e.ke].usedSpace>(s.group[e.ke].sizeLimit*config.cron.deleteOverMaxOffset)){
-                                            s.sqlQuery('SELECT * FROM Videos WHERE status != 0 AND ke=? ORDER BY `time` ASC LIMIT 2',[e.ke],function(err,evs){
-                                                k.del=[];k.ar=[e.ke];
-                                                evs.forEach(function(ev){
-                                                    ev.dir=s.video('getDir',ev)+s.moment(ev.time)+'.'+ev.ext;
-                                                    k.del.push('(mid=? AND time=?)');
-                                                    k.ar.push(ev.mid),k.ar.push(ev.time);
-                                                    s.file('delete',ev.dir);
-                                                    s.init('diskUsedSet',e,-(ev.size/1000000))
-                                                    s.tx({f:'video_delete',ff:'over_max',filename:s.moment(ev.time)+'.'+ev.ext,mid:ev.mid,ke:ev.ke,time:ev.time,end:s.moment(new Date,'YYYY-MM-DD HH:mm:ss')},'GRP_'+e.ke);
-                                                });
-                                                if(k.del.length>0){
-                                                    k.qu=k.del.join(' OR ');
-                                                    s.sqlQuery('DELETE FROM Videos WHERE ke =? AND ('+k.qu+')',k.ar)
-                                                }
-                                            })
-                                        }else{
-                                            s.init('diskUsedEmit',e)
-                                        }
+                                    var finish=function(){
+                                        console.log('checkQueueOne',s.group[e.ke].sizePurgeQueue.length)
                                         //remove value just used from queue
                                         s.group[e.ke].sizePurgeQueue = s.group[e.ke].sizePurgeQueue.splice(1,s.group[e.ke].sizePurgeQueue.length+10)
                                         //do next one
                                         if(s.group[e.ke].sizePurgeQueue.length>0){
                                             checkQueue()
                                         }else{
+                                            console.log('checkQueueFinished',s.group[e.ke].sizePurgeQueue.length)
                                             s.group[e.ke].sizePurging=false
                                             s.init('diskUsedEmit',e)
                                         }
+                                    }
+                                    var checkQueue=function(){
+                                        console.log('checkQueue',config.cron.deleteOverMaxOffset)
+                                        //get first in queue
+                                        var currentPurge = s.group[e.ke].sizePurgeQueue[0]
+                                        var deleteVideos = function(){
+                                            console.log(s.group[e.ke].usedSpace>(s.group[e.ke].sizeLimit*config.cron.deleteOverMaxOffset))
+                                            //run purge command
+                                            if(s.group[e.ke].usedSpace>(s.group[e.ke].sizeLimit*config.cron.deleteOverMaxOffset)){
+                                                    console.log('SELECT * FROM Videos WHERE status != 0 AND ke=? ORDER BY `time` ASC LIMIT 2')
+                                                    s.sqlQuery('SELECT * FROM Videos WHERE status != 0 AND ke=? ORDER BY `time` ASC LIMIT 2',[e.ke],function(err,evs){
+                                                        k.del=[];k.ar=[e.ke];
+                                                        evs.forEach(function(ev){
+                                                            ev.dir=s.video('getDir',ev)+s.moment(ev.time)+'.'+ev.ext;
+                                                            k.del.push('(mid=? AND time=?)');
+                                                            k.ar.push(ev.mid),k.ar.push(ev.time);
+                                                            s.file('delete',ev.dir);
+                                                            s.init('diskUsedSet',e,-(ev.size/1000000))
+                                                            s.tx({f:'video_delete',ff:'over_max',filename:s.moment(ev.time)+'.'+ev.ext,mid:ev.mid,ke:ev.ke,time:ev.time,end:s.moment(new Date,'YYYY-MM-DD HH:mm:ss')},'GRP_'+e.ke);
+                                                        });
+                                                        if(k.del.length>0){
+                                                            k.qu=k.del.join(' OR ');
+                                                            s.sqlQuery('DELETE FROM Videos WHERE ke =? AND ('+k.qu+')',k.ar,function(){
+                                                                deleteVideos()
+                                                            })
+                                                        }else{
+                                                            finish()
+                                                        }
+                                                    })
+                                            }else{
+                                                finish()
+                                            }
+                                        }
+                                        deleteVideos()
                                     }
                                     checkQueue()
                                 }
@@ -2122,6 +2133,7 @@ var tx;
                                         if(d.d.days){d.form.details.days=d.d.days;}
                                         delete(d.form.details.mon_groups)
                                     }
+                                    var newSize = d.form.details.size
                                     d.form.details=JSON.stringify(d.form.details)
                                     ///
                                     d.set=[],d.ar=[];
@@ -2134,7 +2146,7 @@ var tx;
                                     d.ar.push(d.ke),d.ar.push(d.uid);
                                     s.sqlQuery('UPDATE Users SET '+d.set.join(',')+' WHERE ke=? AND uid=?',d.ar,function(err,r){
                                         if(!d.d.sub){
-                                            s.group[d.ke].sizeLimit = parseFloat(d.form.details.size)
+                                            s.group[d.ke].sizeLimit = parseFloat(newSize)
                                             delete(s.group[d.ke].webdav)
                                             s.init('apps',d)
                                         }
