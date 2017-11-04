@@ -427,6 +427,7 @@ s.init=function(x,e,k,fn){
             if(!s.group[e.ke].fileBin){s.group[e.ke].fileBin={}};
             if(!s.group[e.ke].mon){s.group[e.ke].mon={}}
             if(!s.group[e.ke].sizeChangeQueue){s.group[e.ke].sizeChangeQueue=[]}
+            if(!s.group[e.ke].sizePurgeQueue){s.group[e.ke].sizePurgeQueue=[]}
             if(!s.group[e.ke].users){s.group[e.ke].users={}}
             if(!s.group[e.ke].mon[e.mid]){s.group[e.ke].mon[e.mid]={}}
             if(!s.group[e.ke].mon[e.mid].streamIn){s.group[e.ke].mon[e.mid].streamIn={}};
@@ -675,7 +676,7 @@ s.video=function(x,e){
             s.tx({f:'video_build_start',filename:e.filename+'.'+e.ext,mid:e.id,ke:e.ke,time:s.nameToTime(e.filename),end:s.moment(new Date,'YYYY-MM-DD HH:mm:ss')},'GRP_'+e.ke);
         break;
         case'close':
-            //on video close
+            //video function : close
             if(s.group[e.ke]&&s.group[e.ke].mon[e.id]){
                 if(s.group[e.ke].mon[e.id].open&&!e.filename){e.filename=s.group[e.ke].mon[e.id].open;e.ext=s.group[e.ke].mon[e.id].open_ext}
                 if(s.group[e.ke].mon[e.id].child_node){
@@ -721,30 +722,49 @@ s.video=function(x,e){
                             s.init('diskUsedSet',e,e.filesizeMB)
                             if(config.cron.deleteOverMax===true){
                                 //check space
-                                var check=function(){
-                                    if(s.group[e.ke].usedSpace>(s.group[e.ke].sizeLimit*config.cron.deleteOverMaxOffset)){
-                                        s.sqlQuery('SELECT * FROM Videos WHERE status != 0 AND ke=? ORDER BY `time` ASC LIMIT 2',[e.ke],function(err,evs){
-                                            k.del=[];k.ar=[e.ke];
-                                            evs.forEach(function(ev){
-                                                ev.dir=s.video('getDir',ev)+s.moment(ev.time)+'.'+ev.ext;
-                                                k.del.push('(mid=? AND time=?)');
-                                                k.ar.push(ev.mid),k.ar.push(ev.time);
-                                                s.file('delete',ev.dir);
-                                                s.init('diskUsedSet',e,-(ev.size/1000000))
-                                                s.tx({f:'video_delete',ff:'over_max',filename:s.moment(ev.time)+'.'+ev.ext,mid:ev.mid,ke:ev.ke,time:ev.time,end:s.moment(new Date,'YYYY-MM-DD HH:mm:ss')},'GRP_'+e.ke);
-                                            });
-                                            if(k.del.length>0){
-                                                k.qu=k.del.join(' OR ');
-                                                s.sqlQuery('DELETE FROM Videos WHERE ke =? AND ('+k.qu+')',k.ar,function(){
-                                                    check()
-                                                })
-                                            }
-                                        })
-                                    }else{
-                                        s.init('diskUsedEmit',e)
+                                s.group[e.ke].sizePurgeQueue.push(1)
+                                if(s.group[e.ke].sizePurging!==true){
+                                    //lock this function
+                                    s.group[e.ke].sizePurging=true
+                                    //validate current values
+                                    if(!s.group[e.ke].usedSpace){s.group[e.ke].usedSpace=0}else{s.group[e.ke].usedSpace=parseFloat(s.group[e.ke].usedSpace)}
+                                    if(s.group[e.ke].usedSpace<0){s.group[e.ke].usedSpace=0}
+                                    //set queue processor
+                                    var checkQueue=function(){
+                                        //get first in queue
+                                        var currentChange = s.group[e.ke].sizePurgeQueue[0]
+                                        //run purge command
+                                        if(s.group[e.ke].usedSpace>(s.group[e.ke].sizeLimit*config.cron.deleteOverMaxOffset)){
+                                            s.sqlQuery('SELECT * FROM Videos WHERE status != 0 AND ke=? ORDER BY `time` ASC LIMIT 2',[e.ke],function(err,evs){
+                                                k.del=[];k.ar=[e.ke];
+                                                evs.forEach(function(ev){
+                                                    ev.dir=s.video('getDir',ev)+s.moment(ev.time)+'.'+ev.ext;
+                                                    k.del.push('(mid=? AND time=?)');
+                                                    k.ar.push(ev.mid),k.ar.push(ev.time);
+                                                    s.file('delete',ev.dir);
+                                                    s.init('diskUsedSet',e,-(ev.size/1000000))
+                                                    s.tx({f:'video_delete',ff:'over_max',filename:s.moment(ev.time)+'.'+ev.ext,mid:ev.mid,ke:ev.ke,time:ev.time,end:s.moment(new Date,'YYYY-MM-DD HH:mm:ss')},'GRP_'+e.ke);
+                                                });
+                                                if(k.del.length>0){
+                                                    k.qu=k.del.join(' OR ');
+                                                    s.sqlQuery('DELETE FROM Videos WHERE ke =? AND ('+k.qu+')',k.ar)
+                                                }
+                                            })
+                                        }else{
+                                            s.init('diskUsedEmit',e)
+                                        }
+                                        //remove value just used from queue
+                                        s.group[e.ke].sizePurgeQueue = s.group[e.ke].sizePurgeQueue.splice(1,s.group[e.ke].sizePurgeQueue.length+10)
+                                        //do next one
+                                        if(s.group[e.ke].sizePurgeQueue.length>0){
+                                            checkQueue()
+                                        }else{
+                                            s.group[e.ke].sizePurging=false
+                                            s.init('diskUsedEmit',e)
+                                        }
                                     }
+                                    checkQueue()
                                 }
-                                check()
                             }else{
                                 s.init('diskUsedEmit',e)
                             }
