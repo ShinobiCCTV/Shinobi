@@ -10,10 +10,24 @@ if [ "$nodejsinstall" = "y" ]; then
     rm setup_8.x
 fi
 echo "============="
-echo "Shinobi - Get FFMPEG 3.x from ppa:jonathonf/ffmpeg-3"
-sudo add-apt-repository ppa:jonathonf/ffmpeg-3 -y
-sudo apt update -y && sudo apt install ffmpeg libav-tools x264 x265 -y
+echo " Detecting Ubuntu Version"
 echo "============="
+declare -i getubuntuversion=$(lsb_release -r | awk '{print $2}' | cut -d . -f1)
+echo "============="
+echo " Ubuntu Version: $getubuntuversion"
+echo "============="
+if [[ "$getubuntuversion" == "16" || "$getubuntuversion" < "16" ]]; then
+    echo "============="
+    echo "Shinobi - Get FFMPEG 3.x from ppa:jonathonf/ffmpeg-3"
+    sudo add-apt-repository ppa:jonathonf/ffmpeg-3 -y
+    sudo apt update -y && sudo apt install ffmpeg libav-tools x264 x265 -y
+    echo "============="
+else
+    echo "============="
+    echo "Shinobi - Installing FFMPEG"
+    sudo apt install ffmpeg libav-tools x264 x265 -y
+    echo "============="
+fi
 echo "Shinobi - Do you want to Install MariaDB? Choose No if you have MySQL."
 echo "(y)es or (N)o"
 read mysqlagree
