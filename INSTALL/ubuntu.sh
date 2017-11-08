@@ -9,6 +9,8 @@ if [ "$nodejsinstall" = "y" ]; then
     sudo apt install nodejs -y
     rm setup_8.x
 fi
+
+#Detect Ubuntu Version
 echo "============="
 echo " Detecting Ubuntu Version"
 echo "============="
@@ -28,20 +30,63 @@ else
     sudo apt install ffmpeg libav-tools x264 x265 -y
     echo "============="
 fi
-echo "Shinobi - Do you want to Install MariaDB? Choose No if you have MySQL."
-echo "(y)es or (N)o"
-read mysqlagree
-if [ "$mysqlagree" = "y" ]; then
-    echo "Shinobi - Installing MariaDB"
-    echo "Password for root SQL user, If you are installing SQL now then you may put anything:"
-    read sqlpass
-    echo "mariadb-server mariadb-server/root_password password $sqlpass" | debconf-set-selections
-    echo "mariadb-server mariadb-server/root_password_again password $sqlpass" | debconf-set-selections
-    apt install mariadb-server -y
-    service mysql start
-fi
-chmod -R 755 .
+
+#Check If Mysql-Server is already installed 
 echo "============="
+echo "Checking for mysql-server"
+echo "============="
+dpkg -s mysql-server &> /dev/null
+if [ $? -eq 0 ]; then 
+    echo "+====================================+"
+    echo "| Warning MYSQL SERVER IS INSTALLED! |"
+    echo "+====================================+"
+    echo "|  DO YOU WANT TO INSTALL MariaDB?   |"
+    echo "|  This will remove MYSQL-Server!    |"
+    echo "+====================================+"
+    echo "Shinobi - Do you want to Install MariaDB?"
+    echo "(y)es or (N)o"
+    read installmariadb
+    if [ "$installmariadb" = "y" ]; then
+        echo "+=============================================+"
+        echo "| This will DESTORY ALL DATA ON MYSQL SERVER! |"
+        echo "+=============================================+"
+        echo "Please type the following to continue"
+        echo "DESTORY!"
+        read mysqlagree
+        if [ "$mysqlagree" = "DESTORY!" ]; then
+            echo "Shinobi - Installing MariaDB"
+            echo "Password for root SQL user, If you are installing SQL now then you may put anything:"
+            read sqlpass
+            echo "mariadb-server mariadb-server/root_password password $sqlpass" | debconf-set-selections
+            echo "mariadb-server mariadb-server/root_password_again password $sqlpass" | debconf-set-selections
+            echo "[client]" >> ~/.my.cnf
+            echo "user=root" >> ~/.my.cnf
+            echo "password=$sqlpass" >> ~/.my.cnf
+            chmod 755 ~/.my.cnf 
+            apt install mariadb-server 
+            service mysql start
+        fi
+    fi
+else  
+    echo "Shinobi - Do you want to Install MariaDB?"
+    echo "(y)es or (N)o"
+    read mysqlagree
+    if [ "$mysqlagree" = "y" ]; then
+        echo "Shinobi - Installing MariaDB"
+        echo "Password for root SQL user, If you are installing SQL now then you may put anything:"
+        read sqlpass
+        echo "mariadb-server mariadb-server/root_password password $sqlpass" | debconf-set-selections
+        echo "mariadb-server mariadb-server/root_password_again password $sqlpass" | debconf-set-selections
+        echo "[client]" >> ~/.my.cnf
+        echo "user=root" >> ~/.my.cnf
+        echo "password=$sqlpass" >> ~/.my.cnf
+        chmod 755 ~/.my.cnf 
+        apt install mariadb-server -y
+        service mysql start
+    fi
+fi 
+
+chmod -R 755 .
 echo "Shinobi - Database Installation"
 echo "(y)es or (N)o"
 read mysqlagreeData
