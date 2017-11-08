@@ -12,7 +12,7 @@ process.on('uncaughtException', function (err) {
 });
 var fs = require('fs');
 var moment = require('moment');
-var Canvas = require('canvas');
+const { Canvas, Image } = require('canvas');
 var config=require('./conf.json');
 if(process.argv[2]&&process.argv[3]){
     config.host=process.argv[2]
@@ -64,7 +64,7 @@ s.blenderRegion=function(d,cord){
         s.group[d.ke][d.id].blendRegionContext[cord.name] = s.group[d.ke][d.id].blendRegion[cord.name].getContext('2d');
     }
     var sourceData = s.group[d.ke][d.id].canvasContext[cord.name].getImageData(0, 0, d.width, d.height);
-    // create an image if the previous image doesn�t exist
+    // create an image if the previous image does not exist
     if (!s.group[d.ke][d.id].lastRegionImageData[cord.name]) s.group[d.ke][d.id].lastRegionImageData[cord.name] = s.group[d.ke][d.id].canvasContext[cord.name].getImageData(0, 0, d.width, d.height);
     // create a ImageData instance to receive the blended result
     var blendedData = s.group[d.ke][d.id].canvasContext[cord.name].createImageData(d.width, d.height);
@@ -83,7 +83,8 @@ s.blenderRegion=function(d,cord){
     }
     average = (average / (blendedData.data.length * 0.25))*10;
     if (average > parseFloat(cord.sensitivity)){
-        s.cx({f:'trigger',id:d.id,ke:d.ke,details:{plug:config.plug,name:cord.name,reason:'motion',confidence:average}})
+        s.cx({f:'trigger',id:d.id,ke:d.ke,details:{plug:config.plug,name:cord.name,reason:'motion',confidence:average}});
+        s.systemLog(d.id+' Motion detected: '+average+' vs '+cord.sensitivity );
 
     }
     s.group[d.ke][d.id].canvasContext[cord.name].clearRect(0, 0, d.width, d.height);
@@ -208,7 +209,7 @@ io.on('f',function(d){
                     }
                     s.group[d.ke][d.id].cords=Object.values(d.mon.cords);
                     d.mon.cords=d.mon.cords;
-                    d.image = new Canvas.Image;
+                    d.image = new Image;
                     if(d.mon.detector_scale_x===''||d.mon.detector_scale_y===''){
                         s.systemLog('Must set detector image size')
                         return
