@@ -9,6 +9,7 @@ if [ "$nodejsinstall" = "y" ]; then
     sudo apt install nodejs -y
     rm setup_8.x
 fi
+# Detect Ubuntu Version
 echo "============="
 echo " Detecting Ubuntu Version"
 echo "============="
@@ -28,6 +29,8 @@ else
     sudo apt install ffmpeg libav-tools x264 x265 -y
     echo "============="
 fi
+
+# Install MariaDB
 echo "Shinobi - Do you want to Install MariaDB? Choose No if you have MySQL."
 echo "(y)es or (N)o"
 read mysqlagree
@@ -40,7 +43,11 @@ if [ "$mysqlagree" = "y" ]; then
     apt install mariadb-server -y
     service mysql start
 fi
+
+# Make sure files have correct perms 
 chmod -R 755 .
+
+# Database Installation
 echo "============="
 echo "Shinobi - Database Installation"
 echo "(y)es or (N)o"
@@ -87,10 +94,14 @@ if [ "$mysqlagreeData" = "y" ]; then
         echo "** To change these settings login to either to the Superuser panel or login to the dashboard as the user that was just created and open the Settings window. **"
     fi
 fi
+
+# Install NPM Libraries
 echo "============="
 echo "Shinobi - Install NPM Libraries"
 npm install
 echo "============="
+
+#Install PM2
 echo "Shinobi - Install PM2"
 sudo npm install pm2 -g
 if [ ! -e "./conf.json" ]; then
