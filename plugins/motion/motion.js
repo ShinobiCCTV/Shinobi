@@ -1,5 +1,5 @@
 //
-// Shinobi - Motion Plugin
+// Shinobi - Motion Plugin - modified to use pixelmatch functions
 // Copyright (C) 2016-2025 Moe Alam, moeiscool
 //
 // # Donate
@@ -12,7 +12,8 @@ process.on('uncaughtException', function (err) {
 });
 var fs = require('fs');
 var moment = require('moment');
-const { Canvas, Image } = require('canvas');
+var Canvas = require('canvas');
+var pixelmatch = require('pixelmatch');
 var config=require('./conf.json');
 if(process.argv[2]&&process.argv[3]){
     config.host=process.argv[2]
@@ -59,70 +60,29 @@ s.blenderRegion=function(d,cord){
        return
     }
     s.group[d.ke][d.id].canvasContext[cord.name].drawImage(d.image, 0, 0, d.width, d.height);
-    if(!s.group[d.ke][d.id].blendRegion[cord.name]){
-        s.group[d.ke][d.id].blendRegion[cord.name] = new Canvas(d.width, d.height);
-        s.group[d.ke][d.id].blendRegionContext[cord.name] = s.group[d.ke][d.id].blendRegion[cord.name].getContext('2d');
-    }
+
     var sourceData = s.group[d.ke][d.id].canvasContext[cord.name].getImageData(0, 0, d.width, d.height);
-    // create an image if the previous image does not exist
+    
+    // create an image if the previous image doesn?t exist
     if (!s.group[d.ke][d.id].lastRegionImageData[cord.name]) s.group[d.ke][d.id].lastRegionImageData[cord.name] = s.group[d.ke][d.id].canvasContext[cord.name].getImageData(0, 0, d.width, d.height);
-    // create a ImageData instance to receive the blended result
-    var blendedData = s.group[d.ke][d.id].canvasContext[cord.name].createImageData(d.width, d.height);
-    // blend the 2 images
-    s.differenceAccuracy(blendedData.data,sourceData.data,s.group[d.ke][d.id].lastRegionImageData[cord.name].data);
-    // draw the result in a canvas
-    s.group[d.ke][d.id].blendRegionContext[cord.name].putImageData(blendedData, 0, 0);
+    
+    //testing pixelmatch
+    var diffImageOut;
+    var diffPixels = pixelmatch(sourceData.data,s.group[d.ke][d.id].lastRegionImageData[cord.name].data,diffImageOut,d.width,d.height,'');
+    var diffPixelPercent = diffPixels / ( d.height * d.width ) * 100; 
+      
     // store the current webcam image
     s.group[d.ke][d.id].lastRegionImageData[cord.name] = sourceData;
-    blendedData = s.group[d.ke][d.id].blendRegionContext[cord.name].getImageData(0, 0, d.width, d.height);
-    var i = 0;
-    var average = 0;
-    while (i < (blendedData.data.length * 0.25)) {
-        average += (blendedData.data[i * 4] + blendedData.data[i * 4 + 1] + blendedData.data[i * 4 + 2]);
-        ++i;
-    }
-    average = (average / (blendedData.data.length * 0.25))*10;
-    if (average > parseFloat(cord.sensitivity)){
-        s.cx({f:'trigger',id:d.id,ke:d.ke,details:{plug:config.plug,name:cord.name,reason:'motion',confidence:average}});
-        s.systemLog(d.id+' Motion detected: '+average+' vs '+cord.sensitivity );
+    
+    if (diffPixelPercent > parseFloat(cord.sensitivity)){
+        s.cx({f:'trigger',id:d.id,ke:d.ke,details:{plug:config.plug,name:cord.name,reason:'motion',confidence:diffPixelPercent}});
+        s.systemLog(d.id+' '+cord.name+' Motion Pixelmatch: '+diffPixelPercent+' vs '+cord.sensitivity  );
 
+    }
+    else{
+        s.systemLog(d.id+' '+cord.name+' No Motion Pixelmatch: '+diffPixelPercent+' vs '+cord.sensitivity  );
     }
     s.group[d.ke][d.id].canvasContext[cord.name].clearRect(0, 0, d.width, d.height);
-    s.group[d.ke][d.id].blendRegionContext[cord.name].clearRect(0, 0, d.width, d.height);
-}
-function fastAbs(value) {
-    return (value ^ (value >> 31)) - (value >> 31);
-}
-
-function threshold(value) {
-    return (value > 0x15) ? 0xFF : 0;
-}
-
-function difference(target, data1, data2) {
-    // blend mode difference
-    if (data1.length != data2.length) return null;
-    var i = 0;
-    while (i < (data1.length * 0.25)) {
-        target[4 * i] = data1[4 * i] == 0 ? 0 : fastAbs(data1[4 * i] - data2[4 * i]);
-        target[4 * i + 1] = data1[4 * i + 1] == 0 ? 0 : fastAbs(data1[4 * i + 1] - data2[4 * i + 1]);
-        target[4 * i + 2] = data1[4 * i + 2] == 0 ? 0 : fastAbs(data1[4 * i + 2] - data2[4 * i + 2]);
-        target[4 * i + 3] = 0xFF;
-        ++i;
-    }
-}
-s.differenceAccuracy=function(target, data1, data2) {
-    if (data1.length != data2.length) return null;
-    var i = 0;
-    while (i < (data1.length * 0.25)) {
-        var average1 = (data1[4 * i] + data1[4 * i + 1] + data1[4 * i + 2]) / 3;
-        var average2 = (data2[4 * i] + data2[4 * i + 1] + data2[4 * i + 2]) / 3;
-        var diff = threshold(fastAbs(average1 - average2));
-        target[4 * i] = diff;
-        target[4 * i + 1] = diff;
-        target[4 * i + 2] = diff;
-        target[4 * i + 3] = 0xFF;
-        ++i;
-    }
 }
 
 s.checkAreas=function(d){
@@ -209,7 +169,7 @@ io.on('f',function(d){
                     }
                     s.group[d.ke][d.id].cords=Object.values(d.mon.cords);
                     d.mon.cords=d.mon.cords;
-                    d.image = new Image;
+                    d.image = new Canvas.Image;
                     if(d.mon.detector_scale_x===''||d.mon.detector_scale_y===''){
                         s.systemLog('Must set detector image size')
                         return
