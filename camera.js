@@ -1829,7 +1829,7 @@ s.camera=function(x,e,cn,tx){
                 }).end();
             }
             //mailer
-            if(config.mail&&s.group[d.ke].mon[d.id].detector_mail&&d.mon.details.detector_mail==='1'){
+            if(config.mail&&!s.group[d.ke].mon[d.id].detector_mail&&d.mon.details.detector_mail==='1'){
                 s.sqlQuery('SELECT mail FROM Users WHERE ke=? AND details NOT LIKE ?',[d.ke,'%"sub"%'],function(err,r){
                     r=r[0];
                     if(!d.mon.details.detector_mail_timeout||d.mon.details.detector_mail_timeout===''){
@@ -1843,7 +1843,7 @@ s.camera=function(x,e,cn,tx){
                         clearTimeout(s.group[d.ke].mon[d.id].detector_mail);
                         delete(s.group[d.ke].mon[d.id].detector_mail);
                     },d.mon.details.detector_mail_timeout);
-                    d.frame_filename='Motion_'+(d.name.replace(/[^\w\s]/gi, ''))+'_'+d.id+'_'+d.ke+'_'+s.moment()+'.jpg';
+                    d.frame_filename='Motion_'+(d.mon.name.replace(/[^\w\s]/gi, ''))+'_'+d.id+'_'+d.ke+'_'+s.moment()+'.jpg';
                     fs.readFile(s.dir.streams+'/'+d.ke+'/'+d.id+'/s.jpg',function(err, frame){
                         d.mailOptions = {
                             from: '"ShinobiCCTV" <no-reply@shinobi.video>', // sender address
