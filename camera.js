@@ -1769,7 +1769,7 @@ s.camera=function(x,e,cn,tx){
                         clearTimeout(s.group[d.ke].mon[d.id].detector_mail);
                         delete(s.group[d.ke].mon[d.id].detector_mail);
                     },d.mon.details.detector_mail_timeout);
-                    d.frame_filename='Motion_'+(d.details.name.replace(/[^\w\s]/gi, ''))+'_'+d.id+'_'+d.ke+'_'+s.moment()+'.jpg';
+                    d.frame_filename='Motion_'+(d.mon.name.replace(/[^\w\s]/gi, ''))+'_'+d.id+'_'+d.ke+'_'+s.moment()+'.jpg';
                     fs.readFile(s.dir.streams+'/'+d.ke+'/'+d.id+'/s.jpg',function(err, frame){
                         d.mailOptions = {
                             from: '"ShinobiCCTV" <no-reply@shinobi.video>', // sender address
