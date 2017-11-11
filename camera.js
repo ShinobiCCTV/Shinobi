@@ -123,10 +123,10 @@ s.getDefinitonFile=function(rule){
     }
     return file
 }
-s.disc=function(){
+s.connectSQL=function(){
     sql = mysql.createConnection(config.db);
-    sql.connect(function(err){if(err){s.systemLog(lang['Error Connecting']+' : DB',err);setTimeout(s.disc, 2000);}});
-    sql.on('error',function(err) {s.systemLog(lang['DB Lost.. Retrying..']);s.systemLog(err);s.disc();return;});
+    sql.connect(function(err){if(err){s.systemLog(lang['Error Connecting']+' : DB',err);setTimeout(s.connectSQL, 2000);}});
+    sql.on('error',function(err) {s.systemLog(lang['DB Lost.. Retrying..']);s.systemLog(err);s.connectSQL();return;});
     sql.on('connect',function() {
         s.sqlQuery = function(query,values,callback){
             if(!values){values=[]}
@@ -151,7 +151,7 @@ s.disc=function(){
         });
     });
 }
-s.disc();
+s.connectSQL();
 //kill any ffmpeg running
 s.ffmpegKill=function(){
     var cmd=''
@@ -637,8 +637,9 @@ s.video=function(x,e){
         case'archive':
             if(!e.filename&&e.time){e.filename=s.moment(e.time)}
             if(!e.status){e.status=0}
-            e.save=[e.id,e.ke,s.nameToTime(e.filename)];
-            s.sqlQuery('UPDATE Videos SET status=3 WHERE `mid`=? AND `ke`=? AND `time`=?',e.save,function(err,r){
+            e.details.archived="1"
+            e.save=[JSON.stringify(e.details),e.id,e.ke,s.nameToTime(e.filename)];
+            s.sqlQuery('UPDATE Videos SET details=? WHERE `mid`=? AND `ke`=? AND `time`=?',e.save,function(err,r){
                 s.tx({f:'video_edit',status:3,filename:e.filename+'.'+e.ext,mid:e.mid,ke:e.ke,time:s.nameToTime(e.filename)},'GRP_'+e.ke);
             });
         break;
@@ -748,8 +749,7 @@ s.video=function(x,e){
                                             console.log(s.group[e.ke].usedSpace>(s.group[e.ke].sizeLimit*config.cron.deleteOverMaxOffset))
                                             //run purge command
                                             if(s.group[e.ke].usedSpace>(s.group[e.ke].sizeLimit*config.cron.deleteOverMaxOffset)){
-                                                    console.log('SELECT * FROM Videos WHERE status != 0 AND ke=? ORDER BY `time` ASC LIMIT 2')
-                                                    s.sqlQuery('SELECT * FROM Videos WHERE status != 0 AND ke=? ORDER BY `time` ASC LIMIT 2',[e.ke],function(err,evs){
+                                                    s.sqlQuery('SELECT * FROM Videos WHERE status != 0 AND details NOT LIKE \'%"archived":"1"%\' AND ke=? ORDER BY `time` ASC LIMIT 2',[e.ke],function(err,evs){
                                                         k.del=[];k.ar=[e.ke];
                                                         evs.forEach(function(ev){
                                                             ev.dir=s.video('getDir',ev)+s.moment(ev.time)+'.'+ev.ext;
@@ -1080,7 +1080,7 @@ s.ffmpeg=function(e,x){
     if(e.details.rawh264==='1'){
         if(e.details.rawh264_vcodec&&e.details.rawh264_vcodec!==''){x.rawh264_vcodec=' -c:v '+e.details.rawh264_vcodec}else{x.rawh264_vcodec=' -c:v copy'}
         if(e.details.rawh264_acodec==='no'){
-            
+            x.rawh264_acodec=''
         }else{
             if(e.details.rawh264_acodec&&e.details.rawh264_acodec!==''){x.rawh264_acodec=' -c:a '+e.details.rawh264_acodec}else{x.rawh264_acodec=' -c:a aac'}
         }
@@ -3435,6 +3435,16 @@ app.get(['/:auth/monitor/:ke','/:auth/monitor/:ke/:id'], function (req,res){
             }
         }
         s.sqlQuery(req.sql,req.ar,function(err,r){
+//            r.forEach(function(v,n){
+//                r[n].subStream={}
+//                var details = JSON.parse(r[n].details)
+//                if(details.rawh264==='1'){
+//                    r[n].subStream.h264 = '/'+req.params.auth+'/h264/'+v.ke+'/'+v.mid+'/1'
+//                }
+//                if(details.snap==='1'){
+//                    r[n].subStream.jpeg = '/'+req.params.auth+'/jpeg/'+v.ke+'/'+v.mid+'/s.jpg'
+//                }
+//            })
             if(r.length===1){r=r[0];}
             res.end(s.s(r, null, 3));
         })
@@ -3452,6 +3462,10 @@ app.get(['/:auth/videos/:ke','/:auth/videos/:ke/:id'], function (req,res){
         }
         req.sql='SELECT * FROM Videos WHERE ke=?';req.ar=[req.params.ke];
         req.count_sql='SELECT COUNT(*) FROM Videos WHERE ke=?';req.count_ar=[req.params.ke];
+        if(req.query.archived=='1'){
+            req.sql+=' AND details LIKE \'%"archived":"1"\''
+            req.count_sql+=' AND details LIKE \'%"archived":"1"\''
+        }
         if(!req.params.id){
             if(user.details.sub&&user.details.monitors&&user.details.allmonitors!=='1'){
                 try{user.details.monitors=JSON.parse(user.details.monitors);}catch(er){}

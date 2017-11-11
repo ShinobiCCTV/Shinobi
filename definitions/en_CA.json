@@ -710,7 +710,7 @@
                {
                   "name": "detail=detector_save",
                   "field": "Save Events to SQL",
-                  "description": "Save Motion Events in SQL (not the image). This will overlay object on top of video recorded during the time motion events occured. (Currently not implemented yet)",
+                  "description": "Save Motion Events in SQL. This will overlay object on top of video recorded during the time motion events occured.",
                   "default": "No",
                   "example": "",
                   "possible": ""
