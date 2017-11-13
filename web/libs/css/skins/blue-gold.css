@@ -30,3 +30,6 @@
     background: #1b2431;
     color: #fff;
 }
+.monitor_item .mdl-card {
+    border: 1px solid #122444;
+}
