@@ -1001,7 +1001,7 @@ s.ffmpeg=function(e,x){
         if(e.details.hwaccel_device&&e.details.hwaccel_device!==''){
             switch(e.details.hwaccel){
                 case'vaapi':
-                    x.hwaccel+=' -vaapi_device '+e.details.hwaccel_device+' -hwaccel_output_format vaapi';
+                    x.hwaccel+=' -vaapi_device '+e.details.hwaccel_device;
                 break;
                 default:
                     x.hwaccel+=' -hwaccel_device '+e.details.hwaccel_device;
