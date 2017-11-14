@@ -2936,7 +2936,17 @@ $.pwrvid.e.on('hidden.bs.modal',function(e){
 //dynamic bindings
 $('body')
 .on('click','.logout',function(e){
-    localStorage.removeItem('ShinobiLogin_'+location.host);location.href=location.href;
+    var logout = function(user,callback){
+        $.get('/'+user.auth_token+'/logout/'+user.ke+'/'+user.uid,callback)
+    }
+    $.each($.users,function(n,linkedShinobiUser){
+        logout(linkedShinobiUser,function(){});
+    })
+    logout($user,function(data){
+        console.log(data)
+        localStorage.removeItem('ShinobiLogin_'+location.host);
+        location.href=location.href;
+    });
 })
 .on('click','[video]',function(e){
     e.e=$(this),

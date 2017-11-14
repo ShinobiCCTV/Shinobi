@@ -214,6 +214,10 @@ s.txWithSubPermissions=function(z,y,permissionChoices){
 //load camera controller vars
 s.nameToTime=function(x){x=x.split('.')[0].split('T'),x[1]=x[1].replace(/-/g,':');x=x.join(' ');return x;}
 s.ratio=function(width,height,ratio){ratio = width / height;return ( Math.abs( ratio - 4 / 3 ) < Math.abs( ratio - 16 / 9 ) ) ? '4:3' : '16:9';}
+s.randomNumber=function(x){
+    if(!x){x=10};
+    return Math.floor((Math.random() * x) + 1);
+};
 s.gid=function(x){
     if(!x){x=10};var t = "";var p = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
     for( var i=0; i < x; i++ )
@@ -729,24 +733,24 @@ s.video=function(x,e){
                                     s.group[e.ke].sizePurging=true
                                     //set queue processor
                                     var finish=function(){
-                                        console.log('checkQueueOne',s.group[e.ke].sizePurgeQueue.length)
+//                                        console.log('checkQueueOne',s.group[e.ke].sizePurgeQueue.length)
                                         //remove value just used from queue
                                         s.group[e.ke].sizePurgeQueue = s.group[e.ke].sizePurgeQueue.splice(1,s.group[e.ke].sizePurgeQueue.length+10)
                                         //do next one
                                         if(s.group[e.ke].sizePurgeQueue.length>0){
                                             checkQueue()
                                         }else{
-                                            console.log('checkQueueFinished',s.group[e.ke].sizePurgeQueue.length)
+//                                            console.log('checkQueueFinished',s.group[e.ke].sizePurgeQueue.length)
                                             s.group[e.ke].sizePurging=false
                                             s.init('diskUsedEmit',e)
                                         }
                                     }
                                     var checkQueue=function(){
-                                        console.log('checkQueue',config.cron.deleteOverMaxOffset)
+//                                        console.log('checkQueue',config.cron.deleteOverMaxOffset)
                                         //get first in queue
                                         var currentPurge = s.group[e.ke].sizePurgeQueue[0]
                                         var deleteVideos = function(){
-                                            console.log(s.group[e.ke].usedSpace>(s.group[e.ke].sizeLimit*config.cron.deleteOverMaxOffset))
+//                                            console.log(s.group[e.ke].usedSpace>(s.group[e.ke].sizeLimit*config.cron.deleteOverMaxOffset))
                                             //run purge command
                                             if(s.group[e.ke].usedSpace>(s.group[e.ke].sizeLimit*config.cron.deleteOverMaxOffset)){
                                                     s.sqlQuery('SELECT * FROM Videos WHERE status != 0 AND details NOT LIKE \'%"archived":"1"%\' AND ke=? ORDER BY `time` ASC LIMIT 2',[e.ke],function(err,evs){
@@ -2894,6 +2898,17 @@ app.use(bodyParser.urlencoded({extended: true}));
 app.set('views', __dirname + '/web/pages');
 app.set('view engine','ejs');
 //readme
+app.get('/:auth/logout/:ke/:id', function (req,res){
+    if(s.group[req.params.ke]&&s.group[req.params.ke].users[req.params.auth]){
+        delete(s.api[req.params.auth]);
+        delete(s.group[req.params.ke].users[req.params.auth]);
+        s.sqlQuery("UPDATE Users SET auth=? WHERE auth=? AND ke=? AND uid=?",[s.gid(s.randomNumber()),req.params.auth,req.params.ke,req.params.id])
+        res.end(s.s({ok:true,msg:'You have been logged out, session key is now inactive.'}, null, 3))
+    }else{
+        res.end(s.s({ok:false,msg:'This group key does not exist or this user is not logged in.'}, null, 3))
+    }
+});
+//readme
 app.get('/info', function (req,res){
     res.sendFile(__dirname+'/index.html');
 });
@@ -4004,7 +4019,7 @@ app.get('/:auth/motion/:ke/:id', function (req,res){
             try{
                 var d={id:req.params.id,ke:req.params.ke,details:JSON.parse(req.query.data)};
             }catch(err){
-                res.end('Data Broken');
+                res.end('Data Broken',err);
                 return;
             }
         }else{
@@ -4079,7 +4094,7 @@ app.all(['/streamIn/:ke/:id','/streamIn/:ke/:id/:feed'], function (req, res) {
             s.group[req.params.ke].mon[req.params.id].streamIn[req.params.feed].emit('data',buffer)
         });
         req.on('end',function(){
-            console.log('streamIn closed',req.params);
+//            console.log('streamIn closed',req.params);
         });
     }else{
         res.end('Local connection is only allowed.')
