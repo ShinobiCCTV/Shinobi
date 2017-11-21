@@ -1036,14 +1036,15 @@ s.ffmpeg=function(e,x){
     }
     //stream - pipe build
     switch(e.details.stream_type){
-        case'mpd':
-            if(e.details.stream_vcodec!=='h264_vaapi'){
+        case'flv':
+            if(e.details.stream_vcodec!=='copy'){
+                if(x.cust_stream.indexOf('-s ')===-1){x.cust_stream+=' -s '+x.ratio}
+                x.cust_stream+=x.stream_fps
                 if(x.stream_quality)x.stream_quality=' -crf '+x.stream_quality;
+                x.cust_stream+=x.stream_quality
+                x.cust_stream+=x.preset_stream
             }
-            if(parseFloat(x.hls_time)<20000){
-                x.hls_time=20000
-            }
-            x.pipe=x.preset_stream+x.stream_quality+x.stream_acodec+x.stream_vcodec+x.stream_fps+' -f dash -s '+x.ratio+x.stream_video_filters+x.cust_stream+' -min_seg_duration '+x.hls_time+' -window_size '+x.hls_list_size+' -extra_window_size 0 -remove_at_exit 1 '+e.sdir+'s.mpd';
+            x.pipe=' -f flv'+x.stream_acodec+x.stream_vcodec+x.stream_video_filters+x.cust_stream+' pipe:1';
         break;
         case'hls':
             if(e.details.stream_vcodec!=='h264_vaapi'){
@@ -1604,6 +1605,13 @@ s.camera=function(x,e,cn,tx){
                             //frames to stream
                                ++e.frames;
                            switch(e.details.stream_type){
+                               case'flv':
+                                   e.frame_to_stream=function(d){
+                                       if(!s.group[e.ke].mon[e.id].firstFLVchunk)s.group[e.ke].mon[e.id].firstFLVchunk = d;
+                                       e.resetStreamCheck()
+                                       s.group[e.ke].mon[e.id].emitter.emit('data',d);
+                                   }
+                               break;
                                case'mjpeg':
                                    e.frame_to_stream=function(d){
                                        e.resetStreamCheck()
@@ -2805,6 +2813,9 @@ s.auth=function(params,cb,res,req){
             //maybe log
         }
     }
+    if(!params.auth||params.auth===''||params.auth===null||params.auth===undefined){
+        return failed()
+    }
     var clearAfterTime=function(){
         //remove temp key from memory
         clearTimeout(s.api[params.auth].timeout)
@@ -2902,7 +2913,7 @@ app.get('/:auth/logout/:ke/:id', function (req,res){
     if(s.group[req.params.ke]&&s.group[req.params.ke].users[req.params.auth]){
         delete(s.api[req.params.auth]);
         delete(s.group[req.params.ke].users[req.params.auth]);
-        s.sqlQuery("UPDATE Users SET auth=? WHERE auth=? AND ke=? AND uid=?",[s.gid(s.randomNumber()),req.params.auth,req.params.ke,req.params.id])
+        s.sqlQuery("UPDATE Users SET auth=? WHERE auth=? AND ke=? AND uid=?",['',req.params.auth,req.params.ke,req.params.id])
         res.end(s.s({ok:true,msg:'You have been logged out, session key is now inactive.'}, null, 3))
     }else{
         res.end(s.s({ok:false,msg:'This group key does not exist or this user is not logged in.'}, null, 3))
@@ -3361,6 +3372,33 @@ app.get('/:auth/jpeg/:ke/:id/s.jpg', function(req,res){
         }
     },res,req);
 });
+//Get FLV stream
+app.get('/:auth/flv/:ke/:id/s.flv', function(req,res) {
+    res.header("Access-Control-Allow-Origin",req.headers.origin);
+    s.auth(req.params,function(user){
+        if(s.group[req.params.ke].mon[req.params.id].firstFLVchunk){
+            if(!req.params.feed){req.params.feed='1'}
+            //variable name of contentWriter
+            var contentWriter
+            //set headers
+            res.setHeader('Content-Type', 'video/x-flv');
+            res.setHeader('Access-Control-Allow-Origin','*');
+            //write first frame on stream
+            res.write(s.group[req.params.ke].mon[req.params.id].firstFLVchunk)
+            //write new frames as they happen
+            s.group[req.params.ke].mon[req.params.id].emitter.on('data',contentWriter=function(buffer){
+                res.write(buffer)
+            })
+            //remove contentWriter when client leaves
+            res.on('close', function () {
+                s.group[req.params.ke].mon[req.params.id].emitter.removeListener('data',contentWriter)
+            })
+        }else{
+            res.setHeader('Content-Type', 'application/json');
+            res.end(s.s({ok:false,msg:'FLV not started or not ready'},null,3))
+        }
+    })
+})
 //Get MJPEG stream
 app.get(['/:auth/mjpeg/:ke/:id','/:auth/mjpeg/:ke/:id/:addon'], function(req,res) {
     res.header("Access-Control-Allow-Origin",req.headers.origin);

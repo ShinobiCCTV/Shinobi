@@ -224,6 +224,7 @@
                         <option value="b64" selected><%-lang['Base64 over Websocket']%></option>
                         <option value="jpeg"><%-lang['JPEG (Auto Enables JPEG API)']%></option>
                         <option value="mjpeg"><%-lang['MJPEG']%></option>
+                        <option value="flv"><%-lang['FLV']%></option>
                         <option value="hls"><%-lang['HLS (includes Audio)']%></option>
                         <option value="mpd"><%-lang['MPEG-DASH (includes Audio)']%></option>
                     </select></div>
@@ -234,7 +235,7 @@
                     <div><input class="form-control" detail="stream_mjpeg_clients" placeholder="20"></div>
                 </label>
               </div>
-              <div class="h_st_input h_st_hls h_st_mpd">
+              <div class="h_st_input h_st_hls h_st_flv h_st_mpd">
                   <div class="form-group">
                     <label><div><span><%-lang['HLS Video Encoder']%></span></div>
                         <div><select class="form-control" detail="stream_vcodec" selector="h_hls_v">
@@ -297,7 +298,7 @@
                       </label>
                   </div>
               </div>
-              <div class=" h_st_input h_st_mjpeg h_st_b64 h_st_hls h_st_mpd h_hls_v_input h_hls_v_libx264 h_hls_v_libx265 h_hls_v_h264_nvenc h_hls_v_hevc_nvenc h_hls_v_no">
+              <div class=" h_st_input h_st_mjpeg h_st_b64 h_st_hls h_st_flv h_st_mpd h_hls_v_input h_hls_v_libx264 h_hls_v_libx265 h_hls_v_h264_nvenc h_hls_v_hevc_nvenc h_hls_v_no">
                   <div class="row">
                       <div class="form-group col-md-12">
                         <label><div><span><%-lang['Quality']%></span></div>
