@@ -9,12 +9,8 @@ if [ "$nodejsinstall" = "y" ]; then
     sudo apt install nodejs -y
     rm setup_8.x
 fi
-<<<<<<< HEAD
-# Detect Ubuntu Version
-=======
 
 #Detect Ubuntu Version
->>>>>>> dev
 echo "============="
 echo " Detecting Ubuntu Version"
 echo "============="
@@ -35,7 +31,6 @@ else
     echo "============="
 fi
 
-<<<<<<< HEAD
 # Install MariaDB
 echo "Shinobi - Do you want to Install MariaDB? Choose No if you have MySQL."
 echo "(y)es or (N)o"
@@ -54,9 +49,8 @@ fi
 chmod -R 755 .
 
 # Database Installation
-=======
 #Check If Mysql-Server is already installed 
->>>>>>> dev
+
 echo "============="
 echo "Checking for mysql-server"
 echo "============="
