@@ -59,6 +59,7 @@ if [ $? -eq 0 ]; then
             read sqlpass
             echo "mariadb-server mariadb-server/root_password password $sqlpass" | debconf-set-selections
             echo "mariadb-server mariadb-server/root_password_again password $sqlpass" | debconf-set-selections
+            #Create my.cnf file 
             echo "[client]" >> ~/.my.cnf
             echo "user=root" >> ~/.my.cnf
             echo "password=$sqlpass" >> ~/.my.cnf
