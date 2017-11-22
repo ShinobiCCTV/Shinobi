@@ -1066,6 +1066,7 @@ $.ccio.globalWebsocket=function(d,user){
                             }
                             $.ccio.mon[d.ke+d.id+user.auth_token].flv = flvjs.createPlayer({
                                 type: 'flv',
+                                isLive: true,
                                 url: $.ccio.init('location',user)+user.auth_token+'/flv/'+d.ke+'/'+d.id+'/s.flv'
                             });
                             $.ccio.mon[d.ke+d.id+user.auth_token].flv.attachMediaElement($('#monitor_live_'+d.id+user.auth_token+' .stream-element')[0]);

@@ -13,6 +13,7 @@ if(data.addon.indexOf('relative')>-1){
 %>
 <script src="<%=data.url%>/libs/js/socket.io.js"></script>
 <script src="<%=data.url%>/libs/js/hls.min.js"></script>
+<script src="<%=data.url%>/libs/js/flv.min.js"></script>
 <% if(data.addon){
     var ar={}
     decodeURI(data.addon).split('|').forEach(function(v){
@@ -30,8 +31,7 @@ if(data.addon.indexOf('gui')>-1){ %>
 <style>
     .shinobi_stream{position:relative;display:inline-block}
     .shinobi_hud{position:absolute;width:100%;height:100%;top:0;left:0;}
-    .shinobi_hud .shinobi_viewers{position:absolute;top:5px;left:5px;opacity:0}
-    .shinobi_hud:hover .shinobi_viewers{opacity:1}
+    .shinobi_hud .shinobi_viewers{position:absolute;top:5px;left:5px;}
     .shinobi_hud .shinobi_viewers{
         display: inline-block;
         min-width: 10px;
@@ -48,11 +48,6 @@ if(data.addon.indexOf('gui')>-1){ %>
         font-family: sans-serif;
     }
     iframe.stream-element{border:0;}
-/*    Detector Events  */
-    .shinobi_stream_objects{position:absolute;top:0;left:0;width:100%;height:100%;z-index:1}
-    .shinobi_stream_objects .tag{position:absolute;bottom:100%;left:0;background:red;color:#fff;font-family:monospace;font-size:80%;border-radius:5px 5px 0 0 ;padding:3px 5px;}
-    .shinobi_stream_objects .stream-detected-object{position:absolute;top:0;left:0;border:3px solid red;background:transparent;border-radius:5px}
-    .shinobi_stream_objects .point{position:absolute;top:0;left:0;border:3px solid red;border-radius:50%}
 </style>
 <% };
 if(data.addon.indexOf('fullscreen')>-1){ %>
@@ -85,6 +80,9 @@ $(document).ready(function(){
         case'jpeg':
             %><img class="stream-element"><%
         break;
+        case'flv':
+            %><video class="stream-element" autoplay></video><%
+        break;
         case'hls':
             %><video class="stream-element" autoplay></video><%
         break;
@@ -98,7 +96,6 @@ $(document).ready(function(){
     
     
 <% if(data.addon&&data.addon.indexOf('gui')>-1){ %>
-    <div class="shinobi_stream_objects"></div>
     <div class="shinobi_hud">
         <div class="shinobi_viewers" title="Current number of viewers"></div>
     </div>
@@ -114,26 +111,28 @@ $(document).ready(function(){
             if(!$.shinobi.mon){
                 $.shinobi.mon={}
             };
-            $.shinobi.drawMatrices=function(d){
-                d.height=d.stream.height()
-                d.width=d.stream.width()
-                if($.shinobi.mon[d.id].details.detector_scale_x===''){$.shinobi.mon[d.id].details.detector_scale_x=320}
-                if($.shinobi.mon[d.id].details.detector_scale_y===''){$.shinobi.mon[d.id].details.detector_scale_y=240}
-
-                d.widthRatio=d.width/$.shinobi.mon[d.id].details.detector_scale_x
-                d.heightRatio=d.height/$.shinobi.mon[d.id].details.detector_scale_y
-
-                d.streamObjects.find('.stream-detected-object[name="'+d.details.name+'"]').remove()
-                d.tmp=''
-                $.each(d.details.matrices,function(n,v){
-                    d.tmp+='<div class="stream-detected-object" name="'+d.details.name+'" style="height:'+(d.heightRatio*v.height)+'px;width:'+(d.widthRatio*v.width)+'px;top:'+(d.heightRatio*v.y)+'px;left:'+(d.widthRatio*v.x)+'px;">'
-                    if(v.tag){d.tmp+='<span class="tag">'+v.tag+'</span>'}
-                    d.tmp+='</div>'
-                })
-                d.streamObjects.append(d.tmp)
-            }
             $.shinobi.init=function(d){
                   switch($.shinobi.mon[d.id].details.stream_type){
+                   case'flv':
+                        if (flvjs.isSupported()) {
+                            if($.shinobi.mon[d.id].flv){
+                                $.shinobi.mon[d.id].flv.destroy()
+                            }
+                            $.shinobi.mon[d.id].flv = flvjs.createPlayer({
+                                type: 'flv',
+                                isLive: true,
+                                url: '<%=data.url%>/<%=data.auth%>/flv/'+d.ke+'/'+d.id+'/s.flv'
+                            });
+                            $.shinobi.mon[d.id].flv.attachMediaElement($('#SHINOBI_'+d.ke+'_'+d.id+' .stream-element')[0]);
+                            $.shinobi.mon[d.id].flv.on('error',function(err){
+                                console.log(err)
+                            });
+                            $.shinobi.mon[d.id].flv.load();
+                            $.shinobi.mon[d.id].flv.play();
+                        }else{
+                            alert({title:'Stream cannot be started',text:'FLV.js is not supported on this browser. Try another stream type.',type:'error'})
+                        }
+                    break;
                     case'jpeg':
                         d.mon=$.shinobi.mon[d.id]
                         k=d.mon.details;
@@ -149,14 +148,17 @@ $(document).ready(function(){
                     case'hls':
                     var video = $('#SHINOBI_'+d.ke+'_'+d.id+' .stream-element')[0];
                     d.url='<%=data.url%>/<%=data.auth%>/hls/'+d.ke+'/'+d.id+'/s.m3u8';
+                    if($.shinobi.mon[d.id].hls){
+                        $.shinobi.mon[d.id].hls.destroy()
+                    }
                     if (navigator.userAgent.match(/(iPod|iPhone|iPad)/)||(navigator.userAgent.match(/(Safari)/)&&!navigator.userAgent.match('Chrome'))) {
                         video.src=d.url;
                         video.play();
                     }else{
-                        var hls = new Hls();
-                        hls.loadSource(d.url);
-                        hls.attachMedia(video);
-                        hls.on(Hls.Events.MANIFEST_PARSED,function() {
+                        $.shinobi.mon[d.id].hls = new Hls();
+                        $.shinobi.mon[d.id].hls.loadSource(d.url);
+                        $.shinobi.mon[d.id].hls.attachMedia(video);
+                        $.shinobi.mon[d.id].hls.on(Hls.Events.MANIFEST_PARSED,function() {
                           video.play();
                         });
                     }
@@ -175,43 +177,6 @@ $(document).ready(function(){
                     $('#SHINOBI_'+d.ke+'_'+d.id+' .shinobi_viewers').html(d.viewers);
                 }
                 switch(d.f){
-                    case'detector_trigger':
-                        d.e=$('#SHINOBI_'+d.ke+'_'+d.id)
-                        if($.shinobi.mon[d.id]&&d.e.length>0){
-                            if(d.details.plates&&d.details.plates.length>0){
-                                console.log('licensePlateStream',d.id,d)
-                            }
-                            if(d.details.matrices&&d.details.matrices.length>0){
-                                d.stream=d.e.find('.stream-element')
-                                d.streamObjects=d.e.find('.shinobi_stream_objects')
-                                $.shinobi.drawMatrices(d)
-                                d.e.find('.stream-detected-count').text(d.streamObjects.find('.stream-detected-object').length)
-                            }else{
-                                d.e.find('.stream-detected-count').text(1)
-                            }
-                            if(d.details.confidence){
-                                d.tt=d.details.confidence;
-                                if (d.tt > 100) { d.tt = 100; }
-                                d.e.find('.indifference .progress-bar').css('width',d.tt + "%").find('span').text(d.details.confidence)
-                            }
-                            if(d.details.emotion){
-                                d.e.find('.stream-detected-emotion').text(d.details.emotion)
-                            }
-                            if(d.details.count){
-                                d.e.find('.stream-detected-count-started').text(d.details.countStarted)
-                                d.e.find('.stream-detected-count-hour').text(d.details.count.hour)
-                                d.e.find('.stream-detected-count-minute').text(d.details.count.minute)
-                                d.e.find('.stream-detected-count-day').text(d.details.count.day)
-                                d.e.find('.stream-detected-count-week').text(d.details.count.week)
-                                d.e.find('.stream-detected-count-month').text(d.details.count.month)
-                            }
-                            d.e.addClass('detector_triggered')
-                            clearTimeout($.shinobi.mon[d.id].detector_trigger_timeout);
-                            $.shinobi.mon[d.id].detector_trigger_timeout=setTimeout(function(){
-                                $('#SHINOBI_'+d.ke+'_'+d.id).removeClass('detector_triggered').find('.stream-detected-object').remove()
-                            },5000);
-                        }
-                    break;
                     case'monitor_frame':
                         var image = new Image();
                         var ctx = $('#SHINOBI_'+d.ke+'_'+d.id+' canvas')[0];
