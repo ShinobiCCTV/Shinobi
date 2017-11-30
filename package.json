@@ -1,7 +1,7 @@
 {
   "name": "shinobi",
-  "version": "1.0.35",
-  "description": "CCTV and NVR in Node.js",
+  "version": "1.0.37",
+  "description": "CCTV and NVR in Node.js, Version : daf882caf6053a7c2c8f4e69427620356f8a440c",
   "main": "camera.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",

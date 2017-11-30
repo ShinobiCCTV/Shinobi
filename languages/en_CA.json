@@ -245,6 +245,7 @@
    "Stream Timestamp": "Stream Timestamp",
    "Stream Watermark": "Stream Watermark",
    "JPEG API": "JPEG API <small>Snapshot (cgi-bin)</small>",
+   "Raw H.264 Stream": "Raw H.264 Stream",
    "Recording": "Recording",
    "Recording Timestamp": "Recording Timestamp",
    "Recording Watermark": "Recording Watermark",
@@ -581,5 +582,7 @@
    "Storage Location": "Storage Location",
    "Recommended": "Recommended",
    "Please Wait for Completion": "Please Wait for Completion, Depending on the number of files selected this may take some time. Refresh to check again.",
+   "flv": "flv",
+   "FLV": "FLV",
    "Link Shinobi": "Link Shinobi"
 }

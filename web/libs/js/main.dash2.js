@@ -67,8 +67,8 @@ switch($user.details.lang){
                     case'hls':
                         streamURL=$.ccio.init('location',user)+user.auth_token+'/hls/'+d.ke+'/'+d.mid+'/s.m3u8'
                     break;
-                    case'mpd':
-                        streamURL=$.ccio.init('location',user)+user.auth_token+'/mpd/'+d.ke+'/'+d.mid+'/s.mpd'
+                    case'flv':
+                        streamURL=$.ccio.init('location',user)+user.auth_token+'/flv/'+d.ke+'/'+d.mid+'/s.flv'
                     break;
                     case'b64':
                         streamURL='Websocket'
@@ -378,7 +378,7 @@ switch($user.details.lang){
                         case'b64':
                             d.p.resize()
                         break;
-                        case'hls':case'mpd':
+                        case'hls':case'flv':
                             if(d.p.find('video')[0].paused){
                                 if(d.d.signal_check_log==1){
                                     d.log={type:'Stream Check',msg:'<%-cleanLang(lang.clientStreamFailedattemptingReconnect)%>'}
@@ -474,7 +474,7 @@ switch($user.details.lang){
                 }catch(er){}
             }
             switch(JSON.parse(e.mon.details).stream_type){
-                case'hls':case'mpd':
+                case'hls':case'flv':
                     $.ccio.snapshotVideo($('[mid='+e.mon.mid+'].monitor_item video')[0],function(base64,video_data){
                         url=base64
                         image_data=video_data
@@ -646,7 +646,7 @@ switch($user.details.lang){
                     tmp+='<img class="stream-element">';
                 }else{
                     switch(k.d.stream_type){
-                        case'hls':case'mpd':
+                        case'hls':case'flv':
                             tmp+='<video class="stream-element" autoplay></video>';
                         break;
                         case'mjpeg':
@@ -1059,22 +1059,25 @@ $.ccio.globalWebsocket=function(d,user){
                     case'jpeg':
                         $.ccio.init('jpegMode',$.ccio.mon[d.ke+d.id+user.auth_token]);
                     break;
-                    case'mpd':
-                        if($.ccio.mon[d.ke+d.id+user.auth_token].dash){$.ccio.mon[d.ke+d.id+user.auth_token].dash.reset()}
-                        d.e.find('video').addClass('dashjs-player')
-                        d.e.find('video').attr('type','application/dash+xml')
-                        d.e.find('video').attr('src',user.auth_token+'/mpd/'+d.ke+'/'+d.id+'/s.mpd')
-                        $.ccio.mon[d.ke+d.id+user.auth_token].dash = dashjs.MediaPlayer().create();
-                        $.ccio.mon[d.ke+d.id+user.auth_token].dash.initialize(document.querySelector('#monitor_live_'+d.id+user.auth_token+' video'),user.auth_token+'/mpd/'+d.ke+'/'+d.id+'/s.mpd', true);
-                        $.ccio.mon[d.ke+d.id+user.auth_token].dash.getDebug().setLogToBrowserConsole(false)
-                        $.ccio.mon[d.ke+d.id+user.auth_token].dash.on('error', function(e) {
-                            console.log(e)
-                            if(e.error==='manifestError'){
-                                setTimeout(function(){
-                                    $.ccio.cx({f:'monitor',ff:'watch_on',id:d.id},user)
-                                },5000)
+                    case'flv':
+                        if (flvjs.isSupported()) {
+                            if($.ccio.mon[d.ke+d.id+user.auth_token].flv){
+                                $.ccio.mon[d.ke+d.id+user.auth_token].flv.destroy()
                             }
-                        });
+                            $.ccio.mon[d.ke+d.id+user.auth_token].flv = flvjs.createPlayer({
+                                type: 'flv',
+                                isLive: true,
+                                url: $.ccio.init('location',user)+user.auth_token+'/flv/'+d.ke+'/'+d.id+'/s.flv'
+                            });
+                            $.ccio.mon[d.ke+d.id+user.auth_token].flv.attachMediaElement($('#monitor_live_'+d.id+user.auth_token+' .stream-element')[0]);
+                            $.ccio.mon[d.ke+d.id+user.auth_token].flv.on('error',function(err){
+                                console.log(err)
+                            });
+                            $.ccio.mon[d.ke+d.id+user.auth_token].flv.load();
+                            $.ccio.mon[d.ke+d.id+user.auth_token].flv.play();
+                        }else{
+                            $.ccio.init('note',{title:'Stream cannot be started',text:'FLV.js is not supported on this browser. Try another stream type.',type:'error'});
+                        }
                     break;
                     case'hls':
                         d.fn=function(){
@@ -2936,7 +2939,17 @@ $.pwrvid.e.on('hidden.bs.modal',function(e){
 //dynamic bindings
 $('body')
 .on('click','.logout',function(e){
-    localStorage.removeItem('ShinobiLogin_'+location.host);location.href=location.href;
+    var logout = function(user,callback){
+        $.get('/'+user.auth_token+'/logout/'+user.ke+'/'+user.uid,callback)
+    }
+    $.each($.users,function(n,linkedShinobiUser){
+        logout(linkedShinobiUser,function(){});
+    })
+    logout($user,function(data){
+        console.log(data)
+        localStorage.removeItem('ShinobiLogin_'+location.host);
+        location.href=location.href;
+    });
 })
 .on('click','[video]',function(e){
     e.e=$(this),

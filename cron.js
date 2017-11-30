@@ -76,7 +76,7 @@ s.checkFilterRules=function(v){
                     break;
                 }
             })
-            b.sql='WHERE ke=? AND status != 0 AND ('+b.sql.join(' AND ')+')';
+            b.sql='WHERE ke=? AND status != 0 AND details NOT LIKE \'%"archived":"1"%\' AND ('+b.sql.join(' AND ')+')';
             if(b.sort_by&&b.sort_by!==''){
                 b.sql+=' ORDER BY `'+b.sort_by+'` '+b.sort_by_direction
             }
@@ -213,7 +213,7 @@ s.cron=function(){
                     if(s.lock[v.ke]!==1){
                         s.lock[v.ke]=1;
                         es={};
-                        sql.query('SELECT * FROM Videos WHERE ke = ? AND status != 0 AND time < (NOW() - INTERVAL 10 MINUTE)',[v.ke],function(err,evs){
+                        sql.query('SELECT * FROM Videos WHERE ke = ? AND status != 0 AND details NOT LIKE \'%"archived":"1"%\' AND time < (NOW() - INTERVAL 10 MINUTE)',[v.ke],function(err,evs){
                             if(evs&&evs[0]){
                                 es.del=[];es.ar=[v.ke];
                                 evs.forEach(function(ev){
