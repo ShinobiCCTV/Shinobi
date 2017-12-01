@@ -77,7 +77,7 @@ Now modify the **main configuration file** located in the main directory of Shin
 nano conf.json
 ```
 
-Add the `plugins` object if you don't already have it. 
+Add the `plugins` array if you don't already have it. Add the following *object inside the array*.
 
 ```
   "plugins":[
