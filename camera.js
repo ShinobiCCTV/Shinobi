@@ -32,6 +32,7 @@ var io = new (require('socket.io'))();
 var execSync = require('child_process').execSync;
 var exec = require('child_process').exec;
 var spawn = require('child_process').spawn;
+var socketIOclient = require('socket.io-client');
 var crypto = require('crypto');
 var webdav = require("webdav");
 var jsonfile = require("jsonfile");
@@ -181,7 +182,18 @@ s.checkCorrectPathEnding=function(x){
     return x.replace('__DIR__',__dirname)
 }
 s.md5=function(x){return crypto.createHash('md5').update(x).digest("hex");}
+//send data to detector plugin
+s.ocvTx=function(data){
+    if(!s.ocv){return console.log('Could not send data to detector plugin',data)}
+    if(s.ocv.isClientPlugin===true){
+        s.tx(data,s.ocv.id)
+    }else{
+        s.connectedPlugins[s.ocv.plug].tx(data)
+    }
+}
+//send data to socket client function
 s.tx=function(z,y,x){if(x){return x.broadcast.to(y).emit('f',z)};io.to(y).emit('f',z);}
+//send data to child node function (experimental)
 s.cx=function(z,y,x){if(x){return x.broadcast.to(y).emit('c',z)};io.to(y).emit('c',z);}
 s.txWithSubPermissions=function(z,y,permissionChoices){
     if(typeof permissionChoices==='string'){
@@ -1593,13 +1605,13 @@ s.camera=function(x,e,cn,tx){
                             s.group[e.ke].mon[e.id].spawn.on('error',function(er){
                                 s.log(e,{type:'Spawn Error',msg:er});e.error_fatal()
                             });
-                            if(s.ocv&&e.details.detector==='1'){
-                                s.tx({f:'init_monitor',id:e.id,ke:e.ke},s.ocv.id)
+                            if(e.details.detector==='1'){
+                                s.ocvTx({f:'init_monitor',id:e.id,ke:e.ke})
                             }
                             //frames from motion detect
                             s.group[e.ke].mon[e.id].spawn.stdin.on('data',function(d){
                                 if(s.ocv&&e.details.detector==='1'&&e.details.detector_send_frames==='1'){
-                                    s.tx({f:'frame',mon:s.group[e.ke].mon_conf[e.id].details,ke:e.ke,id:e.id,time:s.moment(),frame:d},s.ocv.id);
+                                    s.ocvTx({f:'frame',mon:s.group[e.ke].mon_conf[e.id].details,ke:e.ke,id:e.id,time:s.moment(),frame:d});
                                 };
                             })
                             //frames to stream
@@ -1916,10 +1928,137 @@ s.camera=function(x,e,cn,tx){
     if(typeof cn==='function'){setTimeout(function(){cn()},1000);}
 }
 
+//function for receiving detector data
+s.pluginEventController=function(d){
+    switch(d.f){
+        case'trigger':
+            s.camera('motion',d)
+        break;
+        case'trigger_license_plate_finished_video_upload':
+            //mark fileBin videos to be delete after 24 hours
+//            console.log('trigger_license_plate_finished_video_upload')
+            s.deleteS3Payload(d)
+        break;
+        case'trigger_license_plate_s3':
+//            console.log('trigger_license_plate_s3')
+            //ask to save videos to s3 that happened within the next 15 seconds
+            if(s.group[d.ke].init.aws_s3_save=="1"){
+                s.queueS3pushRequest(d)
+            }else{
+                s.log({ke:d.ke,mid:d.id},{msg:'S3 Uploading is not enabled',type:'Option not Enabled'})
+            }
+        break;
+        case's.tx':
+            s.tx(d.data,d.to)
+        break;
+        case'sql':
+            sql.query(d.query,d.values);
+        break;
+        case'log':
+            s.systemLog('PLUGIN : '+d.plug+' : ',d)
+        break;
+    }
+}
+//multi plugin connections
+s.connectedPlugins={}
+s.pluginInitiatorSuccess=function(mode,d,cn){
+    s.systemLog('pluginInitiatorSuccess',d)
+    if(mode==='client'){
+        //is in client mode (camera.js is client)
+        cn.pluginEngine=d.plug
+        if(!s.connectedPlugins[d.plug]){
+            s.connectedPlugins[d.plug]={plug:d.plug}
+        }
+        s.systemLog('Connected to plugin : Detector - '+d.plug+' - '+d.type)
+        switch(d.type){
+            default:case'detector':
+                s.ocv={started:moment(),id:cn.id,plug:d.plug,notice:d.notice,isClientPlugin:true};
+                cn.ocv=1;
+                s.tx({f:'detector_plugged',plug:d.plug,notice:d.notice},'CPU')
+            break;
+        }
+    }else{
+        //is in host mode (camera.js is client)
+        switch(d.type){
+            default:case'detector':
+                s.ocv={started:moment(),id:"host",plug:d.plug,notice:d.notice,isHostPlugin:true};
+            break;
+        }
+    }
+    s.connectedPlugins[d.plug].plugged=true
+    s.tx({f:'readPlugins',ke:d.ke},'CPU')
+    s.ocvTx({f:'api_key',key:d.plug})
+    s.api[d.plug]={pluginEngine:d.plug,permissions:{},details:{},ip:'0.0.0.0'};
+}
+s.pluginInitiatorFail=function(mode,d,cn){
+    s.connectedPlugins[d.plug].plugged=false
+    if(mode==='client'){
+        //is in client mode (camera.js is client)
+        cn.disconnect()
+    }else{
+        //is in host mode (camera.js is client)
+    }
+}
+if(config.plugins&&config.plugins.length>0){
+    config.plugins.forEach(function(v){
+        s.connectedPlugins[v.id]={plug:v.id}
+        if(v.enabled===false){return}
+        if(v.mode==='host'){
+            //is in host mode (camera.js is client)
+            if(v.https===true){
+                v.https='https://'
+            }else{
+                v.https='http://'
+            }
+            if(!v.port){
+                v.port=80
+            }
+            var socket = socketIOclient(v.https+v.host+':'+v.port)
+            s.connectedPlugins[v.id].ws = socket;
+            s.connectedPlugins[v.id].tx = function(x){return socket.emit('f',x)}
+            socket.on('connect', function(cn){
+                s.systemLog('Connected to plugin (host) : '+v.id)
+                s.connectedPlugins[v.id].tx({f:'init_plugin_as_host',key:v.key})
+            });
+            socket.on('init',function(d){
+                s.systemLog('Initialize Plugin : Host',d)
+                if(d.ok===true){
+                    s.pluginInitiatorSuccess("host",d)
+                }else{
+                    s.pluginInitiatorFail("host",d)
+                }
+            });
+            socket.on('ocv',s.pluginEventController);
+            socket.on('disconnect', function(){
+                s.connectedPlugins[v.id].plugged=false
+                delete(s.api[v.id])
+                s.systemLog('Plugin Disconnected : '+v.id)
+                socket.connect()
+            });
+        }
+    })
+}
 ////socket controller
 s.cn=function(cn){return{id:cn.id,ke:cn.ke,uid:cn.uid}}
 io.on('connection', function (cn) {
 var tx;
+    //set "client" detector plugin event function
+    cn.on('ocv',function(d){
+        if(!cn.pluginEngine&&d.f==='init'){
+            if(config.pluginKeys[d.plug]===d.pluginKey){
+                s.pluginInitiatorSuccess("client",d,cn)
+            }else{
+                s.pluginInitiatorFail("client",d,cn)
+            }
+        }else{
+            if(config.pluginKeys[d.plug]===d.pluginKey){
+                s.pluginEventController(d)
+            }else{
+                cn.disconnect()
+            }
+        }
+    })
+    //main socket control functions
     cn.on('f',function(d){
         if(!cn.ke&&d.f==='init'){//socket login
             cn.ip=cn.request.connection.remoteAddress;
@@ -1947,7 +2086,7 @@ var tx;
                 }
                 if(s.ocv){
                     tx({f:'detector_plugged',plug:s.ocv.plug,notice:s.ocv.notice})
-                    s.tx({f:'readPlugins',ke:d.ke},s.ocv.id)
+                    s.ocvTx({f:'readPlugins',ke:d.ke})
                 }
                 tx({f:'users_online',users:s.group[d.ke].users})
                 s.tx({f:'user_status_change',ke:d.ke,uid:cn.uid,status:1,user:s.group[d.ke].users[d.auth]},'GRP_'+d.ke)
@@ -2018,9 +2157,7 @@ var tx;
             try{
             switch(d.f){
                 case'ocv_in':
-                    if(s.ocv){
-                       s.tx(d.data,s.ocv.id)
-                    }
+                    s.ocvTx(d.data)
                 break;
                 case'monitorOrder':
                     if(d.monitorOrder&&d.monitorOrder instanceof Array){
@@ -2410,41 +2547,6 @@ var tx;
             tx({ok:false,msg:lang.NotAuthorizedText1});
         }
     });
-    //functions for receiving detector data
-    cn.on('ocv',function(d){
-        if(!cn.ocv&&d.f==='init'){
-            if(config.pluginKeys[d.plug]===d.pluginKey){
-                s.api[cn.id]={ocvID:cn.id,permissions:{},details:{},ip:'0.0.0.0'};
-                s.ocv={started:moment(),id:cn.id,plug:d.plug,notice:d.notice};
-                cn.ocv=1;
-                s.tx({f:'api_key',key:cn.id},cn.id)
-                s.tx({f:'detector_plugged',plug:d.plug,notice:d.notice},'CPU')
-                s.tx({f:'readPlugins',ke:d.ke},'CPU')
-                s.systemLog('Connected to plugin : Detector - '+d.plug)
-            }else{
-                cn.disconnect()
-            }
-        }else{
-            if(config.pluginKeys[d.plug]===d.pluginKey){
-                switch(d.f){
-                    case'trigger':
-                        s.camera('motion',d)
-                    break;
-                    case's.tx':
-                        s.tx(d.data,d.to)
-                    break;
-                    case'sql':
-                        s.sqlQuery(d.query,d.values);
-                    break;
-                    case'log':
-                        s.systemLog('PLUGIN : '+d.plug+' : ',d)
-                    break;
-                }
-            }else{
-                cn.disconnect()
-            }
-        }
-    })
     //functions for retrieving cron announcements
     cn.on('cron',function(d){
         if(d.f==='init'){
@@ -2777,6 +2879,11 @@ var tx;
                 s.log({ke:cn.ke,mid:'$USER'},{type:lang['Websocket Disconnected'],msg:{mail:s.group[cn.ke].users[cn.auth].mail,id:cn.uid,ip:cn.ip}})
                 delete(s.group[cn.ke].users[cn.auth]);
             }
+        }
+        if(cn.pluginEngine){
+            s.connectedPlugins[cn.pluginEngine].plugged=false
+            s.tx({f:'plugin_engine_unplugged',plug:cn.pluginEngine},'CPU')
+            delete(s.api[cn.pluginEngine])
         }
         if(cn.ocv){
             s.tx({f:'detector_unplugged',plug:s.ocv.plug},'CPU')
