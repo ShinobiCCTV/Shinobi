@@ -1934,20 +1934,6 @@ s.pluginEventController=function(d){
         case'trigger':
             s.camera('motion',d)
         break;
-        case'trigger_license_plate_finished_video_upload':
-            //mark fileBin videos to be delete after 24 hours
-//            console.log('trigger_license_plate_finished_video_upload')
-            s.deleteS3Payload(d)
-        break;
-        case'trigger_license_plate_s3':
-//            console.log('trigger_license_plate_s3')
-            //ask to save videos to s3 that happened within the next 15 seconds
-            if(s.group[d.ke].init.aws_s3_save=="1"){
-                s.queueS3pushRequest(d)
-            }else{
-                s.log({ke:d.ke,mid:d.id},{msg:'S3 Uploading is not enabled',type:'Option not Enabled'})
-            }
-        break;
         case's.tx':
             s.tx(d.data,d.to)
         break;
