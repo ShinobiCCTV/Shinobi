@@ -11,7 +11,7 @@ var config=require('./conf.json');
 var sql=mysql.createConnection(config.db);
 
 //set option defaults
-s={lock:{}};
+s={};
 if(config.cron===undefined)config.cron={};
 if(config.cron.deleteOld===undefined)config.cron.deleteOld=true;
 if(config.cron.deleteOrphans===undefined)config.cron.deleteOrphans=false;
@@ -20,11 +20,17 @@ if(config.cron.deleteNoVideoRecursion===undefined)config.cron.deleteNoVideoRecur
 if(config.cron.deleteOverMax===undefined)config.cron.deleteOverMax=true;
 if(config.cron.deleteLogs===undefined)config.cron.deleteLogs=true;
 if(config.cron.deleteEvents===undefined)config.cron.deleteEvents=true;
+if(config.cron.deleteFileBins===undefined)config.cron.deleteFileBins=true;
 if(config.cron.interval===undefined)config.cron.interval=1;
 
 if(!config.ip||config.ip===''||config.ip.indexOf('0.0.0.0')>-1)config.ip='localhost';
 if(!config.videosDir)config.videosDir=__dirname+'/videos/';
+if(!config.binDir){config.binDir=__dirname+'/fileBin/'}
 if(!config.addStorage){config.addStorage=[]}
+//containers
+s.overlapLock={};
+s.alreadyDeletedRowsWithNoVideosOnStart={};
+//functions
 s.checkCorrectPathEnding=function(x){
     var length=x.length
     if(x.charAt(length-1)!=='/'){
@@ -34,6 +40,7 @@ s.checkCorrectPathEnding=function(x){
 }
 s.dir={
     videos:s.checkCorrectPathEnding(config.videosDir),
+    fileBin:s.checkCorrectPathEnding(config.binDir),
     addStorage:config.addStorage,
 };
 s.moment=function(e,x){
@@ -59,6 +66,12 @@ s.getVideoDirectory=function(e){
         return s.dir.videos+e.ke+'/'+e.id+'/';
     }
 }
+s.getFileBinDirectory=function(e){
+    if(e.mid&&!e.id){e.id=e.mid};
+    return s.dir.fileBin+e.ke+'/'+e.id+'/';
+}
+//filters set by the user in their dashboard
+//deleting old videos is part of the filter - config.cron.deleteOld
 s.checkFilterRules=function(v,callback){
     //filters
     if(!v.d.filters||v.d.filters==''){
@@ -153,7 +166,7 @@ s.checkFilterRules=function(v,callback){
         callback()
     }
 }
-s.alreadyDeletedRowsWithNoVideosOnStart={};
+//database rows with no videos in the filesystem
 s.deleteRowsWithNoVideo=function(v,callback){
     if(
         config.cron.deleteNoVideo===true&&(
@@ -175,7 +188,9 @@ s.deleteRowsWithNoVideo=function(v,callback){
                         s.tx({f:'video_delete',filename:s.moment(ev.time)+'.'+ev.ext,mid:ev.mid,ke:ev.ke,time:ev.time,end:s.moment(new Date,'YYYY-MM-DD HH:mm:ss')},'GRP_'+ev.ke);
                     }
                 });
-                s.cx({f:'deleteNoVideo',msg:es.del.length+' SQL rows with no file deleted',ke:v.ke,time:moment()})
+                if(es.del.length>0){
+                    s.cx({f:'deleteNoVideo',msg:es.del.length+' SQL rows with no file deleted',ke:v.ke,time:moment()})
+                }
             }
             setTimeout(function(){
                 callback()
@@ -185,36 +200,72 @@ s.deleteRowsWithNoVideo=function(v,callback){
         callback()
     }
 }
+//info about what the application is doing
 s.deleteOldLogs=function(v,callback){
-    //purge logs
     if(!v.d.log_days||v.d.log_days==''){v.d.log_days=10}else{v.d.log_days=parseFloat(v.d.log_days)};
     if(config.cron.deleteLogs===true&&v.d.log_days!==0){
         sql.query("DELETE FROM Logs WHERE ke=? AND `time` < DATE_SUB(NOW(), INTERVAL ? DAY)",[v.ke,v.d.log_days],function(err,rrr){
-            if(err)return console.log(err);
-            s.cx({f:'deleteLogs',msg:rrr.affectedRows+' SQL rows older than '+v.d.log_days+' days deleted',ke:v.ke,time:moment()})
             callback()
+            if(err)return console.error(err);
+            if(rrr.affectedRows.length>0){
+                s.cx({f:'deleteLogs',msg:rrr.affectedRows+' SQL rows older than '+v.d.log_days+' days deleted',ke:v.ke,time:moment()})
+            }
         })
     }else{
         callback()
     }
 }
+//events - motion, object, etc. detections
 s.deleteOldEvents=function(v,callback){
-    //purge events
     if(!v.d.event_days||v.d.event_days==''){v.d.event_days=10}else{v.d.event_days=parseFloat(v.d.event_days)};
     if(config.cron.deleteEvents===true&&v.d.event_days!==0){
         sql.query("DELETE FROM Events WHERE ke=? AND `time` < DATE_SUB(NOW(), INTERVAL ? DAY)",[v.ke,v.d.event_days],function(err,rrr){
-            if(err)return console.log(err);
-            s.cx({f:'deleteEvents',msg:rrr.affectedRows+' SQL rows older than '+v.d.event_days+' days deleted',ke:v.ke,time:moment()})
             callback()
+            if(err)return console.error(err);
+            if(rrr.affectedRows.length>0){
+                s.cx({f:'deleteEvents',msg:rrr.affectedRows+' SQL rows older than '+v.d.event_days+' days deleted',ke:v.ke,time:moment()})
+            }
         })
     }else{
         callback()
     }
 }
+//check for temporary files (special archive)
+s.deleteOldFileBins=function(v,callback){
+    if(!v.d.fileBin_days||v.d.fileBin_days==''){v.d.fileBin_days=10}else{v.d.fileBin_days=parseFloat(v.d.fileBin_days)};
+    if(config.cron.deleteFileBins===true&&v.d.fileBin_days!==0){
+        var fileBinQuery = ' FROM Files WHERE ke=? AND `date` < DATE_SUB(NOW(), INTERVAL ? DAY)';
+        sql.query("SELECT *"+fileBinQuery,[v.ke,v.d.fileBin_days],function(err,files){
+            if(files&&files[0]){
+                //delete the files
+                files.forEach(function(file){
+                    fs.unlink(s.getFileBinDirectory(file)+file.name,function(err){
+//                        if(err)console.error(err)
+                    })
+                })
+                //delete the database rows
+                sql.query("DELETE"+fileBinQuery,[v.ke,v.d.fileBin_days],function(err,rrr){
+                    callback()
+                    if(err)return console.error(err);
+                    if(rrr.affectedRows.length>0){
+                        s.cx({f:'deleteFileBins',msg:rrr.affectedRows+' files older than '+v.d.fileBin_days+' days deleted',ke:v.ke,time:moment()})
+                    }
+                })
+            }else{
+                callback()
+            }
+        })
+    }else{
+        callback()
+    }
+}
+//check for files with no database row
 s.checkForOrphanedFiles=function(v,callback){
     if(config.cron.deleteOrphans===true){
         var finish=function(count){
-            s.cx({f:'deleteOrphanedFiles',msg:ecount+' SQL rows with no database row deleted',ke:v.ke,time:moment()})
+            if(count>0){
+                s.cx({f:'deleteOrphanedFiles',msg:ecount+' SQL rows with no database row deleted',ke:v.ke,time:moment()})
+            }
             callback()
         }
         e={};
@@ -264,59 +315,63 @@ s.checkForOrphanedFiles=function(v,callback){
         callback()
     }
 }
+//user processing function
+s.processUser = function(number,rows){
+    var v = rows[number];
+    if(!v){
+        //no user object given
+        return
+    }
+    if(!s.alreadyDeletedRowsWithNoVideosOnStart[v.ke]){
+        s.alreadyDeletedRowsWithNoVideosOnStart[v.ke]=false;
+    }
+    if(!s.overlapLock[v.ke]){
+        // set overlap lock
+        s.overlapLock[v.ke]=true;
+        //set permissions
+        v.d=JSON.parse(v.details);
+        //size
+        if(!v.d.size||v.d.size==''){v.d.size=10000}else{v.d.size=parseFloat(v.d.size)};
+        //days to keep videos
+        v.maxVideoDays={}
+        if(!v.d.days||v.d.days==''){v.d.days=5}else{v.d.days=parseFloat(v.d.days)};
+        sql.query('SELECT * FROM Monitors WHERE ke=?', [v.ke], function(err,rr) {
+            rr.forEach(function(b,m){
+                b.details=JSON.parse(b.details);
+                if(b.details.max_keep_days&&b.details.max_keep_days!==''){
+                    v.maxVideoDays[b.mid]=parseFloat(b.details.max_keep_days)
+                }else{
+                    v.maxVideoDays[b.mid]=v.d.days
+                };
+            })
+            s.deleteOldLogs(v,function(){
+                s.deleteOldFileBins(v,function(){
+                    s.deleteOldEvents(v,function(){
+                        s.checkFilterRules(v,function(){
+                            s.deleteRowsWithNoVideo(v,function(){
+                                s.checkForOrphanedFiles(v,function(){
+                                    //done user, unlock current, and do next
+                                    s.overlapLock[v.ke]=false;
+                                    s.processUser(number+1,rows)
+                                })
+                            })
+                        })
+                    })
+                })
+            })
+        })
+    }
+}
+//recursive function
 s.cron=function(){
     x={};
     s.cx({f:'start',time:moment()})
-    sql.query('SELECT ke,uid,details,mail FROM Users WHERE details NOT LIKE \'%"sub"%\'', function(arr,r) {
-        if(r&&r[0]){
-            var processUser = function(number){
-                var v = r[number];
-                if(!v){
-                    //no user object given
-                    return
-                }else{
-                    //found user to process
-//                    console.log(r)
-                }
-                if(!s.alreadyDeletedRowsWithNoVideosOnStart[v.ke]){
-                    s.alreadyDeletedRowsWithNoVideosOnStart[v.ke]=false;
-                }
-                //set permissions
-                v.d=JSON.parse(v.details);
-                //size
-                if(!v.d.size||v.d.size==''){v.d.size=10000}else{v.d.size=parseFloat(v.d.size)};
-                //days to keep videos
-                v.maxVideoDays={}
-                if(!v.d.days||v.d.days==''){v.d.days=5}else{v.d.days=parseFloat(v.d.days)};
-                sql.query('SELECT * FROM Monitors WHERE ke=?', [v.ke], function(err,rr) {
-                    rr.forEach(function(b,m){
-                        b.details=JSON.parse(b.details);
-                        if(b.details.max_keep_days&&b.details.max_keep_days!==''){
-                            v.maxVideoDays[b.mid]=parseFloat(b.details.max_keep_days)
-                        }else{
-                            v.maxVideoDays[b.mid]=v.d.days
-                        };
-                    })
-                    if(s.lock[v.ke]!==1){
-                        // set overlap lock
-                        s.lock[v.ke]=1;
-                        s.deleteOldLogs(v,function(){
-                            s.deleteOldEvents(v,function(){
-                                s.checkFilterRules(v,function(){
-                                    s.deleteRowsWithNoVideo(v,function(){
-                                        s.checkForOrphanedFiles(v,function(){
-                                            //done user, unlock current, and do next
-                                            s.lock[v.ke]=0;
-                                            processUser(number+1)
-                                        });
-                                    });
-                                });
-                            })
-                        })
-                    }
-                })
-            }
-            processUser(0)
+    sql.query('SELECT ke,uid,details,mail FROM Users WHERE details NOT LIKE \'%"sub"%\'', function(err,rows) {
+        if(err){
+            console.error(err)
+        }
+        if(rows&&rows[0]){
+            s.processUser(0,rows)
         }
     })
     s.timeout=setTimeout(function(){
@@ -324,7 +379,7 @@ s.cron=function(){
     },parseFloat(config.cron.interval)*60000*60)
 }
 s.cron();
-
+//socket commander
 io.on('f',function(d){
     switch(d.f){
         case'start':case'restart':
@@ -336,6 +391,4 @@ io.on('f',function(d){
         break;
     }
 })
-
-
 console.log('Shinobi : cron.js started')
