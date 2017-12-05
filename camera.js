@@ -290,6 +290,20 @@ s.fromLong=function(ipl) {
       (ipl >> 8 & 255) + '.' +
       (ipl & 255) );
 };
+s.getRequest = function(url,callback){
+    return http.get(url, function(res){
+        var body = '';
+        res.on('data', function(chunk){
+            body += chunk;
+        });
+        res.on('end',function(){
+            try{body = JSON.parse(body)}catch(err){}
+            callback(body)
+        });
+    }).on('error', function(e){
+//                              s.systemLog("Get Snapshot Error", e);
+    });
+}
 s.kill=function(x,e,p){
     if(s.group[e.ke]&&s.group[e.ke].mon[e.id]&&s.group[e.ke].mon[e.id].spawn !== undefined){
         if(s.group[e.ke].mon[e.id].spawn){
@@ -982,7 +996,7 @@ s.ffmpeg=function(e,x){
         x.stream_video_filters.push('movie='+e.details.stream_watermark_location+'[watermark],[in][watermark]overlay='+x.stream_watermark_position+'[out]');
     }
     //stream - rotation
-    if(e.details.rotate_stream&&e.details.rotate_stream!==""&&e.details.rotate_stream!=="no"){
+    if(e.details.rotate_stream&&e.details.rotate_stream!==""&&e.details.rotate_stream!=="no"&&e.details.stream_vcodec!=='copy'){
         x.stream_video_filters.push('transpose='+e.details.rotate_stream);
     }
     //stream - hls vcodec
@@ -1784,7 +1798,7 @@ s.camera=function(x,e,cn,tx){
                 return
             }
             d.cx={f:'detector_trigger',id:d.id,ke:d.ke,details:d.details};
-            s.tx(d.cx,'GRP_'+d.ke);
+            s.tx(d.cx,'DETECTOR_'+d.ke+d.id);
             if(d.mon.details.detector_notrigger=='1'){
                 if(!d.mon.details.detector_notrigger_timeout||d.mon.details.detector_notrigger_timeout===''){
                     d.mon.details.detector_notrigger_timeout=10
@@ -2294,6 +2308,59 @@ var tx;
                 break;
                 case'monitor':
                     switch(d.ff){
+                        case'get':
+                            switch(d.fff){
+                                case'videos&events':
+                                     d.videoURL=[]
+                                     d.eventURL=[]
+                                    ///
+                                    if(!d.videoLimit&&d.limit){
+                                        d.videoLimit=d.limit
+                                    }
+                                    if(!d.videoStartDate&&d.startDate){
+                                        d.videoStartDate=d.startDate
+                                    }
+                                    if(!d.videoEndDate&&d.endDate){
+                                        d.videoEndDate=d.endDate
+                                    }
+                                    if(!d.eventLimit){
+                                        d.eventLimit=500
+                                    }
+                                    if(!d.eventStartDate&&d.startDate){
+                                        d.eventStartDate=d.startDate
+                                    }
+                                    if(!d.eventEndDate&&d.endDate){
+                                        d.eventEndDate=d.endDate
+                                    }
+                                    ///
+                                    if(d.videoLimit){
+                                        d.videoURL.push('limit='+d.videoLimit)
+                                    }
+                                    d.eventURL.push('/'+d.eventStartDate)
+                                    if(d.videoStartDate){
+                                        d.videoURL.push('start='+d.videoStartDate)
+                                    }
+                                    if(d.videoEndDate){
+                                        d.videoURL.push('end='+d.videoEndDate)
+                                    }
+                                    if(d.eventStartDate){
+                                        d.eventURL.push('/'+d.eventStartDate)
+                                    }
+                                    if(d.eventEndDate){
+                                        d.eventURL.push('/'+d.eventEndDate)
+                                    }
+                                    if(d.videoURL.length>0){d.videoURL = '?'+d.videoURL.join('&');}else{d.videoURL=''}
+                                    d.getURL = 'http://'+config.ip+':'+config.port+'/'+cn.auth;
+                                    d.videoURL = d.getURL+'/videos/'+cn.ke+'/'+d.mid+d.videoURL;
+                                    d.eventURL = d.getURL+'/events/'+cn.ke+'/'+d.mid+'?'+d.eventURL.join('&');
+                                    s.getRequest(d.videoURL,function(videos){
+                                        s.getRequest(d.eventURL,function(events){
+                                            tx({f:'drawPowerVideoMainTimeLine',videos:videos,events:events})
+                                        })
+                                    })
+                                break;
+                            }
+                        break;
                         case'control':
                             if(!s.group[d.ke]||!s.group[d.ke].mon[d.mid]){return}
                             d.m=s.group[d.ke].mon_conf[d.mid];
@@ -2376,6 +2443,7 @@ var tx;
                             if(!s.group[d.ke]||!s.group[d.ke].mon[d.id]||s.group[d.ke].mon[d.id].started===0){return false}
                             s.camera(d.ff,d,cn,tx)
                             cn.join('MON_'+d.id);
+                            cn.join('DETECTOR_'+d.ke+d.id);
                             if(cn.jpeg_on!==true){
                                 cn.join('MON_STREAM_'+d.id);
                             } if(s.group[d.ke]&&s.group[d.ke].mon&&s.group[d.ke].mon[d.id]&&s.group[d.ke].mon[d.id].watch){
@@ -2838,6 +2906,7 @@ var tx;
                     s.camera('watch_on',d,cn,tx)
                     cn.join('MON_'+d.id);
                     cn.join('MON_STREAM_'+d.id);
+                    cn.join('DETECTOR_'+d.ke+d.id);
                     cn.join('STR_'+d.ke);
                     if(s.group[d.ke]&&s.group[d.ke].mon[d.id]&&s.group[d.ke].mon[d.id].watch){
 
