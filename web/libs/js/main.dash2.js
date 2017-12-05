@@ -117,6 +117,24 @@ switch($user.details.lang){
                   d.webkitRequestFullscreen(Element.ALLOW_KEYBOARD_INPUT);
                 }
             break;
+            case'drawPoints':
+                d.height=d.stream.height()
+                d.width=d.stream.width()
+                if(d.monitorDetails.detector_scale_x===''){d.monitorDetails.detector_scale_x=320}
+                if(d.monitorDetails.detector_scale_y===''){d.monitorDetails.detector_scale_y=240}
+
+                d.widthRatio=d.width/d.monitorDetails.detector_scale_x
+                d.heightRatio=d.height/d.monitorDetails.detector_scale_y
+
+                d.streamObjects.find('.stream-detected-point[name="'+d.details.name+'"]').remove()
+                d.tmp=''
+                $.each(d.details.points,function(n,v){
+                    d.tmp+='<div class="stream-detected-point" name="'+d.details.name+'" style="height:'+1+'px;width:'+1+'px;top:'+(d.heightRatio*v.x)+'px;left:'+(d.widthRatio*v.y)+'px;">'
+                    if(v.tag){d.tmp+='<span class="tag">'+v.tag+'</span>'}
+                    d.tmp+='</div>'
+                })
+                d.streamObjects.append(d.tmp)
+            break;
             case'drawMatrices':
                 d.height=d.stream.height()
                 d.width=d.stream.width()
@@ -884,6 +902,13 @@ $.ccio.globalWebsocket=function(d,user){
                 }else{
                     d.e.find('.stream-detected-count').text(1)
                 }
+                if(d.details.points&&Object.keys(d.details.points).length>0){
+                    d.monitorDetails=JSON.parse($.ccio.mon[d.ke+d.id+user.auth_token].details)
+                    d.stream=d.e.find('.stream-element')
+                    d.streamObjects=d.e.find('.stream-objects')
+                    $.ccio.init('drawPoints',d)
+                    d.e.find('.stream-detected-count').text(d.streamObjects.find('.stream-detected-point').length)
+                }
                 if(d.details.confidence){
                     d.tt=d.details.confidence;
                     if (d.tt > 100) { d.tt = 100; }
@@ -892,7 +917,7 @@ $.ccio.globalWebsocket=function(d,user){
                 d.e.addClass('detector_triggered')
                 clearTimeout($.ccio.mon[d.ke+d.id+user.auth_token].detector_trigger_timeout);
                 $.ccio.mon[d.ke+d.id+user.auth_token].detector_trigger_timeout=setTimeout(function(){
-                    $('.monitor_item[ke="'+d.ke+'"][mid="'+d.id+'"][auth="'+user.auth_token+'"]').removeClass('detector_triggered').find('.stream-detected-object').remove()
+                    $('.monitor_item[ke="'+d.ke+'"][mid="'+d.id+'"][auth="'+user.auth_token+'"]').removeClass('detector_triggered').find('.stream-detected-object,.stream-detected-point').remove()
                 },5000);
             }
         break;
@@ -1219,6 +1244,108 @@ $.ccio.globalWebsocket=function(d,user){
             $.ccio.op('jpeg_on',true);
             $.ccio.init('jpegModeAll');
             $('body').addClass('jpegMode')
+        break;
+        case'drawPowerVideoMainTimeLine':
+            var videos = d.videos;
+            var events = d.events;
+//            $.pwrvid.currentlyLoading = false
+            $.pwrvid.currentVideos=videos
+            $.pwrvid.currentEvents=events
+            $.pwrvid.e.find('.loading').hide()
+            $.pwrvid.e.find('.nodata').hide()
+            //$.pwrvid.drawTimeLine
+            if($.pwrvid.t&&$.pwrvid.t.destroy){$.pwrvid.t.destroy()}
+            data={};
+            $.each(videos.videos,function(n,v){
+                if(!v||!v.mid){return}
+                v.mon=$.ccio.mon[v.ke+v.mid+$user.auth_token];
+                v.filename=$.ccio.init('tf',v.time)+'.'+v.ext;
+                if(v.status>0){
+        //                    data.push({src:v,x:v.time,y:moment(v.time).diff(moment(v.end),'minutes')/-1})
+                    data[v.filename]={filename:v.filename,time:v.time,timeFormatted:moment(v.time).format('MM/DD/YYYY HH:mm'),endTime:v.end,close:moment(v.time).diff(moment(v.end),'minutes')/-1,motion:[],row:v,position:n}
+                }
+            });
+            $.each(events,function(n,v){
+                $.each(data,function(m,b){
+                    if (moment(v.time).isBetween(moment(b.time).format(),moment(b.endTime).format())) {
+                        data[m].motion.push(v)
+                    }
+                })
+            });
+            $.pwrvid.currentDataObject=data;
+            if($.pwrvid.chart){
+                $.pwrvid.d.empty()
+                delete($.pwrvid.chart)
+            }
+            $.pwrvid.currentData=Object.values(data);
+            if($.pwrvid.currentData.length>0){
+                var labels=[]
+                var Dataset1=[]
+                var Dataset2=[]
+                $.each(data,function(n,v){
+                    labels.push(v.timeFormatted)
+                    Dataset1.push(v.close)
+                    Dataset2.push(v.motion.length)
+                })
+                $.pwrvid.d.html("<canvas></canvas>")
+                var timeFormat = 'MM/DD/YYYY HH:mm';
+                var color = Chart.helpers.color;
+                Chart.defaults.global.defaultFontColor = '#fff';
+                var config = {
+                    type: 'bar',
+                    data: {
+                        labels: labels,
+                        datasets: [{
+                            type: 'line',
+                            label: '<%-cleanLang(lang['Video and Time Span (Minutes)'])%>',
+                            backgroundColor: color(window.chartColors.blue).alpha(0.2).rgbString(),
+                            borderColor: window.chartColors.blue,
+                            data: Dataset1,
+                        }, {
+                            type: 'bar',
+                            showTooltip: false,
+                            label: '<%-cleanLang(lang['Counts of Motion'])%>',
+                            backgroundColor: color(window.chartColors.red).alpha(0.5).rgbString(),
+                            borderColor: window.chartColors.red,
+                            data:Dataset2,
+                        }, ]
+                    },
+                    options: {
+                         maintainAspectRatio: false,
+                        title: {
+                            fontColor: "white",
+                            text:"<%-lang['Video Length (minutes) and Motion Count per video']%>"
+                        },
+                        tooltips: {
+                            callbacks: {
+
+                            },
+                        },
+                        scales: {
+                            xAxes: [{
+                                type: "time",
+                                display: true,
+                                time: {
+                                    format: timeFormat,
+                                    // round: 'day'
+                                }
+                            }],
+                        },
+                    }
+                };
+
+                var ctx = $.pwrvid.d.find('canvas')[0].getContext("2d");
+                $.pwrvid.chart = new Chart(ctx, config);
+                $.pwrvid.d.find('canvas').click(function(e) {
+                    var target = $.pwrvid.chart.getElementsAtEvent(e)[0];
+                    if(!target){return false}
+                    target = $.pwrvid.currentData[target._index];
+                    $.pwrvid.e.find('.temp').html('<li class="glM'+target.row.mid+$user.auth_token+'" mid="'+target.row.mid+'" ke="'+target.row.ke+'" status="'+target.row.status+'" file="'+target.row.filename+'" auth="'+$user.auth_token+'"><a class="btn btn-sm btn-primary" preview="video" href="'+target.row.href+'"><i class="fa fa-play-circle"></i></a></li>').find('a').click()
+                });
+                var colorNames = Object.keys(window.chartColors);
+            }else{
+                $.pwrvid.e.find('.nodata').show()
+            }
         break;
     }
 }
@@ -1761,54 +1888,57 @@ $.each(<%-JSON.stringify(define["Monitor Settings"].blocks)%>,function(n,v){
         v.parent.append('<small class="hover">'+b.description+'</small>')
     })
 })
-if(!$.ccio.op().tabsOpen){
-    $.ccio.op('tabsOpen',{})
-}
-$.aM.tab=function(x,e){
-    var k={e:$('#monedit_tabs')}
-    k.tabs=$.ccio.op().tabsOpen
-    k.append=function(e){
-        k.e.append('<li class="mdl-menu__item" mid="'+e.mid+'" ke="'+e.ke+'" auth="'+$user.auth_token+'"><a title="Delete Pending Changes" class="delete btn btn-default btn-xs">&nbsp;<i class="fa fa-trash-o"></i>&nbsp;</a> &nbsp; <span class="name">'+e.name+'</span> <small>'+e.mid+'</small></li>')
-    }
-    if(!x){
-        $.each(k.tabs,function(n,v){
-            k.append(v)
-        })
-        return
-    }
-    if(!e.mid||e.mid===''){return}
-    e.ke=$user.ke
-    k.launcher=k.e.find('[mid="'+e.mid+'"][ke="'+e.ke+'"]')
-    switch(x){
-        case'add':
-            k.tabs[e.mid]=e
-            if(k.launcher.length===0){
-                k.append(e)
-            }else{
-                k.launcher.find('.name').text(e.name)
-            }
-        break;
-        case'delete':
-            delete(k.tabs[e.mid])
-            k.launcher.remove()
-        break;
-    }
-    $.ccio.op('tabsOpen',k.tabs)
-}
-$.aM.tab()
-$.aM.e.on('click','#monedit_tabs li .delete',function(e){
-    e.preventDefault()
-    $.aM.tab('delete',$.ccio.op().tabsOpen[$(this).parents('li').attr('mid')])
-})
-$.aM.e.on('click','#monedit_tabs li',function(){
-    e={e:$(this)}
-    e.mid=e.e.attr('mid')
-    e.ke=e.e.attr('ke')
-    e.values=$.ccio.op().tabsOpen[e.mid]
-    if(e.values){
-        $.aM.import(e)
-    }
-})
+//if(!$.ccio.op().tabsOpen){
+//    $.ccio.op('tabsOpen',{})
+//}
+//$.aM.tab=function(x,e){
+//    var k={e:$('#monedit_tabs')}
+//    k.tabs=$.ccio.op().tabsOpen
+//    k.append=function(e){
+//        k.e.append('<li class="mdl-menu__item" mid="'+e.mid+'" ke="'+e.ke+'" auth="'+$user.auth_token+'"><a title="Delete Pending Changes" class="delete btn btn-default btn-xs">&nbsp;<i class="fa fa-trash-o"></i>&nbsp;</a> &nbsp; <span class="name">'+e.name+'</span> <small>'+e.mid+'</small></li>')
+//    }
+//    if(!x){
+//        $.each(k.tabs,function(n,v){
+//            k.append(v)
+//        })
+//        return
+//    }
+//    if(!e.mid||e.mid===''){return}
+//    e.ke=$user.ke
+//    k.launcher=k.e.find('[mid="'+e.mid+'"][ke="'+e.ke+'"]')
+//    switch(x){
+//        case'add':
+//            k.tabs[e.mid]=e
+//            if(k.launcher.length===0){
+//                k.append(e)
+//            }else{
+//                k.launcher.find('.name').text(e.name)
+//            }
+//        break;
+//        case'delete':
+//            delete(k.tabs[e.mid])
+//            k.launcher.remove()
+//        break;
+//    }
+//    $.ccio.op('tabsOpen',k.tabs)
+//}
+//$.aM.tab()
+//$.aM.e.on('click','#monedit_tabs li .delete',function(e){
+//    e.preventDefault()
+//    $.aM.tab('delete',$.ccio.op().tabsOpen[$(this).parents('li').attr('mid')])
+//})
+//$.aM.e.on('click','#monedit_tabs li',function(){
+//    e={e:$(this)}
+//    e.mid=e.e.attr('mid')
+//    e.ke=e.e.attr('ke')
+//    e.values=$.ccio.op().tabsOpen[e.mid]
+//    if(e.values){
+//        $.aM.import(e)
+//    }
+//})
+//$.aM.f.find('input,select,textarea').change(function(e){
+//    $.aM.tab('add',$.aM.f.serializeObject())
+//})
 $.aM.drawList=function(){
     e={list:$.aM.e.find('.follow-list ul'),html:''}
     $.aM.e.find('[section]:visible').each(function(n,v){
@@ -2046,9 +2176,6 @@ $.aM.f.find('[name="type"]').change(function(e){
         break;
     }
 });
-$.aM.f.find('input,select,textarea').change(function(e){
-    $.aM.tab('add',$.aM.f.serializeObject())
-})
 //api window
 $.apM={e:$('#apis')};$.apM.f=$.apM.e.find('form');
 $.apM.md=$.apM.f.find('[detail]');
@@ -2795,128 +2922,40 @@ $.pwrvid.e.on('click','[preview]',function(e){
 })
 $.pwrvid.drawTimeline=function(getData){
     var e={};
+    $.pwrvid.e.find('.nodata').hide()
     if(getData===undefined){getData=true}
     var mid=$.pwrvid.m.val();
+    $.pwrvid.e.find('.loading').show()
     e.live_header=$.pwrvid.lv.find('h3 span');
     e.live=$.pwrvid.lv.find('iframe');
     e.dateRange=$.pwrvid.dr.data('daterangepicker');
-    e.eventLimit=$('#pvideo_event_limit').val();
-    e.videoLimit=$('#pvideo_video_limit').val();
     if(e.eventLimit===''){e.eventLimit=500}
     if(e.videoLimit===''){e.videoLimit=0}
-    e.dateRange={startDate:e.dateRange.startDate,endDate:e.dateRange.endDate}
-    e.videoURL='/'+$user.auth_token+'/videos/'+$user.ke+'/'+mid;
-    e.eventURL='/'+$user.auth_token+'/events/'+$user.ke+'/'+mid;
-    e.videoURL+='?limit='+e.videoLimit+'&start='+$.ccio.init('th',e.dateRange.startDate)+'&end='+$.ccio.init('th',e.dateRange.endDate);
-    e.eventURL+='/'+e.eventLimit+'/'+$.ccio.init('th',e.dateRange.startDate)+'/'+$.ccio.init('th',e.dateRange.endDate);
     e.live_header.text($.ccio.mon[$user.ke+mid+$user.auth_token].name)
-    e.live.attr('src','/'+$user.auth_token+'/embed/'+$user.ke+'/'+mid+'/fullscreen|jquery|relative')
-    
-    e.next=function(videos,events){
-        if($.pwrvid.t&&$.pwrvid.t.destroy){$.pwrvid.t.destroy()}
-        data={};
-        $.each(videos.videos,function(n,v){
-            if(!v||!v.mid){return}
-            v.mon=$.ccio.mon[v.ke+v.mid+$user.auth_token];
-            v.filename=$.ccio.init('tf',v.time)+'.'+v.ext;
-            if(v.status>0){
-    //                    data.push({src:v,x:v.time,y:moment(v.time).diff(moment(v.end),'minutes')/-1})
-                data[v.filename]={filename:v.filename,time:v.time,timeFormatted:moment(v.time).format('MM/DD/YYYY HH:mm'),endTime:v.end,close:moment(v.time).diff(moment(v.end),'minutes')/-1,motion:[],row:v,position:n}
-            }
-        });
-        $.each(events,function(n,v){
-            $.each(data,function(m,b){
-                if (moment(v.time).isBetween(moment(b.time).format(),moment(b.endTime).format())) {
-                    data[m].motion.push(v)
-                }
-            })
-        });
-        $.pwrvid.currentDataObject=data;
-        e.n=$.pwrvid.e.find('.nodata').hide()
-        if($.pwrvid.chart){
-            $.pwrvid.d.empty()
-            delete($.pwrvid.chart)
-        }
-        $.pwrvid.currentData=Object.values(data);
-        if($.pwrvid.currentData.length>0){
-            var labels=[]
-            var Dataset1=[]
-            var Dataset2=[]
-            $.each(data,function(n,v){
-                labels.push(v.timeFormatted)
-                Dataset1.push(v.close)
-                Dataset2.push(v.motion.length)
-            })
-            $.pwrvid.d.html("<canvas></canvas>")
-            var timeFormat = 'MM/DD/YYYY HH:mm';
-            var color = Chart.helpers.color;
-            Chart.defaults.global.defaultFontColor = '#fff';
-            var config = {
-                type: 'bar',
-                data: {
-                    labels: labels,
-                    datasets: [{
-                        type: 'line',
-                        label: '<%-cleanLang(lang['Video and Time Span (Minutes)'])%>',
-                        backgroundColor: color(window.chartColors.blue).alpha(0.2).rgbString(),
-                        borderColor: window.chartColors.blue,
-                        data: Dataset1,
-                    }, {
-                        type: 'bar',
-                        showTooltip: false,
-                        label: '<%-cleanLang(lang['Counts of Motion'])%>',
-                        backgroundColor: color(window.chartColors.red).alpha(0.5).rgbString(),
-                        borderColor: window.chartColors.red,
-                        data:Dataset2,
-                    }, ]
-                },
-                options: {
-                     maintainAspectRatio: false,
-                    title: {
-                        fontColor: "white",
-                        text:"<%-lang['Video Length (minutes) and Motion Count per video']%>"
-                    },
-                    tooltips: {
-                        callbacks: {
+    e.live.attr('src','/'+$user.auth_token+'/embed/'+$user.ke+'/'+mid+'/fullscreen|jquery|relative|gui')
 
-                        },
-                    },
-                    scales: {
-                        xAxes: [{
-                            type: "time",
-                            display: true,
-                            time: {
-                                format: timeFormat,
-                                // round: 'day'
-                            }
-                        }],
-                    },
-                }
-            };
-
-            var ctx = $.pwrvid.d.find('canvas')[0].getContext("2d");
-            $.pwrvid.chart = new Chart(ctx, config);
-            $.pwrvid.d.find('canvas').click(function(e) {
-                var target = $.pwrvid.chart.getElementsAtEvent(e)[0];
-                if(!target){return false}
-                target = $.pwrvid.currentData[target._index];
-                $.pwrvid.e.find('.temp').html('<li class="glM'+target.row.mid+$user.auth_token+'" mid="'+target.row.mid+'" ke="'+target.row.ke+'" status="'+target.row.status+'" file="'+target.row.filename+'" auth="'+$user.auth_token+'"><a class="btn btn-sm btn-primary" preview="video" href="'+target.row.href+'"><i class="fa fa-play-circle"></i></a></li>').find('a').click()
-            });
-            var colorNames = Object.keys(window.chartColors);
-
-        }else{
-            e.n.show()
-        }
+    var pulseLoading = function(){
+        var loading = $.pwrvid.e.find('.loading')
+        var currentColor = loading.css('color')
+        loading.animate('color','red')
+        setTimeout(function(){
+            loading.css('color',currentColor)
+        },500)
     }
     if(getData===true){
-        $.getJSON(e.eventURL,function(events){
-            $.getJSON(e.videoURL,function(videos){
-                $.pwrvid.currentVideos=videos
-                $.pwrvid.currentEvents=events
-                e.next(videos,events)
-            })
-        })
+        $.ccio.cx({
+            f:'monitor',
+            ff:'get',
+            fff:'videos&events',
+            videoLimit:$('#pvideo_video_limit').val(),
+            eventLimit:$('#pvideo_event_limit').val(),
+            startDate:$.ccio.init('th',e.dateRange.startDate),
+            endDate:$.ccio.init('th',e.dateRange.endDate),
+            ke:e.ke,
+            mid:mid
+        });
     }else{
+        $.pwrvid.e.find('.loading').hide()
         e.next($.pwrvid.currentVideos,$.pwrvid.currentEvents)
     }
 }
@@ -3531,10 +3570,10 @@ $('body')
                 e.values=$.ccio.mon[e.ke+e.mid+user.auth_token];
             }
             $.aM.selected=e.values;
-            e.openTabs=$.ccio.op().tabsOpen
-            if(e.openTabs[e.mid]){
-                e.values=e.openTabs[e.mid]
-            }
+//            e.openTabs=$.ccio.op().tabsOpen
+//            if(e.openTabs[e.mid]){
+//                e.values=e.openTabs[e.mid]
+//            }
             $.aM.import(e)
             $('#add_monitor').modal('show')
         break;
