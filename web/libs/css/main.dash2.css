@@ -78,6 +78,7 @@ img{max-width:100%}
 .permission_monitor_edit{display:none}
 .permission_video_delete{display:none}
 .nodata .divider{margin:5px 0}
+.loading .divider{margin:5px 0}
 
 .monitor_item.fullscreen img.stream-element{height:100%;width:auto}
 .monitor_item.fullscreen canvas.stream-element{height:auto;width:auto;background-color:black;}
@@ -246,6 +247,7 @@ img.circle-img,div.circle-img{border-radius:50%;height:50px;width:50px}
 .stream-objects{position:absolute;top:0;left:0;width:100%;height:100%;z-index:1}
 .stream-objects .tag{position:absolute;bottom:100%;left:0;background:red;color:#fff;font-family:monospace;font-size:80%;border-radius:5px 5px 0 0 ;padding:3px 5px;}
 .stream-objects .stream-detected-object{position:absolute;top:0;left:0;border:3px solid red;background:transparent;border-radius:5px}
+.stream-objects .stream-detected-point{position:absolute;top:0;left:0;border:3px solid yellow;background:transparent;border-radius:5px}
 .stream-objects .point{position:absolute;top:0;left:0;border:3px solid red;border-radius:50%}
 .monitor_item .stream-hud{opacity:0;position:absolute;top:0;left:0;width:100%;height:100%;z-index:2}
 .monitor_item .stream-hud .controls{position:absolute;top:10px;left:10px;}
