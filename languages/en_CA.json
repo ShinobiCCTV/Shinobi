@@ -584,5 +584,18 @@
    "Please Wait for Completion": "Please Wait for Completion, Depending on the number of files selected this may take some time. Refresh to check again.",
    "flv": "flv",
    "FLV": "FLV",
-   "Link Shinobi": "Link Shinobi"
+   "Link Shinobi": "Link Shinobi",
+   "Show Stream HUD":"Show Stream HUD",
+   "Gender":"Gender",
+   "Emotion":"Emotion",
+   "Age":"Age",
+   "Object":"Object",
+   "Uniform":"Uniform",
+   "Pose":"Pose",
+   "Male":"Male",
+   "Female":"Female",
+   "Confidence":"Confidence",
+   "Object Tag":"Object Tag",
+   "Emotion Average":"Emotion Average",
+   "Confidence of Detection":"Confidence of Detection"
 }
