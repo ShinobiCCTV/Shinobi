@@ -10,6 +10,9 @@
 <link rel="stylesheet" href="/libs/css/fullcalendar.min.css">
 <link rel="stylesheet" href="/libs/css/bootstrap-table.min.css">
 <link rel="stylesheet" href="/libs/css/main.dash2.css">
+<style id="theme">
+<% if(details.theme&&details.theme!==''){ %><%- include(__dirname+'/web/libs/themes/'+details.theme+'/style.css'); %><% } %>
+</style>
 <style id="custom_css">
 <%= details.css %>
 </style>
