@@ -2041,7 +2041,7 @@ $.aM.f.submit(function(e){
     })
     if(!$.ccio.mon[e.s.ke+e.s.mid+$user.auth_token]){$.ccio.mon[e.s.ke+e.s.mid+$user.auth_token]={}}
     $.each(e.s,function(n,v){$.ccio.mon[e.s.ke+e.s.mid+$user.auth_token][n]=v;})
-    $.aM.tab('delete',e.s)
+//    $.aM.tab('delete',e.s)
     $.aM.e.modal('hide')
     return false;
 });
