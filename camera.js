@@ -827,6 +827,19 @@ s.video=function(x,e){
         break;
     }
 }
+s.splitForFFPMEG = function (ffmpegCommandAsString) {
+    //this function ignores spaces inside quotes.
+    return ffmpegCommandAsString.match(/\\?.|^$/g).reduce((p, c) => {
+        if(c === '"'){
+            p.quote ^= 1;
+        }else if(!p.quote && c === ' '){
+            p.a.push('');
+        }else{
+            p.a[p.a.length-1] += c.replace(/\\(.)/,"$1");
+        }
+        return  p;
+    }, {a: ['']}).a
+};
 s.ffmpeg=function(e,x){
     //set X for temporary values so we don't break our main monitor object.
     if(!x){x={tmp:''}}
@@ -870,13 +883,7 @@ s.ffmpeg=function(e,x){
         x.ratio=e.details.stream_scale_x+'x'+e.details.stream_scale_y;
     }
     //record - segmenting
-    x.segment=' -f segment -segment_atclocktime 1 -reset_timestamps 1 -strftime 1 -segment_list pipe:2 -segment_time '+(60*e.cutoff)+' ';
-    //record - check for double quotes
-    if(e.details.dqf=='1'){
-        x.segment+='"'+e.dir+'%Y-%m-%dT%H-%M-%S.'+e.ext+'"';
-    }else{
-        x.segment+=e.dir+'%Y-%m-%dT%H-%M-%S.'+e.ext;
-    }
+    x.segment=' -f segment -segment_atclocktime 1 -reset_timestamps 1 -strftime 1 -segment_list pipe:2 -segment_time '+(60*e.cutoff)+' "'+e.dir+'%Y-%m-%dT%H-%M-%S.'+e.ext+'"';
     //record - set defaults for extension, video quality
     switch(e.ext){
         case'mp4':
@@ -1078,7 +1085,7 @@ s.ffmpeg=function(e,x){
                 if(x.cust_stream.indexOf('-tune')===-1){x.cust_stream+=' -tune zerolatency'}
                 if(x.cust_stream.indexOf('-g ')===-1){x.cust_stream+=' -g 1'}
             }
-            x.pipe=x.preset_stream+x.stream_quality+x.stream_acodec+x.stream_vcodec+x.stream_fps+' -f hls -s '+x.ratio+x.stream_video_filters+x.cust_stream+' -hls_time '+x.hls_time+' -hls_list_size '+x.hls_list_size+' -start_number 0 -hls_allow_cache 0 -hls_flags +delete_segments+omit_endlist '+e.sdir+'s.m3u8';
+            x.pipe=x.preset_stream+x.stream_quality+x.stream_acodec+x.stream_vcodec+x.stream_fps+' -f hls -s '+x.ratio+x.stream_video_filters+x.cust_stream+' -hls_time '+x.hls_time+' -hls_list_size '+x.hls_list_size+' -start_number 0 -hls_allow_cache 0 -hls_flags +delete_segments+omit_endlist "'+e.sdir+'s.m3u8"';
         break;
         case'mjpeg':
             if(x.stream_quality)x.stream_quality=' -q:v '+x.stream_quality;
@@ -1105,7 +1112,7 @@ s.ffmpeg=function(e,x){
         if(e.details.snap_vf&&e.details.snap_vf!==''){x.snap_vf=' -vf '+e.details.snap_vf}else{x.snap_vf=''}
         if(e.details.snap_scale_x&&e.details.snap_scale_x!==''&&e.details.snap_scale_y&&e.details.snap_scale_y!==''){x.sratio=' -s '+e.details.snap_scale_x+'x'+e.details.snap_scale_y}else{x.sratio=''}
         if(e.details.cust_snap&&e.details.cust_snap!==''){x.cust_snap=' '+e.details.cust_snap;}else{x.cust_snap=''}
-        x.pipe+=' -update 1 -r '+e.details.snap_fps+x.cust_snap+x.sratio+x.snap_vf+' '+e.sdir+'s.jpg -y';
+        x.pipe+=' -update 1 -r '+e.details.snap_fps+x.cust_snap+x.sratio+x.snap_vf+' "'+e.sdir+'s.jpg" -y';
     }
     //Raw H.264 stream over HTTP (RTSP simulation)
     if(e.details.rawh264==='1'){
@@ -1187,7 +1194,9 @@ s.ffmpeg=function(e,x){
         break;
     }
     s.group[e.ke].mon[e.mid].ffmpeg=x.tmp;
-    return spawn(config.ffmpegDir,x.tmp.replace(/\s+/g,' ').trim().split(' '),{detached: true});
+    x.tmp = s.splitForFFPMEG(x.tmp.replace(/\s+/g,' ').trim())
+    console.log(x.tmp)
+    return spawn(config.ffmpegDir,x.tmp,{detached: true,stdio:['pipe', 'pipe', 'pipe', 'pipe', 'pipe']});
 }
 s.file=function(x,e){
     if(!e){e={}};
