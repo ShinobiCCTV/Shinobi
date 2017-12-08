@@ -154,6 +154,7 @@ img.circle-img,div.circle-img{border-radius:50%;height:50px;width:50px}
 .flex-container-modal-body .flex-block>div{flex:1;float:none}
 
 .modal{overflow:auto!important}
+form.modal-body{margin:0}
 #region_editor .modal-body{text-align:center;overflow:auto;max-height:800px}
 #region_editor .canvas_holder{position:relative;display:inline-block;overflow:auto;min-height:450px}
 #region_editor .cord_element{position:absolute;background:rgba(221, 221, 221, 0.8);z-index:11;padding:5px;}
@@ -321,6 +322,7 @@ img.circle-img,div.circle-img{border-radius:50%;height:50px;width:50px}
 .dark.modal{color:#fff;}
 .dark .table-striped>tbody>tr:nth-of-type(even){background:#616161}
 .dark .table-striped>tbody>tr>td{border-color:#222;color:#fff}
+.dark .table-striped>thead>tr>th{border-color:#222;color:#fff;background:#616161;vertical-align:middle;}
 .dark .table-striped>tbody>tr:nth-of-type(odd){background-color: #4c4747;}
 .dark .table>tbody>tr.active>td{background:inherit;border:0}
 .dark code{color: #c49a68;background-color: #36333d;}

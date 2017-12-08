@@ -44,7 +44,6 @@ switch($user.details.lang){
         }
         switch(x){
             case'cleanMons':
-                var arr=[]
                 var acceptedFields = [
                     'mid',
                     'ke',
@@ -63,6 +62,11 @@ switch($user.details.lang){
                     'width',
                     'height'
                 ]
+                if(d==='object'){
+                    var arr={}
+                }else{
+                    var arr=[]
+                }
                 $.each($.ccio.mon,function(n,v){
                     var row = {};
                     $.each(v,function(m,b){
@@ -70,7 +74,11 @@ switch($user.details.lang){
                             row[m]=b;
                         }
                     })
-                    arr.push(row)
+                    if(d==='object'){
+                        arr[n]=row
+                    }else{
+                        arr.push(row)
+                    }
                 })
                 return arr;
             break;
@@ -1882,7 +1890,19 @@ $.log.lm.change(function(e){
     })
 });
 //multi monitor manager
-$.multimon={e:$('#multi_mon')};$.multimon.table=$.multimon.e.find('.tableData tbody')
+$.multimon={e:$('#multi_mon')};
+$.multimon.table=$.multimon.e.find('.tableData tbody');
+$.multimon.f=$.multimon.e.find('form');
+$.multimon.f.on('change','#multimon_select_all',function(e){
+    e.e=$(this);
+    e.p=e.e.prop('checked')
+    e.a=$.multimon.f.find('input[type=checkbox][name]')
+    if(e.p===true){
+        e.a.prop('checked',true)
+    }else{
+        e.a.prop('checked',false)
+    }
+})
 $.multimon.e.find('.import_config').click(function(){
   var e={};e.e=$(this);e.mid=e.e.parents('[mid]').attr('mid');
     $.confirm.e.modal('show');
@@ -1920,8 +1940,17 @@ $.multimon.e.find('.import_config').click(function(){
     });
 })
 $.multimon.e.find('.save_config').click(function(){
-  var e={};e.e=$(this);
-    e.dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify($.ccio.init('cleanMons')));
+    var e={};e.e=$(this);
+    var arr=[];
+    var monitors = $.ccio.init('cleanMons','object')
+    $.each($.multimon.f.serializeObject(),function(n,v){
+        arr.push(monitors[n])
+    })
+    if(arr.length===0){
+        $.ccio.init('note',{title:'No Monitors Selected',text:'Select atleast one monitor to export.',type:'error'});
+        return
+    }
+    e.dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(arr));
     $('#temp').html('<a></a>')
         .find('a')
         .attr('href',e.dataStr)
@@ -1937,6 +1966,7 @@ $.multimon.e.on('shown.bs.modal',function() {
         }
         var img = $('#left_menu [mid="'+v.mid+'"][auth="'+v.user.auth_token+'"] [monitor="watch"]').attr('src')
         tmp+='<tr mid="'+v.mid+'" ke="'+v.ke+'" auth="'+v.user.auth_token+'">'
+        tmp+='<td><div class="checkbox"><input id="multimonCheck_'+v.ke+v.mid+v.user.auth_token+'" type="checkbox" name="'+v.ke+v.mid+v.user.auth_token+'" value="1"><label for="multimonCheck_'+v.ke+v.mid+v.user.auth_token+'"></label></div></td>'
         tmp+='<td><a monitor="watch"><img class="small-square-img" src="'+img+'"></a></td><td>'+v.name+'<br><small>'+v.mid+'</small></td><td class="monitor_mode">'+$.ccio.init('humanReadMode',v.mode)+'</td><td>'+streamURL+'</td>'
         //buttons
         tmp+='<td class="text-right"><a title="<%-cleanLang(lang.Pop)%>" monitor="pop" class="btn btn-primary"><i class="fa fa-external-link"></i></a> <a title="<%-cleanLang(lang.Calendar)%>" monitor="calendar" class="btn btn-default"><i class="fa fa-calendar"></i></a> <a title="<%-cleanLang(lang['Power Viewer'])%>" class="btn btn-default" monitor="powerview"><i class="fa fa-map-marker"></i></a> <a title="<%-cleanLang(lang['Time-lapse'])%>" class="btn btn-default" monitor="timelapse"><i class="fa fa-angle-double-right"></i></a> <a title="<%-cleanLang(lang['Videos List'])%>" monitor="videos_table" class="btn btn-default"><i class="fa fa-film"></i></a> <a title="<%-cleanLang(lang['Monitor Settings'])%>" class="btn btn-default permission_monitor_edit" monitor="edit"><i class="fa fa-wrench"></i></a></td>'
