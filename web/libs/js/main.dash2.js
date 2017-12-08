@@ -45,10 +45,28 @@ switch($user.details.lang){
         switch(x){
             case'cleanMons':
                 var arr=[]
+                var acceptedFields = [
+                    'mid',
+                    'ke',
+                    'name',
+                    'shto',
+                    'shfr',
+                    'details',
+                    'type',
+                    'ext',
+                    'protocol',
+                    'host',
+                    'path',
+                    'port',
+                    'fps',
+                    'mode',
+                    'width',
+                    'height'
+                ]
                 $.each($.ccio.mon,function(n,v){
                     var row = {};
                     $.each(v,function(m,b){
-                        if(m!=='host'&&m!=='user'){
+                        if(acceptedFields.indexOf(m)>-1){
                             row[m]=b;
                         }
                     })
@@ -2097,8 +2115,8 @@ $.aM.f.submit(function(e){
     $.post('/'+$user.auth_token+'/configureMonitor/'+$user.ke+'/'+e.s.mid,{data:JSON.stringify(e.s)},function(d){
         $.ccio.log(d)
     })
-    if(!$.ccio.mon[e.s.ke+e.s.mid+$user.auth_token]){$.ccio.mon[e.s.ke+e.s.mid+$user.auth_token]={}}
-    $.each(e.s,function(n,v){$.ccio.mon[e.s.ke+e.s.mid+$user.auth_token][n]=v;})
+    if(!$.ccio.mon[$user.ke+e.s.mid+$user.auth_token]){$.ccio.mon[$user.ke+e.s.mid+$user.auth_token]={}}
+    $.each(e.s,function(n,v){$.ccio.mon[$user.ke+e.s.mid+$user.auth_token][n]=v;})
 //    $.aM.tab('delete',e.s)
     $.aM.e.modal('hide')
     return false;
