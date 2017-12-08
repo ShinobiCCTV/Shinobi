@@ -43,6 +43,19 @@ switch($user.details.lang){
             user=$user
         }
         switch(x){
+            case'cleanMons':
+                var arr=[]
+                $.each($.ccio.mon,function(n,v){
+                    var row = {};
+                    $.each(v,function(m,b){
+                        if(m!=='host'&&m!=='user'){
+                            row[m]=b;
+                        }
+                    })
+                    arr.push(row)
+                })
+                return arr;
+            break;
             case'location':
                 var url
                 if(d&&d.info&&d.info.URL){
@@ -1852,6 +1865,51 @@ $.log.lm.change(function(e){
 });
 //multi monitor manager
 $.multimon={e:$('#multi_mon')};$.multimon.table=$.multimon.e.find('.tableData tbody')
+$.multimon.e.find('.import_config').click(function(){
+  var e={};e.e=$(this);e.mid=e.e.parents('[mid]').attr('mid');
+    $.confirm.e.modal('show');
+    $.confirm.title.text('<%-cleanLang(lang['Import Monitor Configuration'])%>')
+    e.html='<%-cleanLang(lang.ImportMultiMonitorConfigurationText)%><div style="margin-top:15px"><div class="form-group"><textarea placeholder="<%-cleanLang(lang['Paste JSON here.'])%>" class="form-control"></textarea></div><label class="upload_file btn btn-primary btn-block"> Upload File <input class="upload" type=file name="files[]"></label></div>';
+    $.confirm.body.html(e.html)
+    $.confirm.e.find('.upload').change(function(e){
+        var files = e.target.files; // FileList object
+        f = files[0];
+        var reader = new FileReader();
+        reader.onload = function(ee) {
+            $.confirm.e.find('textarea').val(ee.target.result);
+        }
+        reader.readAsText(f);
+    });
+    $.confirm.click({title:'Import',class:'btn-primary'},function(){
+        setTimeout(function(){
+            $.confirm.e.modal('show');
+        },1000)
+        $.confirm.title.text('<%-cleanLang(lang['Are you sure?'])%>')
+        $.confirm.body.html('<%-cleanLang(lang.ImportMultiMonitorConfigurationText)%>')
+        $.confirm.click({title:'Save Set',class:'btn-danger'},function(){
+            try{
+                e.monitorList=JSON.parse($.confirm.e.find('textarea').val());
+                $.each(e.monitorList,function(n,v){
+                    $.post('/'+$user.auth_token+'/configureMonitor/'+$user.ke+'/'+v.mid,{data:JSON.stringify(v,null,3)},function(d){
+                        $.ccio.log(d)
+                    })
+                })
+            }catch(err){
+                $.ccio.log(err)
+                $.ccio.init('note',{title:'<%-cleanLang(lang['Invalid JSON'])%>',text:'<%-cleanLang(lang.InvalidJSONText)%>',type:'error'})
+            }
+        });
+    });
+})
+$.multimon.e.find('.save_config').click(function(){
+  var e={};e.e=$(this);
+    e.dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify($.ccio.init('cleanMons')));
+    $('#temp').html('<a></a>')
+        .find('a')
+        .attr('href',e.dataStr)
+        .attr('download','Shinobi_Monitors_'+(new Date())+'.json')
+        [0].click()
+})
 $.multimon.e.on('shown.bs.modal',function() {
     var tmp=''
     $.each($.ccio.mon,function(n,v){

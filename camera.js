@@ -1195,7 +1195,6 @@ s.ffmpeg=function(e,x){
     }
     s.group[e.ke].mon[e.mid].ffmpeg=x.tmp;
     x.tmp = s.splitForFFPMEG(x.tmp.replace(/\s+/g,' ').trim())
-    console.log(x.tmp)
     return spawn(config.ffmpegDir,x.tmp,{detached: true,stdio:['pipe', 'pipe', 'pipe', 'pipe', 'pipe']});
 }
 s.file=function(x,e){
