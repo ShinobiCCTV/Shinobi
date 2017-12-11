@@ -469,6 +469,21 @@ s.init=function(x,e,k,fn){
             if(!s.group[e.ke].mon_conf){s.group[e.ke].mon_conf={}}
             s.init('apps',e)
         break;
+        case'group':
+            if(!s.group[d.ke]){
+                s.group[d.ke]={}
+            }
+            if(!s.group[d.ke].init){
+                s.group[d.ke].init={}
+            }
+            if(!d.limit||d.limit===''){d.limit=10000}else{d.limit=parseFloat(d.limit)}
+            //save global space limit for group key (mb)
+            s.group[d.ke].sizeLimit=d.limit;
+            //save global used space as megabyte value
+            s.group[d.ke].usedSpace=d.size/1000000;
+            //emit the changes to connected users
+            s.init('diskUsedEmit',d)
+        break;
         case'apps':
             if(!s.group[e.ke].init){
                 s.group[e.ke].init={};
@@ -840,9 +855,9 @@ s.splitForFFPMEG = function (ffmpegCommandAsString) {
         return  p;
     }, {a: ['']}).a
 };
-s.ffmpeg=function(e,x){
+s.ffmpeg=function(e){
     //set X for temporary values so we don't break our main monitor object.
-    if(!x){x={tmp:''}}
+    var x={tmp:''};
     //set some placeholding values to avoid "undefined" in ffmpeg string.
     x.record_string=''
     x.cust_input=''
@@ -2720,6 +2735,7 @@ var tx;
                                                 }
                                                 s.sqlQuery('INSERT INTO Users (ke,uid,mail,pass,details) VALUES (?,?,?,?,?)',[d.form.ke,d.form.uid,d.form.mail,s.md5(d.form.pass),d.form.details])
                                                 s.tx({f:'add_account',details:d.form.details,ke:d.form.ke,uid:d.form.uid,mail:d.form.mail},'$');
+                                                s.init('group',d.form)
                                             }
                                         })
                                     }else{
@@ -4419,19 +4435,7 @@ setTimeout(function(){
                         })
                     }
                     s.systemLog(v.mail+' : '+lang.startUpText0+' : '+rr.length,v.size)
-                    if(!s.group[v.ke]){
-                        s.group[v.ke]={}
-                    }
-                    if(!s.group[v.ke].init){
-                        s.group[v.ke].init={}
-                    }
-                    if(!v.limit||v.limit===''){v.limit=10000}else{v.limit=parseFloat(v.limit)}
-                    //save global space limit for group key (mb)
-                    s.group[v.ke].sizeLimit=v.limit;
-                    //save global used space as megabyte value
-                    s.group[v.ke].usedSpace=v.size/1000000;
-                    //emit the changes to connected users
-                    s.init('diskUsedEmit',v)
+                    s.init('group',v)
                     s.systemLog(v.mail+' : '+lang.startUpText1,countFinished+'/'+count)
                     if(countFinished===count){
                         s.systemLog(lang.startUpText2)
