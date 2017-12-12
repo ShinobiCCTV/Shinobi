@@ -470,19 +470,19 @@ s.init=function(x,e,k,fn){
             s.init('apps',e)
         break;
         case'group':
-            if(!s.group[d.ke]){
-                s.group[d.ke]={}
+            if(!s.group[e.ke]){
+                s.group[e.ke]={}
             }
-            if(!s.group[d.ke].init){
-                s.group[d.ke].init={}
+            if(!s.group[e.ke].init){
+                s.group[e.ke].init={}
             }
-            if(!d.limit||d.limit===''){d.limit=10000}else{d.limit=parseFloat(d.limit)}
+            if(!e.limit||e.limit===''){e.limit=10000}else{e.limit=parseFloat(e.limit)}
             //save global space limit for group key (mb)
-            s.group[d.ke].sizeLimit=d.limit;
+            s.group[e.ke].sizeLimit=e.limit;
             //save global used space as megabyte value
-            s.group[d.ke].usedSpace=d.size/1000000;
+            s.group[e.ke].usedSpace=e.size/1000000;
             //emit the changes to connected users
-            s.init('diskUsedEmit',d)
+            s.init('diskUsedEmit',e)
         break;
         case'apps':
             if(!s.group[e.ke].init){
@@ -2037,7 +2037,6 @@ if(config.plugins&&config.plugins.length>0){
                 v.port=80
             }
             var socket = socketIOclient(v.https+v.host+':'+v.port)
-            s.connectedPlugins[v.id].ws = socket;
             s.connectedPlugins[v.id].tx = function(x){return socket.emit('f',x)}
             socket.on('connect', function(cn){
                 s.systemLog('Connected to plugin (host) : '+v.id)
@@ -2056,8 +2055,15 @@ if(config.plugins&&config.plugins.length>0){
                 s.connectedPlugins[v.id].plugged=false
                 delete(s.api[v.id])
                 s.systemLog('Plugin Disconnected : '+v.id)
-                socket.connect()
+                s.connectedPlugins[v.id].reconnector = setInterval(function(){
+                    if(socket.connected===true){
+                        clearInterval(s.connectedPlugins[v.id].reconnector)
+                    }else{
+                        socket.connect()
+                    }
+                },1000*2)
             });
+            s.connectedPlugins[v.id].ws = socket;
         }
     })
 }
