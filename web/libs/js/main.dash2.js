@@ -22,6 +22,7 @@ switch($user.details.lang){
         })
     break;
 }
+
     $.ccio.log=function(x,y,z){
         if($.ccio.op().browserLog==="1"){
             if(!y){y=''};if(!z){z=''};
@@ -93,6 +94,128 @@ switch($user.details.lang){
                     url='/'
                 }
                 return url
+            break;
+//            case'streamWindow':
+//                return $('.monitor_item[mid="'+d.id+'"][ke="'+d.ke+'"][auth="'+user.auth_token+'"]')
+//            break;
+            case'streamMotionDetectOff':
+                d.mon.motionDetectionRunning = false
+                clearInterval(d.mon.motionDetector)
+            break;
+            case'streamMotionDetectOn':
+                d.mon.motionDetectionRunning = true
+                $.ccio.snapshot(d,function(url){
+                    $('#temp').html('<img>')
+                    var img=$('#temp img')[0]
+                    img.onload=function(){
+                        var frameNumber = 0,
+                            mainWindow = $('.monitor_item[mid="'+d.mid+'"][ke="'+d.ke+'"][auth="'+user.auth_token+'"]'),
+                            blenderCanvas = mainWindow.find(".canvas"),
+                            motionVision = mainWindow.find(".canvasFinal"),
+                            streamElement = mainWindow.find('.stream-element'),
+                            streamElementTag = streamElement[0],
+                            lastURL = null,
+                            currentImage = null,
+                            f = [],
+                            drawMatrices = {
+                                e:mainWindow,
+                                monitorDetails:JSON.parse(d.mon.details),
+                                stream:streamElement,
+                                streamObjects:mainWindow.find('.stream-objects'),
+                                details:{
+                                    name:'clientSideDetection',
+                                }
+                            };
+                        drawMatrices.monitorDetails.detector_scale_x = img.width;
+                        drawMatrices.monitorDetails.detector_scale_y = img.height;
+                        function checkForMotion() {
+                            var matrix = {
+                                topLeft:[img.width,img.height],
+                                topRight:[0,img.height],
+                                bottomRight:[0,0],
+                                bottomLeft:[img.width,0],
+                            }
+                            blenderCanvas.width = img.width;
+                            blenderCanvas.height = img.height;
+                            motionVision.width = img.width;
+                            motionVision.height = img.height;
+                            blenderCanvasContext.drawImage(streamElementTag, 0, 0);
+                            f[frameNumber] = blenderCanvasContext.getImageData(0, 0, blenderCanvas.width, blenderCanvas.height);
+                            frameNumber = 0 == frameNumber ? 1 : 0;
+                            currentImage = blenderCanvasContext.getImageData(0, 0, blenderCanvas.width, blenderCanvas.height);
+                            for (var currentImageLength = currentImage.data.length * 0.25, b = 0; b < currentImageLength;){
+                                var pos = b * 4
+                                var x = (pos / 4) % blenderCanvas.width;
+                                var y = Math.floor((pos / 4) / blenderCanvas.width);
+                                currentImage.data[pos] = .5 * (255 - currentImage.data[pos]) + .5 * f[frameNumber].data[pos];
+                                currentImage.data[pos + 1] = .5 * (255 - currentImage.data[pos + 1]) + .5 * f[frameNumber].data[pos + 1];
+                                currentImage.data[pos + 2] = .5 * (255 - currentImage.data[pos + 2]) + .5 * f[frameNumber].data[pos + 2];
+                                currentImage.data[pos + 3] = 255;
+                                var score = (currentImage.data[pos] + currentImage.data[pos + 1] + currentImage.data[pos + 2]) / 3;
+                                if(score>170){
+                                    var x = (pos / 4) % img.width;
+                                    var y = Math.floor((pos / 4) / img.width);
+                                    if(x<matrix.topLeft[0])matrix.topLeft[0]=x;
+                                    if(y<matrix.topLeft[1])matrix.topLeft[1]=y;
+                                    //Top Right point
+                                    if(x>matrix.topRight[0])matrix.topRight[0]=x;
+                                    if(y<matrix.topRight[1])matrix.topRight[1]=y;
+                                    //Bottom Right point
+                                    if(x>matrix.bottomRight[0])matrix.bottomRight[0]=x;
+                                    if(y>matrix.bottomRight[1])matrix.bottomRight[1]=y;
+                                    //Bottom Left point
+                                    if(x<matrix.bottomLeft[0])matrix.bottomLeft[0]=x;
+                                    if(y>matrix.bottomLeft[1])matrix.bottomLeft[1]=y;
+                                //                                console.log(score, x, y)
+                                }
+                                b += 4;
+                            }
+                            matrix.x = matrix.topLeft[0];
+                            matrix.y = matrix.topLeft[1];
+                            matrix.width = matrix.topRight[0] - matrix.topLeft[0]
+                            matrix.height = matrix.bottomLeft[1] - matrix.topLeft[1]
+                            console.log(matrix)
+                            drawMatrices.details.matrices=[matrix]
+                            $.ccio.init('drawMatrices',drawMatrices)
+                            return matrix;
+//                            motionVisionContext.putImageData(currentImage, 0, 0)
+                        }
+                        if(blenderCanvas.length === 0){
+                            mainWindow.append('<canvas class="canvas"></canvas>')
+                            blenderCanvas = mainWindow.find(".canvas")
+                        }
+                        blenderCanvas = blenderCanvas[0];
+                        if(motionVision.length === 0){
+                            mainWindow.append('<canvas class="canvasFinal"></canvas>')
+                            motionVision = mainWindow.find(".canvasFinal")
+                        }
+                                        console.log(blenderCanvas,motionVision)
+                        motionVision = motionVision[0];
+                        var blenderCanvasContext = blenderCanvas.getContext("2d");
+                        var motionVisionContext = motionVision.getContext("2d");
+                        clearInterval(d.mon.motionDetector)
+                        d.mon.motionDetector = setInterval(checkForMotion,200)
+
+                        switch(JSON.parse(d.details).stream_type){
+                            case'jpeg':
+                                streamURL=$.ccio.init('location',user)+user.auth_token+'/jpeg/'+d.ke+'/'+d.mid+'/s.jpg'
+                            break;
+                            case'mjpeg':
+                                streamURL=$.ccio.init('location',user)+user.auth_token+'/mjpeg/'+d.ke+'/'+d.mid
+                            break;
+                            case'hls':
+                                streamURL=$.ccio.init('location',user)+user.auth_token+'/hls/'+d.ke+'/'+d.mid+'/s.m3u8'
+                            break;
+                            case'flv':
+                                streamURL=$.ccio.init('location',user)+user.auth_token+'/flv/'+d.ke+'/'+d.mid+'/s.flv'
+                            break;
+                            case'b64':
+                                streamURL='Websocket'
+                            break;
+                        }
+                    }
+                    img.src=url
+                })
             break;
             case'streamURL':
                 var streamURL
@@ -190,6 +313,7 @@ switch($user.details.lang){
                     if(v.tag){d.tmp+='<span class="tag">'+v.tag+'</span>'}
                     d.tmp+='</div>'
                 })
+                console.log(d)
                 d.streamObjects.append(d.tmp)
             break;
             case'clearTimers':
@@ -640,7 +764,7 @@ switch($user.details.lang){
                 tmp+='<div class="monitor_details">';
                 tmp+='<div><span class="monitor_name">'+d.name+'</span><span class="monitor_not_record_copy">, <%-cleanLang(lang['Recording FPS'])%> : <span class="monitor_fps">'+d.fps+'</span></span></div>';
                 tmp+='</div>';
-                tmp+='<div class="btn-group"><a title="<%-cleanLang(lang.Snapshot)%>" monitor="snapshot" class="btn btn-primary"><i class="fa fa-camera"></i></a> <a title="<%-cleanLang(lang['Show Logs'])%>" class_toggle="show_logs" data-target=".monitor_item[mid=\''+d.mid+'\'][ke=\''+d.ke+'\'][auth=\''+user.auth_token+'\']" class="btn btn-warning"><i class="fa fa-exclamation-triangle"></i></a> <a title="<%-cleanLang(lang.Control)%>" monitor="control_toggle" class="btn btn-default"><i class="fa fa-arrows"></i></a> <a title="<%-cleanLang(lang['Status Indicator'])%>" class="btn btn-danger signal" monitor="watch_on"><i class="fa fa-plug"></i></a> <a title="<%-cleanLang(lang.Pop)%>" monitor="pop" class="btn btn-default"><i class="fa fa-external-link"></i></a> <a title="<%-cleanLang(lang.Calendar)%>" monitor="calendar" class="btn btn-default"><i class="fa fa-calendar"></i></a> <a title="<%-cleanLang(lang['Power Viewer'])%>" class="btn btn-default" monitor="powerview"><i class="fa fa-map-marker"></i></a> <a title="<%-cleanLang(lang['Time-lapse'])%>" class="btn btn-default" monitor="timelapse"><i class="fa fa-angle-double-right"></i></a> <a title="<%-cleanLang(lang['Videos List'])%>" monitor="videos_table" class="btn btn-default"><i class="fa fa-film"></i></a> <a title="<%-cleanLang(lang['Monitor Settings'])%>" class="btn btn-default permission_monitor_edit" monitor="edit"><i class="fa fa-wrench"></i></a> <a title="<%-cleanLang(lang.Fullscreen)%>" monitor="fullscreen" class="btn btn-default"><i class="fa fa-arrows-alt"></i></a> <a title="<%-cleanLang(lang.Close)%> Stream" monitor="watch_off" class="btn btn-danger"><i class="fa fa-times"></i></a></div>';
+                tmp+='<div class="btn-group"><a title="<%-cleanLang(lang.Snapshot)%>" monitor="snapshot" class="btn btn-primary"><i class="fa fa-camera"></i></a> <a title="<%-cleanLang(lang['Show Logs'])%>" class_toggle="show_logs" data-target=".monitor_item[mid=\''+d.mid+'\'][ke=\''+d.ke+'\'][auth=\''+user.auth_token+'\']" class="btn btn-warning"><i class="fa fa-exclamation-triangle"></i></a> <a title="<%-cleanLang(lang.Control)%>" monitor="control_toggle" class="btn btn-default"><i class="fa fa-arrows"></i></a> <a title="<%-cleanLang(lang['Status Indicator'])%>" class="btn btn-danger signal" monitor="watch_on"><i class="fa fa-plug"></i></a> <a title="<%-cleanLang(lang['Detector'])%>" class="btn btn-danger" monitor="motion"><i class="fa fa-grav"></i></a> <a title="<%-cleanLang(lang.Pop)%>" monitor="pop" class="btn btn-default"><i class="fa fa-external-link"></i></a> <a title="<%-cleanLang(lang.Calendar)%>" monitor="calendar" class="btn btn-default"><i class="fa fa-calendar"></i></a> <a title="<%-cleanLang(lang['Power Viewer'])%>" class="btn btn-default" monitor="powerview"><i class="fa fa-map-marker"></i></a> <a title="<%-cleanLang(lang['Time-lapse'])%>" class="btn btn-default" monitor="timelapse"><i class="fa fa-angle-double-right"></i></a> <a title="<%-cleanLang(lang['Videos List'])%>" monitor="videos_table" class="btn btn-default"><i class="fa fa-film"></i></a> <a title="<%-cleanLang(lang['Monitor Settings'])%>" class="btn btn-default permission_monitor_edit" monitor="edit"><i class="fa fa-wrench"></i></a> <a title="<%-cleanLang(lang.Fullscreen)%>" monitor="fullscreen" class="btn btn-default"><i class="fa fa-arrows-alt"></i></a> <a title="<%-cleanLang(lang.Close)%> Stream" monitor="watch_off" class="btn btn-danger"><i class="fa fa-times"></i></a></div>';
                 tmp+='</div>';
                 tmp+='</div>';
                 tmp+='<div class="mdl-card mdl-cell mdl-cell--8-col mdl-cell--4-col-desktop">';
@@ -3300,6 +3424,13 @@ $('body')
             user=$user
         }
     switch(e.a){
+        case'motion':
+            if(!e.mon.motionDetectionRunning){
+                $.ccio.init('streamMotionDetectOn',e,user)
+            }else{
+                $.ccio.init('streamMotionDetectOff',e,user)
+            }
+        break;
         case'pop':
             e.fin=function(img){
                 if($.ccio.mon[e.ke+e.mid+user.auth_token].popOut){
