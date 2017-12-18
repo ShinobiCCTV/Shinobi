@@ -98,11 +98,26 @@ switch($user.details.lang){
 //            case'streamWindow':
 //                return $('.monitor_item[mid="'+d.id+'"][ke="'+d.ke+'"][auth="'+user.auth_token+'"]')
 //            break;
+            case'streamMotionDetectRestart':
+                $.ccio.init('streamMotionDetectOff',d,user)
+                $.ccio.init('streamMotionDetectOn',d,user)
+            break;
             case'streamMotionDetectOff':
                 d.mon.motionDetectionRunning = false
+                $('.monitor_item[mid="'+d.mid+'"][ke="'+d.ke+'"][auth="'+user.auth_token+'"] .zoomGlass').remove()
                 clearInterval(d.mon.motionDetector)
             break;
             case'streamMotionDetectOn':
+                switch(JSON.parse(d.mon.details).stream_type){
+                    case'hls':case'flv':
+                        //pass
+                    break;
+                    default:
+                        return $.ccio.init('note',{title:'Client-side Detector',text:'Could not be started. Only <b>FLV</b> and <b>HLS</b> can use this feature.',type:'error'});
+                    break;
+
+                }
+                d.mon.motionDetectorNextDraw = true
                 d.mon.motionDetectionRunning = true
                 $.ccio.snapshot(d,function(url){
                     $('#temp').html('<img>')
@@ -110,8 +125,8 @@ switch($user.details.lang){
                     img.onload=function(){
                         var frameNumber = 0,
                             mainWindow = $('.monitor_item[mid="'+d.mid+'"][ke="'+d.ke+'"][auth="'+user.auth_token+'"]'),
-                            blenderCanvas = mainWindow.find(".canvas"),
-                            motionVision = mainWindow.find(".canvasFinal"),
+                            blenderCanvas = mainWindow.find(".blenderCanvas"),
+                            motionVision = mainWindow.find(".motionVision"),
                             streamElement = mainWindow.find('.stream-element'),
                             streamElementTag = streamElement[0],
                             lastURL = null,
@@ -126,23 +141,18 @@ switch($user.details.lang){
                                     name:'clientSideDetection',
                                 }
                             };
+                        widthRatio = streamElement.width() / img.width
+                        heightRatio = streamElement.height() / img.height
                         drawMatrices.monitorDetails.detector_scale_x = img.width;
                         drawMatrices.monitorDetails.detector_scale_y = img.height;
                         function checkForMotion() {
-                            var matrix = {
-                                topLeft:[img.width,img.height],
-                                topRight:[0,img.height],
-                                bottomRight:[0,0],
-                                bottomLeft:[img.width,0],
-                            }
                             blenderCanvas.width = img.width;
                             blenderCanvas.height = img.height;
-                            motionVision.width = img.width;
-                            motionVision.height = img.height;
                             blenderCanvasContext.drawImage(streamElementTag, 0, 0);
                             f[frameNumber] = blenderCanvasContext.getImageData(0, 0, blenderCanvas.width, blenderCanvas.height);
                             frameNumber = 0 == frameNumber ? 1 : 0;
                             currentImage = blenderCanvasContext.getImageData(0, 0, blenderCanvas.width, blenderCanvas.height);
+                            foundPixels = [];
                             for (var currentImageLength = currentImage.data.length * 0.25, b = 0; b < currentImageLength;){
                                 var pos = b * 4
                                 var x = (pos / 4) % blenderCanvas.width;
@@ -155,6 +165,28 @@ switch($user.details.lang){
                                 if(score>170){
                                     var x = (pos / 4) % img.width;
                                     var y = Math.floor((pos / 4) / img.width);
+                                    foundPixels.push([x,y])
+                                }
+                                b += 4;
+                            }
+                            var groupedPoints = Object.assign({},Cluster);
+                            groupedPoints.iterations(25);
+                            groupedPoints.data(foundPixels);
+                            var groupedPoints = groupedPoints.clusters()
+                            drawMatrices.details.matrices=[]
+                            var mostHeight = 0;
+                            var mostWidth = 0;
+                            var mostWithMotion = null;
+                            groupedPoints.forEach(function(v,n){
+                                var matrix = {
+                                    topLeft:[img.width,img.height],
+                                    topRight:[0,img.height],
+                                    bottomRight:[0,0],
+                                    bottomLeft:[img.width,0],
+                                }
+                                v.points.forEach(function(b){
+                                    var x = b[0]
+                                    var y = b[1]
                                     if(x<matrix.topLeft[0])matrix.topLeft[0]=x;
                                     if(y<matrix.topLeft[1])matrix.topLeft[1]=y;
                                     //Top Right point
@@ -166,53 +198,52 @@ switch($user.details.lang){
                                     //Bottom Left point
                                     if(x<matrix.bottomLeft[0])matrix.bottomLeft[0]=x;
                                     if(y>matrix.bottomLeft[1])matrix.bottomLeft[1]=y;
-                                //                                console.log(score, x, y)
+                                })
+                                matrix.x = matrix.topLeft[0];
+                                matrix.y = matrix.topLeft[1];
+                                matrix.width = matrix.topRight[0] - matrix.topLeft[0]
+                                matrix.height = matrix.bottomLeft[1] - matrix.topLeft[1]
+                                
+                                if(matrix.width>mostWidth&&matrix.height>mostHeight){
+                                    mostWidth = matrix.width;
+                                    mostHeight = matrix.height;
+                                    mostWithMotion = matrix;
                                 }
-                                b += 4;
+                                
+                                drawMatrices.details.matrices.push(matrix)
+                            })
+                            if(d.mon.motionDetectorNextDraw===true){
+                                clearTimeout(d.mon.motionDetectorNextDrawTimeout)
+                                d.mon.motionDetectorNextDrawTimeout=setTimeout(function(){
+                                    d.mon.motionDetectorNextDraw = true;
+                                },1000)
+                                d.mon.motionDetectorNextDraw = false;
+//                                console.log({
+//                                    p:mainWindow,
+//                                    pageX:((matrix.width / 2) + matrix.x) * widthRatio,
+//                                    pageY:((matrix.height / 2) + matrix.y) * heightRatio
+//                                })
+                                $.ccio.magnifyStream({
+                                    p:mainWindow,
+                                    useCanvas:true,
+                                    zoomAmount:1,
+                                    auto:true,
+                                    animate:true,
+                                    pageX:((mostWithMotion.width / 2) + mostWithMotion.x) * widthRatio,
+                                    pageY:((mostWithMotion.height / 2) + mostWithMotion.y) * heightRatio
+                                })
+                                $.ccio.init('drawMatrices',drawMatrices)
                             }
-                            matrix.x = matrix.topLeft[0];
-                            matrix.y = matrix.topLeft[1];
-                            matrix.width = matrix.topRight[0] - matrix.topLeft[0]
-                            matrix.height = matrix.bottomLeft[1] - matrix.topLeft[1]
-                            console.log(matrix)
-                            drawMatrices.details.matrices=[matrix]
-                            $.ccio.init('drawMatrices',drawMatrices)
-                            return matrix;
-//                            motionVisionContext.putImageData(currentImage, 0, 0)
+                            return drawMatrices.details.matrices;
                         }
                         if(blenderCanvas.length === 0){
-                            mainWindow.append('<canvas class="canvas"></canvas>')
-                            blenderCanvas = mainWindow.find(".canvas")
+                            mainWindow.append('<div class="zoomGlass"><canvas class="blenderCanvas"></canvas></div>')
+                            blenderCanvas = mainWindow.find(".blenderCanvas")
                         }
                         blenderCanvas = blenderCanvas[0];
-                        if(motionVision.length === 0){
-                            mainWindow.append('<canvas class="canvasFinal"></canvas>')
-                            motionVision = mainWindow.find(".canvasFinal")
-                        }
-                                        console.log(blenderCanvas,motionVision)
-                        motionVision = motionVision[0];
                         var blenderCanvasContext = blenderCanvas.getContext("2d");
-                        var motionVisionContext = motionVision.getContext("2d");
                         clearInterval(d.mon.motionDetector)
-                        d.mon.motionDetector = setInterval(checkForMotion,200)
-
-                        switch(JSON.parse(d.details).stream_type){
-                            case'jpeg':
-                                streamURL=$.ccio.init('location',user)+user.auth_token+'/jpeg/'+d.ke+'/'+d.mid+'/s.jpg'
-                            break;
-                            case'mjpeg':
-                                streamURL=$.ccio.init('location',user)+user.auth_token+'/mjpeg/'+d.ke+'/'+d.mid
-                            break;
-                            case'hls':
-                                streamURL=$.ccio.init('location',user)+user.auth_token+'/hls/'+d.ke+'/'+d.mid+'/s.m3u8'
-                            break;
-                            case'flv':
-                                streamURL=$.ccio.init('location',user)+user.auth_token+'/flv/'+d.ke+'/'+d.mid+'/s.flv'
-                            break;
-                            case'b64':
-                                streamURL='Websocket'
-                            break;
-                        }
+                        d.mon.motionDetector = setInterval(checkForMotion,500)
                     }
                     img.src=url
                 })
@@ -576,10 +607,10 @@ switch($user.details.lang){
                         break;
                         default:
                             if($.ccio.op().jpeg_on===true){return}
-                            $.ccio.snapshot(d,function(e,url){
+                            $.ccio.snapshot(d,function(url){
                                 d.check.f=url;
                                 setTimeout(function(){
-                                    $.ccio.snapshot(d,function(e,url){
+                                    $.ccio.snapshot(d,function(url){
                                         if(d.check.f===url){
                                             if(d.check.c<3){
                                                 ++d.check.c;
@@ -630,10 +661,8 @@ switch($user.details.lang){
     $.ccio.snapshot=function(e,cb){
         var image_data,url;
         e.details=JSON.parse(e.mon.details);
-        if(e.details.stream_scale_x===''){e.details.stream_scale_x=640}
-        if(e.details.stream_scale_y===''){e.details.stream_scale_y=480}
         if($.ccio.op().jpeg_on!==true){
-            var extend=function(){
+            var extend=function(image_data,width,height){
                 var len = image_data.length
                 var arraybuffer = new Uint8Array( len );
                 for (var i = 0; i < len; i++)        {
@@ -647,19 +676,20 @@ switch($user.details.lang){
                     var blob = bb.getBlob('application/octet-stream');
                 }
                 url = (window.URL || window.webkitURL).createObjectURL(blob);
-                cb(url,image_data);
+                finish(url,image_data,width,height);
                 try{
                     setTimeout(function(){
                         URL.revokeObjectURL(url)
                     },10000)
                 }catch(er){}
             }
+            var finish = function(url,image_data,width,height){
+                cb(url,image_data,width,height);
+            }
             switch(JSON.parse(e.mon.details).stream_type){
                 case'hls':case'flv':
-                    $.ccio.snapshotVideo($('[mid='+e.mon.mid+'].monitor_item video')[0],function(base64,video_data){
-                        url=base64
-                        image_data=video_data
-                        extend()
+                    $.ccio.snapshotVideo($('[mid='+e.mon.mid+'].monitor_item video')[0],function(base64,video_data,width,height){
+                        extend(video_data,width,height)
                     })
                 break;
                 case'mjpeg':
@@ -670,21 +700,26 @@ switch($user.details.lang){
                     c.height = img.height;
                     var ctx = c.getContext('2d');
                     ctx.drawImage(img, 0, 0,c.width,c.height);
-                    image_data=atob(c.toDataURL('image/jpeg').split(',')[1]);
-                    extend()
+                    extend(atob(c.toDataURL('image/jpeg').split(',')[1]),c.width,c.height)
                 break;
                 case'b64':
-                    image_data = atob(e.mon.last_frame.split(',')[1]);
-                    extend()
+                    base64 = e.mon.last_frame.split(',')[1];
+                    var image_data = new Image();
+                    image_data.src = base64;
+                    extend(atob(base64),image_data.width,image_data.height)
                 break;
                 case'jpeg':
                     url=e.p.find('.stream-element').attr('src');
-                    cb(url,image_data);
+                    image_data = new Image();
+                    image_data.src = url;
+                    finish(url,image_data,image_data.width,image_data.height);
                 break;
             }
         }else{
             url=e.p.find('.stream-element').attr('src');
-            cb(url,image_data);
+            image_data = new Image();
+            image_data.src = url;
+            cb(url,image_data,image_data.width,image_data.height);
         }
     }
     $.ccio.snapshotVideo=function(videoElement,cb){
@@ -711,7 +746,70 @@ switch($user.details.lang){
             bb.append(arraybuffer);
             var blob = bb.getBlob('application/octet-stream');
         }
-        cb(base64,image_data);
+        cb(base64,image_data,c.width,c.height);
+    }
+    $.ccio.magnifyStream = function(e){
+        if(!e.p){
+            e.e=$(this),
+            e.p=e.e.parents('[mid]')
+        }
+        if(e.animate === true){
+            var zoomGlassAnimate = 'animate'
+        }else{
+            var zoomGlassAnimate = 'css'
+        }
+        if(e.auto === true){
+            var streamBlockOperator = 'position'
+        }else{
+            var streamBlockOperator = 'offset'
+        }
+        if(e.useCanvas === true){
+            var magnifiedElement = 'canvas'
+        }else{
+            var magnifiedElement = 'iframe'
+        }
+        e.ke=e.p.attr('ke'),//group key
+        e.mid=e.p.attr('mid'),//monitor id
+        e.auth=e.p.attr('auth'),//authkey
+        e.mon=$.ccio.mon[e.ke+e.mid+e.auth]//monitor configuration
+        if(e.zoomAmount)e.mon.zoomAmount=3;
+        if(!e.mon.zoomAmount)e.mon.zoomAmount=3;
+        e.height=parseFloat(e.p.attr('realHeight')) * e.mon.zoomAmount//height of stream
+        e.width=parseFloat(e.p.attr('realWidth')) * e.mon.zoomAmount;//width of stream
+        var targetForZoom = e.p.find('.stream-element');
+        zoomGlass = e.p.find(".zoomGlass");
+        var zoomFrame = function(){
+            var magnify_offset = e.p.find('.stream-block')[streamBlockOperator]();
+            var mx = e.pageX - magnify_offset.left;
+            var my = e.pageY - magnify_offset.top;
+            var rx = Math.round(mx/targetForZoom.width()*e.width - zoomGlass.width()/2)*-1;
+            var ry = Math.round(my/targetForZoom.height()*e.height - zoomGlass.height()/2)*-1;
+            var px = mx - zoomGlass.width()/2;
+            var py = my - zoomGlass.height()/2;
+            zoomGlass[zoomGlassAnimate]({left: px, top: py}).find(magnifiedElement)[zoomGlassAnimate]({left: rx, top: ry});
+        }
+        if(!e.height||!e.width||zoomGlass.length===0){
+            $.ccio.snapshot(e,function(url,buffer,width,height){
+                e.width = width * e.mon.zoomAmount;
+                e.height = height * e.mon.zoomAmount;
+                e.p.attr('realWidth',width)
+                e.p.attr('realHeight',height)
+                zoomGlass = e.p.find(".zoomGlass");
+                if(zoomGlass.length===0){
+                    if(e.useCanvas === true){
+                        e.p.append('<div class="zoomGlass"><canvas class="blenderCanvas"></canvas></div>');
+                    }else{
+                        e.p.append('<div class="zoomGlass"><iframe src="/'+e.auth+'/embed/'+e.ke+'/'+e.mid+'/fullscreen|jquery|relative"/><div class="hoverShade"></div></div>');
+                    }
+                    zoomGlass = e.p.find(".zoomGlass");
+                }
+                zoomGlass.find(magnifiedElement).css({height:e.height,width:e.width});
+                zoomFrame()
+            })
+        }else{
+            zoomGlass.find(magnifiedElement).css({height:e.height,width:e.width});
+            zoomFrame()
+        }
     }
     $.ccio.tm=function(x,d,z,user){
         var tmp='';if(!d){d={}};
@@ -747,7 +845,8 @@ switch($user.details.lang){
             break;
             case 2://monitor stream
                 try{k.d=JSON.parse(d.details);}catch(er){k.d=d.details;}
-                k.mode=$.ccio.init('humanReadMode',d.mode)
+                k.mode=$.ccio.init('humanReadMode',d.mode);
+                var dataTarget = '.monitor_item[mid=\''+d.mid+'\'][ke=\''+d.ke+'\'][auth=\''+user.auth_token+'\']';
                 tmp+='<div auth="'+user.auth_token+'" mid="'+d.mid+'" ke="'+d.ke+'" id="monitor_live_'+d.mid+user.auth_token+'" mode="'+k.mode+'" class="monitor_item glM'+d.mid+user.auth_token+' mdl-grid col-md-6">';
                 tmp+='<div class="mdl-card mdl-cell mdl-cell--8-col">';
                 tmp+='<div class="stream-block no-padding mdl-card__media mdl-color-text--grey-50">';
@@ -764,7 +863,26 @@ switch($user.details.lang){
                 tmp+='<div class="monitor_details">';
                 tmp+='<div><span class="monitor_name">'+d.name+'</span><span class="monitor_not_record_copy">, <%-cleanLang(lang['Recording FPS'])%> : <span class="monitor_fps">'+d.fps+'</span></span></div>';
                 tmp+='</div>';
-                tmp+='<div class="btn-group"><a title="<%-cleanLang(lang.Snapshot)%>" monitor="snapshot" class="btn btn-primary"><i class="fa fa-camera"></i></a> <a title="<%-cleanLang(lang['Show Logs'])%>" class_toggle="show_logs" data-target=".monitor_item[mid=\''+d.mid+'\'][ke=\''+d.ke+'\'][auth=\''+user.auth_token+'\']" class="btn btn-warning"><i class="fa fa-exclamation-triangle"></i></a> <a title="<%-cleanLang(lang.Control)%>" monitor="control_toggle" class="btn btn-default"><i class="fa fa-arrows"></i></a> <a title="<%-cleanLang(lang['Status Indicator'])%>" class="btn btn-danger signal" monitor="watch_on"><i class="fa fa-plug"></i></a> <a title="<%-cleanLang(lang['Detector'])%>" class="btn btn-danger" monitor="motion"><i class="fa fa-grav"></i></a> <a title="<%-cleanLang(lang.Pop)%>" monitor="pop" class="btn btn-default"><i class="fa fa-external-link"></i></a> <a title="<%-cleanLang(lang.Calendar)%>" monitor="calendar" class="btn btn-default"><i class="fa fa-calendar"></i></a> <a title="<%-cleanLang(lang['Power Viewer'])%>" class="btn btn-default" monitor="powerview"><i class="fa fa-map-marker"></i></a> <a title="<%-cleanLang(lang['Time-lapse'])%>" class="btn btn-default" monitor="timelapse"><i class="fa fa-angle-double-right"></i></a> <a title="<%-cleanLang(lang['Videos List'])%>" monitor="videos_table" class="btn btn-default"><i class="fa fa-film"></i></a> <a title="<%-cleanLang(lang['Monitor Settings'])%>" class="btn btn-default permission_monitor_edit" monitor="edit"><i class="fa fa-wrench"></i></a> <a title="<%-cleanLang(lang.Fullscreen)%>" monitor="fullscreen" class="btn btn-default"><i class="fa fa-arrows-alt"></i></a> <a title="<%-cleanLang(lang.Close)%> Stream" monitor="watch_off" class="btn btn-danger"><i class="fa fa-times"></i></a></div>';
+                tmp+='<div class="btn-group btn-group-sm">'//start of btn list
+                    $.each([
+                        {label:"<%-cleanLang(lang.Snapshot)%>",attr:'monitor="snapshot"',class:'primary',icon:'camera'},
+                        {label:"<%-cleanLang(lang['Show Logs'])%>",attr:'class_toggle="show_logs" data-target="'+dataTarget+'"',class:'warning',icon:'exclamation-triangle'},
+                        {label:"<%-cleanLang(lang.Control)%>",attr:'monitor="control_toggle"',class:'default arrows'},
+                        {label:"<%-cleanLang(lang['Status Indicator'])%>",attr:'monitor="watch_on"',class:'success signal',icon:'plug'},
+                        {label:"<%-cleanLang(lang['Detector'])%>",attr:'monitor="motion"',class:'warning',icon:'grav'},
+                        {label:"<%-cleanLang(lang.Pop)%>",attr:'monitor="pop"',class:'default',icon:'external-link'},
+//                        {label:"<%-cleanLang(lang.Magnify)%>",attr:'monitor="magnify"',class:'default',icon:'search-plus'},
+                        {label:"<%-cleanLang(lang.Calendar)%>",attr:'monitor="calendar"',class:'default',icon:'calendar'},
+                        {label:"<%-cleanLang(lang['Power Viewer'])%>",attr:'monitor="powerview"',class:'default',icon:'map-marker'},
+                        {label:"<%-cleanLang(lang['Time-lapse'])%>",attr:'monitor="timelapse"',class:'default',icon:'angle-double-right'},
+                        {label:"<%-cleanLang(lang['Videos List'])%>",attr:'monitor="videos_table"',class:'default',icon:'film'},
+                        {label:"<%-cleanLang(lang['Monitor Settings'])%>",attr:'monitor="edit"',class:'default permission_monitor_edit',icon:'wrench'},
+                        {label:"<%-cleanLang(lang.Fullscreen)%>",attr:'monitor="fullscreen"',class:'default',icon:'arrows-alt'},
+                        {label:"<%-cleanLang(lang.Close)%>",attr:'monitor="watch_off"',class:'danger',icon:'times'},
+                    ],function(n,v){
+                        tmp+='<a class="btn btn-'+v.class+'" '+v.attr+' title="'+v.label+'"><i class="fa fa-'+v.icon+'"></i></a>'
+                    })
+                tmp+='</div>';//end of btn list
                 tmp+='</div>';
                 tmp+='</div>';
                 tmp+='<div class="mdl-card mdl-cell mdl-cell--8-col mdl-cell--4-col-desktop">';
@@ -1321,6 +1439,11 @@ $.ccio.globalWebsocket=function(d,user){
                 })
             }
             $.ccio.init('montage');
+            setTimeout(function(){
+                if($.ccio.mon[d.ke+d.id+user.auth_token].motionDetectionRunning===true){
+                    $.ccio.init('streamMotionDetectRestart',{mid:d.id,ke:d.ke,mon:$.ccio.mon[d.ke+d.id+user.auth_token]},user);
+                }
+            },3000)
         break;
         case'monitor_frame':
             try{
@@ -2099,7 +2222,9 @@ $.multimon.e.on('shown.bs.modal',function() {
     $.multimon.table.html(tmp)
 })
 //Monitor Editor
-$.aM={e:$('#add_monitor')};$.aM.f=$.aM.e.find('form')
+$.aM={e:$('#add_monitor')};
+$.aM.f=$.aM.e.find('form')
+//$.aM.channels=$('#monedit_stream_channels')
 $.aM.e.find('.follow-list ul').affix();
 $.each(<%-JSON.stringify(define["Monitor Settings"].blocks)%>,function(n,v){
     $.each(v.info,function(m,b){
@@ -2186,6 +2311,17 @@ $.aM.import=function(e){
         $.aM.e.find('[name="'+n+'"]').val(v).change()
     })
     e.ss=JSON.parse(e.values.details);
+    //get channels
+//    if(e.ss.stream_channels&&e.ss.stream_channels!==''){
+//        $.each(JSON.parse(e.ss.stream_channels),function(n,v){
+//            $.ccio.tm('stream-channel')
+//            var parent = $('[stream-channel="'+n+'"]')
+//            console.log(n,v)
+//            $.each(v,function(m,b){
+//                parent.find('[channel-detail="'+m+'"]').val(b)
+//            })
+//        })
+//    }
     $.aM.e.find('[detail]').each(function(n,v){
         v=$(v).attr('detail');if(!e.ss[v]){e.ss[v]=''}
     })
@@ -2269,12 +2405,36 @@ $.aM.f.submit(function(e){
     $.post('/'+$user.auth_token+'/configureMonitor/'+$user.ke+'/'+e.s.mid,{data:JSON.stringify(e.s)},function(d){
         $.ccio.log(d)
     })
-    if(!$.ccio.mon[$user.ke+e.s.mid+$user.auth_token]){$.ccio.mon[$user.ke+e.s.mid+$user.auth_token]={}}
-    $.each(e.s,function(n,v){$.ccio.mon[$user.ke+e.s.mid+$user.auth_token][n]=v;})
-//    $.aM.tab('delete',e.s)
+    if(!$.ccio.mon[e.s.ke+e.s.mid+$user.auth_token]){$.ccio.mon[e.s.ke+e.s.mid+$user.auth_token]={}}
+    $.each(e.s,function(n,v){$.ccio.mon[e.s.ke+e.s.mid+$user.auth_token][n]=v;})
     $.aM.e.modal('hide')
     return false;
 });
+//$.aM.channels.on('click','.add',function(){
+//    $.ccio.tm('stream-channel')
+//})
+//$.aM.channels.on('click','.delete',function(){
+//    $(this).parents('[section]').remove()
+//    var inputs = $('[channel-detail]')
+//    if(inputs.length===0){
+//        $.aM.e.find('[detail="stream_channels"]').val('[]').change()
+//    }else{
+//        inputs.first().change()
+//    }
+//})
+//$.aM.e.on('change','[channel-detail]',function(){
+//  var e={};
+//    e.e=$.aM.channels.find('.channels_list [section]')
+//    e.s=[]
+//    e.e.each(function(n,v){
+//        var channel={}
+//        $.each($(v).find('[channel-detail]'),function(m,b){
+//            channel[$(b).attr('channel-detail')]=$(b).val()
+//        });
+//        e.s.push(channel)
+//    });
+//    $.aM.e.find('[detail="stream_channels"]').val(JSON.stringify(e.s)).change()
+//})
 $.aM.e.on('change','[group]',function(){
   var e={};
     e.e=$.aM.e.find('[group]:checked');
@@ -2283,15 +2443,6 @@ $.aM.e.on('change','[group]',function(){
         e.s.push($(v).val())
     });
     $.aM.e.find('[detail="groups"]').val(JSON.stringify(e.s)).change()
-})
-$.aM.e.on('change','[group_detector]',function(){
-  var e={};
-    e.e=$.aM.e.find('[group_detector]:checked');
-    e.s=[];
-    e.e.each(function(n,v){
-        e.s.push($(v).val())
-    });
-    $.aM.e.find('[detail="group_detector"]').val(JSON.stringify(e.s)).change()
 })
 $.aM.e.on('change','.detector_cascade_selection',function(){
   var e={};
@@ -2385,7 +2536,7 @@ $.aM.f.find('[name="type"]').change(function(e){
 })
 $.aM.md=$.aM.f.find('[detail]');
 $.aM.md.change($.ccio.form.details)
-$.aM.f.find('[selector]').change(function(e){
+$.aM.f.on('change','[selector]',function(e){
     e.v=$(this).val();e.a=$(this).attr('selector')
     $.aM.f.find('.'+e.a+'_input').hide()
     $.aM.f.find('.'+e.a+'_'+e.v).show();
@@ -3861,7 +4012,9 @@ $('body')
 })
 .on('dblclick','.stream-hud',function(){
     $(this).parents('[mid]').find('[monitor="fullscreen"]').click();
-}); 
+})
+//.on('mousemove',".magnifyStream",$.ccio.magnifyStream)
+//.on('touchmove',".magnifyStream",$.ccio.magnifyStream);
     //check switch UI
     e.o=$.ccio.op().switches;
     if(e.o){
