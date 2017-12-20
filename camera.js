@@ -2421,15 +2421,24 @@ var tx;
                             }
                             d.setURL(d.base+d.m.details['control_url_'+d.direction])
                             http.get(d.options, function(first) {
-                                first.on('data', function(toss) {});
+                                var body = '';
+                                first.on('data', function(chunk) {
+                                    body+=chunk
+                                });
                                 first.endCommand=function(){
                                     clearTimeout(first.endCommandLastResort)
                                     if(d.m.details.control_stop=='1'&&d.direction!=='center'){
+                                        s.log(d,{type:'Control Triggered Started',msg:body});
                                         d.setURL(d.base+d.m.details['control_url_'+d.direction+'_stop'])
                                         setTimeout(function(){
                                             http.get(d.options, function(data) {
+                                                var body=''
+                                                  data.on('data', function(chunk){
+                                                      body+=chunk
+                                                  })
                                                   data.on('end', function(){
-                                                      if(err){s.log(d,{type:'Control Error',msg:err});return false}
+                                                      if(err){s.log(d,{type:'Control Error',msg:{error:err,body:body}});return false}
+                                                      s.log(d,{type:'Control Triggered Ended',msg:body});
                                                       s.tx({f:'control',mid:d.mid,ke:d.ke,direction:d.direction,url_stop:true});
                                                   });
                                             }).on('error', function(err) {
@@ -2437,6 +2446,7 @@ var tx;
                                             }).end();
                                         },d.m.details.control_url_stop_timeout)
                                     }else{
+                                        s.log(d,{type:'Control Triggered',msg:body});
                                         tx({f:'control',mid:d.mid,ke:d.ke,direction:d.direction,url_stop:false});
                                     }
                                 }
