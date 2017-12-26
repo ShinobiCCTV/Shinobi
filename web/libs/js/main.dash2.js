@@ -2385,6 +2385,52 @@ $.aM.import=function(e){
     };
     setTimeout(function(){$.aM.drawList()},1000)
 }
+$.aM.e.on('change','[detail="auto_host"]',function(e){
+    var isRTSP = false;
+    var url = $(this).val()
+    var enableSwitch = $.aM.e.find('[detail="auto_host_enable"]')
+    var enabled = enableSwitch.val()
+    if(!enabled||enabled===''){
+        enableSwitch.val('1').change()
+        return
+    }
+    var urlSplitByDots = url.split('.')
+    var has = function(query,searchIn){if(!searchIn){searchIn=url;};return url.indexOf(query)>-1}
+    //switch RTSP to parse URL
+    if(has('rtsp://')){
+        isRTSP = true;
+        url = url.replace('rtsp://','http://')
+    }
+    //parse URL
+    var parsedURL = document.createElement('a');
+    parsedURL.href = url;
+    //use pieces
+    parsedURL.protocol; // => "http:"
+    parsedURL.hostname; // => "example.com"
+    parsedURL.port;     // => "3000"
+    parsedURL.pathname; // => "/pathname/"
+    parsedURL.search;   // => "?search=test"
+    parsedURL.hash;     // => "#hash"
+    parsedURL.host;     // => "example.com:3000"
+    if(isRTSP){
+        $.aM.e.find('[name="protocol"]').val('rtsp').change()
+        $.aM.e.find('[detail="rtsp_transport"]').val('tcp').change()
+        $.aM.e.find('[detail="aduration"]').val(1000000).change()
+        $.aM.e.find('[detail="probesize"]').val(1000000).change()
+    }else{
+        $.aM.e.find('[name="protocol"]').val(parsedURL.protocol.replace(/:/g,'').replace(/\//g,'')).change()
+    }
+    $.aM.e.find('[detail="port_force"]').val('1').change()
+    $.aM.e.find('[detail="muser"]').val(parsedURL.username).change()
+    $.aM.e.find('[detail="mpass"]').val(parsedURL.password).change()
+    $.aM.e.find('[name="host"]').val(parsedURL.hostname).change()
+    $.aM.e.find('[name="port"]').val(parsedURL.port).change()
+    if(has('mp4',urlSplitByDots[urlSplitByDots.length-1])){
+        $.aM.e.find('[detail="auto_host"]').val(parsedURL.pathname).val('1').change()
+    }
+    $.aM.e.find('[name="path"]').val(parsedURL.pathname).change()
+    delete(parsedURL)
+})
 $.aM.e.find('.refresh_cascades').click(function(e){
     $.ccio.cx({f:'ocv_in',data:{f:'refreshPlugins',ke:$user.ke}})
 })

@@ -90,77 +90,102 @@
                     </select></div>
                 </label>
               </div>
-              <div class="form-group h_t_input h_t_h264 h_t_hls h_t_mp4 h_t_jpeg h_t_mjpeg">
-                <label><div><span><%-lang['Connection Type']%></span></div>
-                    <div><select class="form-control" name="protocol" selector="h_p">
-                        <option value="http" selected><%-lang['HTTP']%></option>
-                        <option value="https"><%-lang['HTTPS']%></option>
-                        <option value="rtsp"><%-lang['RTSP']%></option>
-                        <option value="udp"><%-lang['UDP']%></option>
+              <div class="form-group">
+                <label><div><span><%-lang['Manual']%></span></div>
+                    <div><select class="form-control" detail="auto_host_enable" selector="h_auto_host">
+                            <option value="0" selected><%-lang.No%></option>
+                            <option value="1"><%-lang.Yes%></option>
                     </select></div>
                 </label>
               </div>
-              <div class="form-group h_p_input h_p_rtsp">
-                <label><div><span><%-lang['RTSP Transport']%></span></div>
-                    <div><select class="form-control" detail="rtsp_transport">
-                        <option value="no" selected><%-lang['Auto']%></option>  
-                        <option value="tcp"><%-lang['TCP']%></option>  
-                        <option value="udp"><%-lang['UDP']%></option>  
-                        <option value="http"><%-lang['HTTP']%></option>  
-                    </select></div>
-                </label>
-              </div>
-              <div class="h_t_input h_t_h264 h_t_hls h_t_mp4 h_t_jpeg h_t_mjpeg">
+              <div class="form-group h_auto_host_input h_auto_host_0">
                   <div class="form-group">
-                    <label><div><span><%-lang['Username']%></span></div>
-                    <div><input class="form-control" detail="muser" placeholder=""></div>
-                    </label>
-                  </div>
-                  <div class="form-group">
-                    <label><div><span><%-lang['Password']%></span></div>
-                    <div><input class="form-control" type="password" detail="mpass" placeholder=""></div>
+                    <label><div><span><%-lang['Full URL Path']%></span></div>
+                    <div><input class="form-control" detail="auto_host" placeholder="Example : rtsp://123.123.123.123/stream/1"></div>
                     </label>
                   </div>
               </div>
-              <div class="h_t_input h_t_h264 h_t_hls h_t_mp4 h_t_jpeg h_t_mjpeg">
-                  <div class="form-group">
-                    <label><div><span><%-lang['Host']%></span></div>
-                    <div><input class="form-control" name="host" placeholder=""></div>
+              <div class="form-group h_auto_host_input h_auto_host_1" style="display:none">
+                  <div class="form-group h_t_input h_t_h264 h_t_hls h_t_mp4 h_t_jpeg h_t_mjpeg">
+                    <label><div><span><%-lang['Connection Type']%></span></div>
+                        <div><select class="form-control" name="protocol" selector="h_p">
+                            <option value="http" selected><%-lang['HTTP']%></option>
+                            <option value="https"><%-lang['HTTPS']%></option>
+                            <option value="rtsp"><%-lang['RTSP']%></option>
+                            <option value="udp"><%-lang['UDP']%></option>
+                        </select></div>
+                    </label>
+                  </div>
+                  <div class="form-group h_p_input h_p_rtsp">
+                    <label><div><span><%-lang['RTSP Transport']%></span></div>
+                        <div><select class="form-control" detail="rtsp_transport">
+                            <option value="no" selected><%-lang['Auto']%></option>  
+                            <option value="tcp"><%-lang['TCP']%></option>  
+                            <option value="udp"><%-lang['UDP']%></option>  
+                            <option value="http"><%-lang['HTTP']%></option>  
+                        </select></div>
+                    </label>
+                  </div>
+                  <div class="h_t_input h_t_h264 h_t_hls h_t_mp4 h_t_jpeg h_t_mjpeg">
+                      <div class="form-group">
+                        <label><div><span><%-lang['Username']%></span></div>
+                        <div><input class="form-control" detail="muser" placeholder=""></div>
+                        </label>
+                      </div>
+                      <div class="form-group">
+                        <label><div><span><%-lang['Password']%></span></div>
+                        <div><input class="form-control" type="password" detail="mpass" placeholder=""></div>
+                        </label>
+                      </div>
+                  </div>
+                  <div class="h_t_input h_t_h264 h_t_hls h_t_mp4 h_t_jpeg h_t_mjpeg">
+                      <div class="form-group">
+                        <label><div><span><%-lang['Host']%></span></div>
+                        <div><input class="form-control" name="host" placeholder=""></div>
+                        </label>
+                      </div>
+                      <div class="form-group">
+                        <label>
+                            <div><span><%-lang['Port']%></span></div>
+                            <div><input class="form-control" name="port" placeholder="80"></div>
+                        </label>
+                      </div>
+                      <div class="form-group">
+                        <label><div><span><%-lang['Force Port']%></span></div>
+                            <div><select class="form-control" detail="port_force">
+                                <option value="0" selected><%-lang.No%></option>
+                                <option value="1"><%-lang.Yes%></option>
+                            </select></div>
+                        </label>
+                      </div>
+                  </div>
+                  <div class="form-group h_t_input h_t_h264 h_t_hls h_t_mp4 h_t_jpeg h_t_mjpeg h_t_local">
+                    <label><div><span><%-lang['Path']%></span></div>
+                    <div><input class="form-control" name="path" placeholder="/videostream.cgi?1"></div>
                     </label>
                   </div>
                   <div class="form-group">
-                    <label>
-                        <div><span><%-lang['Port']%></span></div>
-                        <div><input class="form-control" name="port" placeholder="80"></div>
+                    <label><div><span><%-lang['Analyzation Duration']%></span></div>
+                    <div><input class="form-control" detail="aduration"></div>
                     </label>
                   </div>
                   <div class="form-group">
-                    <label><div><span><%-lang['Force Port']%></span></div>
-                        <div><select class="form-control" detail="port_force">
+                    <label><div><span><%-lang['Probe Size']%></span></div>
+                    <div><input class="form-control" detail="probesize"></div>
+                    </label>
+                  </div>
+                  <div class="form-group h_t_input h_t_mp4">
+                    <label><div><span><%-lang["Loop Stream"]%></span></div>
+                        <div><select class="form-control" detail="stream_loop">
                             <option value="0" selected><%-lang.No%></option>
                             <option value="1"><%-lang.Yes%></option>
                         </select></div>
                     </label>
                   </div>
               </div>
-              <div class="form-group h_t_input h_t_h264 h_t_hls h_t_mp4 h_t_jpeg h_t_mjpeg h_t_local">
-                <label><div><span><%-lang['Path']%></span></div>
-                <div><input class="form-control" name="path" placeholder="/videostream.cgi?1"></div>
-                </label>
-              </div>
               <div class="form-group h_t_input h_t_socket h_t_jpeg h_t_mjpeg">
                 <label><div><span><%-lang['Monitor Capture Rate']%></span></div>
                 <div><input class="form-control" detail="sfps"></div>
-                </label>
-              </div>
-              <div class="form-group">
-                <label><div><span><%-lang['Analyzation Duration']%></span></div>
-                <div><input class="form-control" detail="aduration"></div>
-                </label>
-              </div>
-              <div class="form-group">
-                <label><div><span><%-lang['Probe Size']%></span></div>
-                <div><input class="form-control" detail="probesize"></div>
                 </label>
               </div>
               <div class="form-group">
