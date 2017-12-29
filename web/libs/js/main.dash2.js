@@ -2394,7 +2394,7 @@ $.aM.e.on('change','[detail="auto_host"]',function(e){
         enableSwitch.val('1').change()
         return
     }
-    if(enabled==='0'){
+    if(enabled==='1'){
         return
     }
     var urlSplitByDots = url.split('.')
@@ -2415,14 +2415,10 @@ $.aM.e.on('change','[detail="auto_host"]',function(e){
     }else{
         $.aM.e.find('[name="protocol"]').val(parsedURL.protocol.replace(/:/g,'').replace(/\//g,'')).change()
     }
-//    $.aM.e.find('[detail="port_force"]').val('1').change()
     $.aM.e.find('[detail="muser"]').val(parsedURL.username).change()
     $.aM.e.find('[detail="mpass"]').val(parsedURL.password).change()
     $.aM.e.find('[name="host"]').val(parsedURL.hostname).change()
     $.aM.e.find('[name="port"]').val(parsedURL.port).change()
-    if(has('mp4',urlSplitByDots[urlSplitByDots.length-1])){
-        $.aM.e.find('[detail="auto_host"]').val(parsedURL.pathname).val('1').change()
-    }
     $.aM.e.find('[name="path"]').val(parsedURL.pathname).change()
     delete(parsedURL)
 })
