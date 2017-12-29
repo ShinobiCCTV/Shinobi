@@ -203,15 +203,25 @@ switch($user.details.lang){
                                 matrix.y = matrix.topLeft[1];
                                 matrix.width = matrix.topRight[0] - matrix.topLeft[0]
                                 matrix.height = matrix.bottomLeft[1] - matrix.topLeft[1]
-                                
+
                                 if(matrix.width>mostWidth&&matrix.height>mostHeight){
                                     mostWidth = matrix.width;
                                     mostHeight = matrix.height;
                                     mostWithMotion = matrix;
                                 }
-                                
+
                                 drawMatrices.details.matrices.push(matrix)
                             })
+                            $.ccio.magnifyStream({
+                                p:mainWindow,
+                                useCanvas:true,
+                                zoomAmount:1,
+                                auto:true,
+                                animate:true,
+                                pageX:((mostWithMotion.width / 2) + mostWithMotion.x) * widthRatio,
+                                pageY:((mostWithMotion.height / 2) + mostWithMotion.y) * heightRatio
+                            })
+                            $.ccio.init('drawMatrices',drawMatrices)
                             if(d.mon.motionDetectorNextDraw===true){
                                 clearTimeout(d.mon.motionDetectorNextDrawTimeout)
                                 d.mon.motionDetectorNextDrawTimeout=setTimeout(function(){
@@ -223,16 +233,6 @@ switch($user.details.lang){
 //                                    pageX:((matrix.width / 2) + matrix.x) * widthRatio,
 //                                    pageY:((matrix.height / 2) + matrix.y) * heightRatio
 //                                })
-                                $.ccio.magnifyStream({
-                                    p:mainWindow,
-                                    useCanvas:true,
-                                    zoomAmount:1,
-                                    auto:true,
-                                    animate:true,
-                                    pageX:((mostWithMotion.width / 2) + mostWithMotion.x) * widthRatio,
-                                    pageY:((mostWithMotion.height / 2) + mostWithMotion.y) * heightRatio
-                                })
-                                $.ccio.init('drawMatrices',drawMatrices)
                             }
                             return drawMatrices.details.matrices;
                         }
@@ -243,7 +243,7 @@ switch($user.details.lang){
                         blenderCanvas = blenderCanvas[0];
                         var blenderCanvasContext = blenderCanvas.getContext("2d");
                         clearInterval(d.mon.motionDetector)
-                        d.mon.motionDetector = setInterval(checkForMotion,500)
+                        d.mon.motionDetector = setInterval(checkForMotion,2000)
                     }
                     img.src=url
                 })
@@ -344,7 +344,6 @@ switch($user.details.lang){
                     if(v.tag){d.tmp+='<span class="tag">'+v.tag+'</span>'}
                     d.tmp+='</div>'
                 })
-                console.log(d)
                 d.streamObjects.append(d.tmp)
             break;
             case'clearTimers':
@@ -527,7 +526,7 @@ switch($user.details.lang){
             break;
             case'id':
                 $('.usermail').html(d.mail)
-                k.d=d.details
+                try{k.d=JSON.parse(d.details);}catch(er){k.d=d.details;}
                 try{user.mon_groups=JSON.parse(k.d.mon_groups);}catch(er){}
                 if(!user.mon_groups)user.mon_groups={};
                 $.sM.reDrawMonGroups()
@@ -2386,6 +2385,9 @@ $.aM.import=function(e){
     setTimeout(function(){$.aM.drawList()},1000)
 }
 $.aM.e.on('change','[detail="auto_host"]',function(e){
+    if(JSON.parse($.aM.selected.details).auto_host_enable!=='0'){
+        return
+    }
     var isRTSP = false;
     var url = $(this).val()
     var enableSwitch = $.aM.e.find('[detail="auto_host_enable"]')
@@ -2420,7 +2422,7 @@ $.aM.e.on('change','[detail="auto_host"]',function(e){
     }else{
         $.aM.e.find('[name="protocol"]').val(parsedURL.protocol.replace(/:/g,'').replace(/\//g,'')).change()
     }
-    $.aM.e.find('[detail="port_force"]').val('1').change()
+//    $.aM.e.find('[detail="port_force"]').val('1').change()
     $.aM.e.find('[detail="muser"]').val(parsedURL.username).change()
     $.aM.e.find('[detail="mpass"]').val(parsedURL.password).change()
     $.aM.e.find('[name="host"]').val(parsedURL.hostname).change()
@@ -2706,7 +2708,9 @@ $.sM.reDrawMonGroups=function(){
     $.sM.g.change();
 };
 $.sM.f.submit(function(e){
-    e.preventDefault();e.e=$(this),e.s=e.e.serializeObject();
+    e.preventDefault();
+    $.sM.writewMonGroups()
+    e.e=$(this),e.s=e.e.serializeObject();
     $.sM.linkChange()
     e.er=[];
     if(e.s.pass!==''&&e.password_again===e.s.pass){e.er.push("<%-lang["Passwords don't match"]%>")};
