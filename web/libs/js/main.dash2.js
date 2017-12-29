@@ -2385,15 +2385,16 @@ $.aM.import=function(e){
     setTimeout(function(){$.aM.drawList()},1000)
 }
 $.aM.e.on('change','[detail="auto_host"]',function(e){
-    if(JSON.parse($.aM.selected.details).auto_host_enable!=='0'){
-        return
-    }
     var isRTSP = false;
     var url = $(this).val()
     var enableSwitch = $.aM.e.find('[detail="auto_host_enable"]')
     var enabled = enableSwitch.val()
     if(!enabled||enabled===''){
+        enabled='1'
         enableSwitch.val('1').change()
+        return
+    }
+    if(enabled==='0'){
         return
     }
     var urlSplitByDots = url.split('.')
