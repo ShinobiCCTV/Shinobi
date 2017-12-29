@@ -2406,14 +2406,6 @@ $.aM.e.on('change','[detail="auto_host"]',function(e){
     //parse URL
     var parsedURL = document.createElement('a');
     parsedURL.href = url;
-    //use pieces
-    parsedURL.protocol; // => "http:"
-    parsedURL.hostname; // => "example.com"
-    parsedURL.port;     // => "3000"
-    parsedURL.pathname; // => "/pathname/"
-    parsedURL.search;   // => "?search=test"
-    parsedURL.hash;     // => "#hash"
-    parsedURL.host;     // => "example.com:3000"
     if(isRTSP){
         $.aM.e.find('[name="protocol"]').val('rtsp').change()
         $.aM.e.find('[detail="rtsp_transport"]').val('tcp').change()
