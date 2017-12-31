@@ -112,14 +112,15 @@ if [ ! -e "./super.json" ]; then
     sudo cp super.sample.json super.json
 fi
 echo "Shinobi - Finished"
+touch INSTALL/installed.txt
 sudo chmod -R 755 .
-echo "=====================================" > ~/Desktop/SHINOBI_LOGIN
-echo "=======   Login Credentials   =======" >> ~/Desktop/SHINOBI_LOGIN
-echo "|| Username : $userEmail" >> ~/Desktop/SHINOBI_LOGIN
-echo "|| Password : $userPasswordPlain" >> ~/Desktop/SHINOBI_LOGIN
-echo "|| API Key : $apiKey" >> ~/Desktop/SHINOBI_LOGIN
-echo "=====================================" >> ~/Desktop/SHINOBI_LOGIN
-echo "=====================================" >> ~/Desktop/SHINOBI_LOGIN
+echo "=====================================" > INSTALL/installed.txt
+echo "=======   Login Credentials   =======" >> INSTALL/installed.txt
+echo "|| Username : $userEmail" >> INSTALL/installed.txt
+echo "|| Password : $userPasswordPlain" >> INSTALL/installed.txt
+echo "|| API Key : $apiKey" >> INSTALL/installed.txt
+echo "=====================================" >> INSTALL/installed.txt
+echo "=====================================" >> INSTALL/installed.txt
 echo "Shinobi - Start Shinobi and set to start on boot?"
 echo "(y)es or (N)o"
 read startShinobi
@@ -130,7 +131,7 @@ if [ "$startShinobi" = "y" ]; then
     sudo pm2 save
     sudo pm2 list
 fi
-echo "details written to ~/Desktop/SHINOBI_LOGIN"
+echo "details written to INSTALL/installed.txt"
 echo "====================================="
 echo "=======   Login Credentials   ======="
 echo "|| Username : $userEmail"
