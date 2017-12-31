@@ -21,15 +21,16 @@ read ffmpeginstall
 if [ "$ffmpeginstall" = "y" ]; then
     echo "Shinobi - Installing FFmpeg"
     curl -o ffmpeg.zip https://cdn.shinobi.video/installers/ffmpeg-3.4.1-macos.zip
-    unzip ffmpeg.zip
-    mv ffmpeg-3.4.1-macos/ffmpeg /usr/bin/ffmpeg
-    mv ffmpeg-3.4.1-macos/ffplay /usr/bin/ffplay
-    mv ffmpeg-3.4.1-macos/ffprobe /usr/bin/ffprobe
-    mv ffmpeg-3.4.1-macos/ffserver /usr/bin/ffserver
-    chmod +x /usr/bin/ffmpeg
-    chmod +x /usr/bin/ffplay
-    chmod +x /usr/bin/ffprobe
-    chmod +x /usr/bin/ffserver
+    sudo unzip ffmpeg.zip
+    sudo rm ffmpeg.zip
+    sudo mv ffmpeg-3.4.1-macos/ffmpeg /usr/bin/ffmpeg
+    sudo mv ffmpeg-3.4.1-macos/ffplay /usr/bin/ffplay
+    sudo mv ffmpeg-3.4.1-macos/ffprobe /usr/bin/ffprobe
+    sudo mv ffmpeg-3.4.1-macos/ffserver /usr/bin/ffserver
+    sudo chmod +x /usr/bin/ffmpeg
+    sudo chmod +x /usr/bin/ffplay
+    sudo chmod +x /usr/bin/ffprobe
+    sudo chmod +x /usr/bin/ffserver
 fi
 echo "============="
 echo "Shinobi - Do you want to Install MySQL? Choose No if you have MySQL or MySQL already."
@@ -49,11 +50,20 @@ if [ "$mysqlagreeData" = "y" ]; then
         sqlpass=$(cat ~/Desktop/MYSQL_PASSWORD)
     fi
     if [ ! "$mysqlagree" = "y" ]; then
-        echo "What is your SQL Username?"
-        read sqluser
-        echo "What is your SQL Password?"
-        read sqlpass
+        echo "Shinobi - Use root for database installation?"
+        echo "(y)es or (N)o"
+        read useroot
+        if [ "$useroot" = "y" ]; then
+            sqluser="root"
+            sqlpass=$(cat ~/Desktop/MYSQL_PASSWORD)
+        else
+            echo "What is your SQL Username?"
+            read sqluser
+            echo "What is your SQL Password?"
+            read sqlpass
+        fi
     fi
+    echo "You may now be asked for your Administator (root for Mac OS, not MySQL) password"
     sudo mysql -u $sqluser -p$sqlpass -e "source sql/user.sql" || true
     sudo mysql -u $sqluser -p$sqlpass -e "source sql/framework.sql" || true
     echo "Shinobi - Do you want to create a new user for viewing and managing cameras in Shinobi? You can do this later in the Superuser panel."
@@ -103,14 +113,13 @@ if [ ! -e "./super.json" ]; then
 fi
 echo "Shinobi - Finished"
 sudo chmod -R 755 .
-touch INSTALL/installed.txt
-echo "=====================================" > INSTALL/installed.txt
-echo "=======   Login Credentials   =======" >> INSTALL/installed.txt
-echo "|| Username : $userEmail" >> INSTALL/installed.txt
-echo "|| Password : $userPasswordPlain" >> INSTALL/installed.txt
-echo "|| API Key : $apiKey" >> INSTALL/installed.txt
-echo "=====================================" >> INSTALL/installed.txt
-echo "=====================================" >> INSTALL/installed.txt
+echo "=====================================" > ~/Desktop/SHINOBI_LOGIN
+echo "=======   Login Credentials   =======" >> ~/Desktop/SHINOBI_LOGIN
+echo "|| Username : $userEmail" >> ~/Desktop/SHINOBI_LOGIN
+echo "|| Password : $userPasswordPlain" >> ~/Desktop/SHINOBI_LOGIN
+echo "|| API Key : $apiKey" >> ~/Desktop/SHINOBI_LOGIN
+echo "=====================================" >> ~/Desktop/SHINOBI_LOGIN
+echo "=====================================" >> ~/Desktop/SHINOBI_LOGIN
 echo "Shinobi - Start Shinobi and set to start on boot?"
 echo "(y)es or (N)o"
 read startShinobi
@@ -121,7 +130,7 @@ if [ "$startShinobi" = "y" ]; then
     sudo pm2 save
     sudo pm2 list
 fi
-echo "details written to INSTALL/installed.txt"
+echo "details written to ~/Desktop/SHINOBI_LOGIN"
 echo "====================================="
 echo "=======   Login Credentials   ======="
 echo "|| Username : $userEmail"
