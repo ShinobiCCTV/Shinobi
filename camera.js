@@ -1950,15 +1950,15 @@ s.camera=function(x,e,cn,tx){
                     delete(s.group[d.ke].mon[d.id].detector_command);
 
                 },d.mon.details.detector_command_timeout);
-                d.mon.details.detector_command=d.mon.details.detector_command
+                var exec_cmd=d.mon.details.detector_command
                     .replace(/{{TIME}}/g,moment(new Date).format())
                     .replace(/{{MONITOR_ID}}/g,d.id)
                     .replace(/{{GROUP_KEY}}/g,d.ke)
                 if(d.details.confidence){
-                    d.mon.details.detector_command=d.mon.details.detector_command
+                    exec_cmd = exec_cmd
                     .replace(/{{CONFIDENCE}}/g,d.details.confidence)
                 }
-                exec(d.mon.details.detector_command,{detached: true})
+                exec(exec_cmd, {detached: true})
             }
         break;
     }
