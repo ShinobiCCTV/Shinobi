@@ -1941,15 +1941,15 @@ s.camera=function(x,e,cn,tx){
             }
             if(d.mon.details.detector_command_enable==='1'&&!s.group[d.ke].mon[d.id].detector_command){
                 if(!d.mon.details.detector_command_timeout||d.mon.details.detector_command_timeout===''){
-                    d.mon.details.detector_command_timeout=1000*60*10;
+                   var exec_timeout = 1000*60*10;
                 }else{
-                    d.mon.details.detector_command_timeout=parseFloat(d.mon.details.detector_command_timeout)*1000*60;
+                   var exec_timeout = parseFloat(d.mon.details.detector_command_timeout)*1000*60;
                 }
                 s.group[d.ke].mon[d.id].detector_command=setTimeout(function(){
                     clearTimeout(s.group[d.ke].mon[d.id].detector_command);
                     delete(s.group[d.ke].mon[d.id].detector_command);
 
-                },d.mon.details.detector_command_timeout);
+                },exec_timeout);
                 var exec_cmd=d.mon.details.detector_command
                     .replace(/{{TIME}}/g,moment(new Date).format())
                     .replace(/{{MONITOR_ID}}/g,d.id)
