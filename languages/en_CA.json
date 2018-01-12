@@ -601,7 +601,9 @@
    "Male":"Male",
    "Female":"Female",
    "Confidence":"Confidence",
+   "Automatic":"Automatic",
    "Object Tag":"Object Tag",
    "Emotion Average":"Emotion Average",
+   "Show Regions of Interest":"Show Regions of Interest",
    "Confidence of Detection":"Confidence of Detection"
 }
