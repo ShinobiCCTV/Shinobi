@@ -155,8 +155,6 @@ switch($user.details.lang){
                             foundPixels = [];
                             for (var currentImageLength = currentImage.data.length * 0.25, b = 0; b < currentImageLength;){
                                 var pos = b * 4
-                                var x = (pos / 4) % blenderCanvas.width;
-                                var y = Math.floor((pos / 4) / blenderCanvas.width);
                                 currentImage.data[pos] = .5 * (255 - currentImage.data[pos]) + .5 * f[frameNumber].data[pos];
                                 currentImage.data[pos + 1] = .5 * (255 - currentImage.data[pos + 1]) + .5 * f[frameNumber].data[pos + 1];
                                 currentImage.data[pos + 2] = .5 * (255 - currentImage.data[pos + 2]) + .5 * f[frameNumber].data[pos + 2];
@@ -2165,12 +2163,12 @@ $.multimon.e.find('.import_config').click(function(){
         reader.readAsText(f);
     });
     $.confirm.click({title:'Import',class:'btn-primary'},function(){
-        setTimeout(function(){
-            $.confirm.e.modal('show');
-        },1000)
-        $.confirm.title.text('<%-cleanLang(lang['Are you sure?'])%>')
-        $.confirm.body.html('<%-cleanLang(lang.ImportMultiMonitorConfigurationText)%>')
-        $.confirm.click({title:'Save Set',class:'btn-danger'},function(){
+//        setTimeout(function(){
+//            $.confirm.e.modal('show');
+//        },1000)
+//        $.confirm.title.text('<%-cleanLang(lang['Are you sure?'])%>')
+//        $.confirm.body.html('<%-cleanLang(lang.ImportMultiMonitorConfigurationText)%>')
+//        $.confirm.click({title:'Save Set',class:'btn-danger'},function(){
             try{
                 e.monitorList=JSON.parse($.confirm.e.find('textarea').val());
                 $.each(e.monitorList,function(n,v){
@@ -2182,7 +2180,7 @@ $.multimon.e.find('.import_config').click(function(){
                 $.ccio.log(err)
                 $.ccio.init('note',{title:'<%-cleanLang(lang['Invalid JSON'])%>',text:'<%-cleanLang(lang.InvalidJSONText)%>',type:'error'})
             }
-        });
+//        });
     });
 })
 $.multimon.e.find('.save_config').click(function(){
@@ -2384,17 +2382,18 @@ $.aM.import=function(e){
     };
     setTimeout(function(){$.aM.drawList()},1000)
 }
+//parse "Automatic" field in "Input" Section
 $.aM.e.on('change','[detail="auto_host"]',function(e){
     var isRTSP = false;
     var url = $(this).val()
-    var enableSwitch = $.aM.e.find('[detail="auto_host_enable"]')
-    var enabled = enableSwitch.val()
-    if(!enabled||enabled===''){
-        enabled='1'
-        enableSwitch.val('1').change()
-        return
+    var theSwitch = $.aM.e.find('[detail="auto_host_enable"]')
+    var disabled = theSwitch.val()
+    if(!disabled||disabled===''){
+        //if no value, then probably old version of monitor config. Set to Manual to avoid confusion.
+        disabled='0'
+        theSwitch.val('0').change()
     }
-    if(enabled==='1'){
+    if(disabled==='0'){
         return
     }
     var urlSplitByDots = url.split('.')
@@ -2413,6 +2412,7 @@ $.aM.e.on('change','[detail="auto_host"]',function(e){
         $.aM.e.find('[detail="aduration"]').val(1000000).change()
         $.aM.e.find('[detail="probesize"]').val(1000000).change()
     }else{
+        //not RTSP
         $.aM.e.find('[name="protocol"]').val(parsedURL.protocol.replace(/:/g,'').replace(/\//g,'')).change()
     }
     $.aM.e.find('[detail="muser"]').val(parsedURL.username).change()
@@ -3917,6 +3917,7 @@ $('body')
                     "width":"640",
                     "height":"480",
                     "details":JSON.stringify({
+                            "auto_host_enable":"0",
                             "timestamp_x":"(w-tw)/2",
                             "timestamp_y":"0",
                             "timestamp_color":"white",

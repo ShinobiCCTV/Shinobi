@@ -91,21 +91,21 @@
                 </label>
               </div>
               <div class="form-group">
-                <label><div><span><%-lang['Manual']%></span></div>
+                <label><div><span><%-lang['Automatic']%></span></div>
                     <div><select class="form-control" detail="auto_host_enable" selector="h_auto_host">
-                            <option value="0" selected><%-lang.No%></option>
-                            <option value="1"><%-lang.Yes%></option>
+                            <option value="0"><%-lang.No%></option>
+                            <option value="1" selected><%-lang.Yes%></option>
                     </select></div>
                 </label>
               </div>
-              <div class="form-group h_auto_host_input h_auto_host_0">
+              <div class="form-group h_auto_host_input h_auto_host_1">
                   <div class="form-group">
                     <label><div><span><%-lang['Full URL Path']%></span></div>
                     <div><input class="form-control" detail="auto_host" placeholder="Example : rtsp://123.123.123.123/stream/1"></div>
                     </label>
                   </div>
               </div>
-              <div class="h_auto_host_input h_auto_host_1" style="display:none">
+              <div class="h_auto_host_input h_auto_host_0" style="display:none">
                   <div class="form-group h_t_input h_t_h264 h_t_hls h_t_mp4 h_t_jpeg h_t_mjpeg">
                     <label><div><span><%-lang['Connection Type']%></span></div>
                         <div><select class="form-control" name="protocol" selector="h_p">
@@ -995,6 +995,14 @@
                       <div class="form-group important">
                         <label><div><span><%-lang['Send Frames']%></span></div>
                             <div><select class="form-control" detail="detector_send_frames" selector="h_det_fra">
+                                <option value="0" selected><%-lang.No%></option>
+                                <option value="1"><%-lang.Yes%></option>
+                            </select></div>
+                        </label>
+                      </div>
+                      <div class="form-group">
+                        <label><div><span><%-lang['Show Regions of Interest']%></span></div>
+                            <div><select class="form-control" detail="detector_region_of_interest">
                                 <option value="0" selected><%-lang.No%></option>
                                 <option value="1"><%-lang.Yes%></option>
                             </select></div>
