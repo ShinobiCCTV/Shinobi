@@ -422,6 +422,7 @@
    "libvorbis (Default)": "libvorbis (Default)",
    "libopus": "libopus",
    "aac (Default)": "aac (Default)",
+   "Traditional (Watch-Only, Includes Buffer)": "Traditional (Watch-Only, Includes Buffer)",
    "Hotswap Modes (Watch-Only)": "Hotswap Modes (Watch-Only)",
    "Delete Motionless Videos (Record)": "Delete Motionless Videos (Record)",
    "US": "US",

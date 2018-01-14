@@ -948,12 +948,13 @@
                   <div class="form-group important">
                     <label><div><span><%-lang['How to Record']%></span></div>
                         <div><select class="form-control" detail="detector_record_method" selector="h_rec_mtd">
-                            <option value="hot" selected><%-lang['Hotswap Modes (Watch-Only)']%></option>
+                            <option value="sip" selected><%-lang['Traditional (Watch-Only, Includes Buffer)']%></option>
+                            <option value="hot"><%-lang['Hotswap Modes (Watch-Only)']%></option>
                             <option value="del"><%-lang['Delete Motionless Videos (Record)']%></option>
                         </select></div>
                     </label>
                   </div>
-                  <div class="h_rec_mtd_input h_rec_mtd_hot">
+                  <div class="h_rec_mtd_input h_rec_mtd_hot h_rec_mtd_sip">
                       <div class="form-group">
                         <label><div><span><%-lang['Trigger Record']%></span></div>
                             <div><select class="form-control" detail="detector_trigger">

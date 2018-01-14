@@ -461,6 +461,7 @@ s.init=function(x,e,k,fn){
             if(!s.group[e.ke].users){s.group[e.ke].users={}}
             if(!s.group[e.ke].mon[e.mid]){s.group[e.ke].mon[e.mid]={}}
             if(!s.group[e.ke].mon[e.mid].streamIn){s.group[e.ke].mon[e.mid].streamIn={}};
+            if(!s.group[e.ke].mon[e.mid].eventBasedRecording){s.group[e.ke].mon[e.mid].eventBasedRecording={}};
             if(!s.group[e.ke].mon[e.mid].watch){s.group[e.ke].mon[e.mid].watch={}};
             if(!s.group[e.ke].mon[e.mid].fixingVideos){s.group[e.ke].mon[e.mid].fixingVideos={}};
             if(!s.group[e.ke].mon[e.mid].record){s.group[e.ke].mon[e.mid].record={yes:e.record}};
@@ -1130,6 +1131,17 @@ s.ffmpeg=function(e){
         x.pipe+=' -update 1 -r '+e.details.snap_fps+x.cust_snap+x.sratio+x.snap_vf+' "'+e.sdir+'s.jpg" -y';
     }
     //Raw H.264 stream over HTTP (RTSP simulation)
+    if(e.details.detector_trigger=='1'&&e.details.detector_record_method==='sip'){
+        switch(e.type){
+            case'h264':case'hls':case'mp4':
+                x.detectorStreamCodec = 'copy'
+            break;
+            default:
+                x.detectorStreamCodec = 'libx264'
+            break;
+        }
+        x.pipe+=' -an -c:v '+x.detectorStreamCodec+' -r 1 -f hls -tune zerolatency -g 1 -hls_time 2 -hls_list_size 10 -start_number 0 -live_start_index -3 -hls_allow_cache 0 -hls_flags +delete_segments+omit_endlist '+e.sdir+'detectorStream.m3u8'
+    }
     if(e.details.rawh264==='1'){
         if(e.details.rawh264_vcodec&&e.details.rawh264_vcodec!==''){x.rawh264_vcodec=' -c:v '+e.details.rawh264_vcodec}else{x.rawh264_vcodec=' -c:v copy'}
         if(e.details.rawh264_acodec==='no'){
@@ -1380,6 +1392,11 @@ s.camera=function(x,e,cn,tx){
                 },30000)
             }
             s.group[e.ke].mon[e.id].started=1;
+            s.group[e.ke].mon[e.id].closeVideo = function(){
+                if(s.group[e.ke].mon[e.id].open){
+                    s.video('close',e);
+                }
+            };
             if(x==='record'){
                 s.group[e.ke].mon[e.id].record.yes=1;
             }else{
@@ -1461,46 +1478,46 @@ s.camera=function(x,e,cn,tx){
                     }
                 },60000*1);
             }
-            switch(x){
-                case'record':
-                    s.group[e.ke].mon[e.id].fswatch=fs.watch(e.dir,{encoding:'utf8'},function(eventType,filename){
-                        if(s.group[e.ke].mon[e.id].fixingVideos[filename]){return}
-                        switch(eventType){
-                            case'change':
-                                clearTimeout(s.group[e.ke].mon[e.id].checker)
-                                clearTimeout(s.group[e.ke].mon[e.id].checkStream)
-                                s.group[e.ke].mon[e.id].checker=setTimeout(function(){
-                                    if(s.group[e.ke].mon[e.id].started===1){
-                                        e.fn();
-                                        s.log(e,{type:lang['Camera is not recording'],msg:{msg:lang['Restarting Process']}});
-                                    }
-                                },60000*2);
-                            break;
-                            case'rename':
-                                fs.exists(e.dir+filename,function(exists){
-                                    if(exists){
-                                        if(s.group[e.ke].mon[e.id].open){
-                                            s.video('close',e);
-                                            if(e.details.detector==='1'&&s.ocv&&s.group[e.ke].mon[e.id].started===1&&e.details&&e.details.detector_record_method==='del'&&e.details.detector_delete_motionless_videos==='1'&&s.group[e.ke].mon[e.id].detector_motion_count===0){
-                                                if(e.details.loglevel!=='quiet'){
-                                                    s.log(e,{type:lang['Delete Motionless Video'],msg:e.filename+'.'+e.ext});
-                                                }
-                                                s.video('delete',s.init('noReference',e))
+            if(x==='record'||(x==='start'&&e.details.detector_record_method==='sip')){
+                s.group[e.ke].mon[e.id].fswatch=fs.watch(e.dir,{encoding:'utf8'},function(eventType,filename){
+                    if(s.group[e.ke].mon[e.id].fixingVideos[filename]){return}
+                    switch(eventType){
+                        case'change':
+                            clearTimeout(s.group[e.ke].mon[e.id].checker)
+                            clearTimeout(s.group[e.ke].mon[e.id].checkStream)
+                            s.group[e.ke].mon[e.id].checker=setTimeout(function(){
+                                if(s.group[e.ke].mon[e.id].started===1){
+                                    e.fn();
+                                    s.log(e,{type:lang['Camera is not recording'],msg:{msg:lang['Restarting Process']}});
+                                }
+                            },60000*2);
+                        break;
+                        case'rename':
+                            fs.exists(e.dir+filename,function(exists){
+                                if(exists){
+                                    if(s.group[e.ke].mon[e.id].open){
+                                        s.video('close',e);
+                                        if(e.details.detector==='1'&&s.ocv&&s.group[e.ke].mon[e.id].started===1&&e.details&&e.details.detector_record_method==='del'&&e.details.detector_delete_motionless_videos==='1'&&s.group[e.ke].mon[e.id].detector_motion_count===0){
+                                            if(e.details.loglevel!=='quiet'){
+                                                s.log(e,{type:lang['Delete Motionless Video'],msg:e.filename+'.'+e.ext});
                                             }
+                                            s.video('delete',s.init('noReference',e))
                                         }
-                                        setTimeout(function(){
-                                            e.filename=filename.split('.')[0];
-                                            s.video('open',e);
-                                            s.group[e.ke].mon[e.id].open=e.filename;
-                                            s.group[e.ke].mon[e.id].open_ext=e.ext;
-                                            s.group[e.ke].mon[e.id].detector_motion_count=0;
-                                        },2000)
                                     }
-                                });
-                            break;
-                        }
-                    })
-                break;
+                                    setTimeout(function(){
+                                        e.filename=filename.split('.')[0];
+                                        s.video('open',e);
+                                        s.group[e.ke].mon[e.id].open=e.filename;
+                                        s.group[e.ke].mon[e.id].open_ext=e.ext;
+                                        s.group[e.ke].mon[e.id].detector_motion_count=0;
+                                    },2000)
+                                }
+                            });
+                        break;
+                    }
+                })
+            }
+            switch(x){
                 case'start':
                     switch(e.details.stream_type){
                         case'jpeg':case'hls':
@@ -1849,45 +1866,94 @@ s.camera=function(x,e,cn,tx){
 
                 }).end();
             }
-            if(d.mon.mode!=='stop'&&d.mon.details.detector_trigger=='1'&&d.mon.details.detector_record_method==='hot'){
-                if(!d.mon.details.detector_timeout||d.mon.details.detector_timeout===''){
-                    d.mon.details.detector_timeout=10
-                }else{
-                    d.mon.details.detector_timeout=parseFloat(d.mon.details.detector_timeout)
+            if(!d.mon.details.detector_timeout||d.mon.details.detector_timeout===''){
+                d.mon.details.detector_timeout=10
+            }else{
+                d.mon.details.detector_timeout=parseFloat(d.mon.details.detector_timeout)
+            }
+            if(d.mon.mode=='start'&&d.mon.details.detector_trigger=='1'&&d.mon.details.detector_record_method==='sip'){
+                //s.group[d.ke].mon[d.id].eventBasedRecording.timeout
+                if(s.group[d.ke].mon[d.id].eventBasedRecording.timeout
+//                   &&d.mon.details.watchdog_reset!=='1'
+                  ){
+//                    return
                 }
-                if(!d.auth){
-                    d.auth=s.gid();
+//                clearTimeout(s.group[d.ke].mon[d.id].eventBasedRecording.timeout)
+                s.group[d.ke].mon[d.id].eventBasedRecording.timeout = setTimeout(function(){
+                    s.group[d.ke].mon[d.id].eventBasedRecording.allowEnd=true;
+////                    s.group[d.ke].mon[d.id].eventBasedRecording.process.stdin.setEncoding('utf8');
+////                    s.group[d.ke].mon[d.id].eventBasedRecording.process.stdin.write('q');
+////                    s.group[d.ke].mon[d.id].eventBasedRecording.process.kill('SIGTERM');
+//                    s.group[d.ke].mon[d.id].eventBasedRecording.process.kill();
+//                    s.group[d.ke].mon[d.id].closeVideo()
+                },d.mon.details.detector_timeout * 900 * 60)
+                if(!s.group[d.ke].mon[d.id].eventBasedRecording.process){
+                    if(!d.auth){
+                        d.auth=s.gid();
+                    }
+                    if(!s.group[d.ke].users[d.auth]){
+                        s.group[d.ke].users[d.auth]={system:1,details:{},lang:lang}
+                    }
+                    s.group[d.ke].mon[d.id].eventBasedRecording.allowEnd = false;
+                    var runRecord = function(){
+                        s.log(d,'Spawned Recorder')
+                        s.group[d.ke].mon[d.id].eventBasedRecording.process = spawn(config.ffmpegDir,s.splitForFFPMEG(('-loglevel warning -analyzeduration 1000000 -probesize 1000000 -re -i http://'+config.ip+':'+config.port+'/'+d.auth+'/hls/'+d.ke+'/'+d.id+'/detectorStream.m3u8 -t 00:'+moment(new Date(d.mon.details.detector_timeout * 1000 * 60)).format('mm:ss')+' -c:v copy -an -strftime 1 "'+s.dir.videos+d.ke+'/'+d.id+'/'+s.moment()+'.mp4"').replace(/\s+/g,' ').trim()))
+                        var ffmpegError='';
+                        var error
+                        s.group[d.ke].mon[d.id].eventBasedRecording.process.stderr.on('data',function(d){
+                            ffmpegError+=d.toString()
+                        })
+                        s.group[d.ke].mon[d.id].eventBasedRecording.process.on('close',function(){
+                            if(!s.group[d.ke].mon[d.id].eventBasedRecording.allowEnd){
+                                s.log(d,ffmpegError)
+                                runRecord()
+                                return
+                            }
+                            s.group[d.ke].mon[d.id].closeVideo()
+                            delete(s.group[d.ke].users[d.auth])
+                            s.log(d,'Clear Recorder Process')
+                            delete(s.group[d.ke].mon[d.id].eventBasedRecording.process)
+                            delete(s.group[d.ke].mon[d.id].eventBasedRecording.timeout)
+                        })
+                    }
+                    runRecord()
                 }
-                if(!s.group[d.ke].users[d.auth]){
-                    s.group[d.ke].users[d.auth]={system:1,details:{},lang:lang}
-                }
-                d.urlQuery=[]
-                d.url='http://'+config.ip+':'+config.port+'/'+d.auth+'/monitor/'+d.ke+'/'+d.id+'/record/'+d.mon.details.detector_timeout+'/min';
-                if(d.mon.details.watchdog_reset!=='0'){
-                    d.urlQuery.push('reset=1')
-                }
-                if(d.mon.details.detector_trigger_record_fps&&d.mon.details.detector_trigger_record_fps!==''&&d.mon.details.detector_trigger_record_fps!=='0'){
-                    d.urlQuery.push('fps='+d.mon.details.detector_trigger_record_fps)
-                }
-                if(d.urlQuery.length>0){
-                    d.url+='?'+d.urlQuery.join('&')
-                }
-                http.get(d.url, function(data) {
-                    data.setEncoding('utf8');
-                    var chunks='';
-                    data.on('data', (chunk) => {
-                        chunks+=chunk;
-                    });
-                    data.on('end', () => {
-                        delete(s.group[d.ke].users[d.auth])
-                        d.cx.f='detector_record_engaged';
-                        d.cx.msg=JSON.parse(chunks);
-                        s.tx(d.cx,'GRP_'+d.ke);
-                    });
+            }else{
+                if(d.mon.mode!=='stop'&&d.mon.details.detector_trigger=='1'&&d.mon.details.detector_record_method==='hot'){
+                    if(!d.auth){
+                        d.auth=s.gid();
+                    }
+                    if(!s.group[d.ke].users[d.auth]){
+                        s.group[d.ke].users[d.auth]={system:1,details:{},lang:lang}
+                    }
+                    d.urlQuery=[]
+                    d.url='http://'+config.ip+':'+config.port+'/'+d.auth+'/monitor/'+d.ke+'/'+d.id+'/record/'+d.mon.details.detector_timeout+'/min';
+                    if(d.mon.details.watchdog_reset!=='0'){
+                        d.urlQuery.push('reset=1')
+                    }
+                    if(d.mon.details.detector_trigger_record_fps&&d.mon.details.detector_trigger_record_fps!==''&&d.mon.details.detector_trigger_record_fps!=='0'){
+                        d.urlQuery.push('fps='+d.mon.details.detector_trigger_record_fps)
+                    }
+                    if(d.urlQuery.length>0){
+                        d.url+='?'+d.urlQuery.join('&')
+                    }
+                    http.get(d.url, function(data) {
+                        data.setEncoding('utf8');
+                        var chunks='';
+                        data.on('data', (chunk) => {
+                            chunks+=chunk;
+                        });
+                        data.on('end', () => {
+                            delete(s.group[d.ke].users[d.auth])
+                            d.cx.f='detector_record_engaged';
+                            d.cx.msg=JSON.parse(chunks);
+                            s.tx(d.cx,'GRP_'+d.ke);
+                        });
 
-                }).on('error', function(e) {
+                    }).on('error', function(e) {
 
-                }).end();
+                    }).end();
+                }
             }
             //mailer
             if(config.mail&&!s.group[d.ke].mon[d.id].detector_mail&&d.mon.details.detector_mail==='1'){
