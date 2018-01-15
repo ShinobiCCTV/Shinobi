@@ -3395,6 +3395,10 @@ $.pwrvid.e.on('hidden.bs.modal',function(e){
     $.pwrvid.mL.empty()
     $.pwrvid.d.empty()
 })
+//open all monitors
+$('[class_toggle="list-blocks"][data-target="#left_menu"]').dblclick(function(){
+    $('#monitors_list [monitor="watch"]').click()
+})
 //dynamic bindings
 $('body')
 .on('click','.logout',function(e){
