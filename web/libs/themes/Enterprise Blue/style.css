@@ -33,3 +33,9 @@
 .monitor_item .mdl-card {
     border: 1px solid #122444;
 }
+.dark.modal .modal-header,.dark.modal .modal-footer{background:#091222;border-color:#222;}
+.dark.modal .modal-body{background:#151d28;}
+.form-group-group.forestgreen {border-color: #091222;}
+.form-group-group.forestgreen h4 {background: #091222;}
+.dark .form-group-group {background: #18253e;}
+.dark .list-group-item {background: #091222;border-color: #18253e;}
