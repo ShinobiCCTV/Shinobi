@@ -3630,7 +3630,7 @@ $('body')
                 if($.ccio.mon[e.ke+e.mid+user.auth_token].popOut){
                     $.ccio.mon[e.ke+e.mid+user.auth_token].popOut.close()
                 }
-                $.ccio.mon[e.ke+e.mid+user.auth_token].popOut = window.open($.ccio.init('location',user)+user.auth_token+'/embed/'+e.ke+'/'+e.mid+'/fullscreen|jquery|gui','pop_'+e.mid+user.auth_token,'height='+img.height+',width='+img.width);
+                $.ccio.mon[e.ke+e.mid+user.auth_token].popOut = window.open($.ccio.init('location',user)+user.auth_token+'/embed/'+e.ke+'/'+e.mid+'/fullscreen|jquery|relative|gui','pop_'+e.mid+user.auth_token,'height='+img.height+',width='+img.width);
             }
             if(e.mon.watch===1){
                 $.ccio.snapshot(e,function(url){
