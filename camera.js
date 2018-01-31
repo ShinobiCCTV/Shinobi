@@ -1916,7 +1916,7 @@ s.camera=function(x,e,cn,tx){
                             }
                             s.group[d.ke].mon[d.id].closeVideo()
                             delete(s.group[d.ke].users[d.auth])
-                            s.log(d,'Clear Recorder Process')
+                            s.log(e,{type:"Traditional Recording",msg:'Clear Recorder Process'})
                             delete(s.group[d.ke].mon[d.id].eventBasedRecording.process)
                             delete(s.group[d.ke].mon[d.id].eventBasedRecording.timeout)
                         })
