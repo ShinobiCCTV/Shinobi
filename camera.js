@@ -1906,11 +1906,11 @@ s.camera=function(x,e,cn,tx){
                         var ffmpegError='';
                         var error
                         s.group[d.ke].mon[d.id].eventBasedRecording.process.stderr.on('data',function(d){
-                            ffmpegError+=d.toString()
+                            s.log(e,{type:"Traditional Recording",msg:d.toString()})
                         })
                         s.group[d.ke].mon[d.id].eventBasedRecording.process.on('close',function(){
                             if(!s.group[d.ke].mon[d.id].eventBasedRecording.allowEnd){
-                                s.log(d,ffmpegError)
+                                s.log(e,{type:"Traditional Recording",msg:"Detector Recording Complete"})
                                 runRecord()
                                 return
                             }
