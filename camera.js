@@ -1347,6 +1347,11 @@ s.camera=function(x,e,cn,tx){
         break;
         case'idle':case'stop'://stop monitor
             if(!s.group[e.ke]||!s.group[e.ke].mon[e.id]){return}
+            if(s.group[e.ke].mon[e.id].eventBasedRecording.process){
+                clearTimeout(s.group[e.ke].mon[e.id].eventBasedRecording.timeout)
+                s.group[e.ke].mon[e.id].eventBasedRecording.allowEnd=true;
+                s.group[e.ke].mon[e.id].eventBasedRecording.process.kill('SIGTERM');
+            }
             if(s.group[e.ke].mon[e.id].fswatch){s.group[e.ke].mon[e.id].fswatch.close();delete(s.group[e.ke].mon[e.id].fswatch)}
             if(s.group[e.ke].mon[e.id].fswatchStream){s.group[e.ke].mon[e.id].fswatchStream.close();delete(s.group[e.ke].mon[e.id].fswatchStream)}
             if(s.group[e.ke].mon[e.id].open){ee.filename=s.group[e.ke].mon[e.id].open,ee.ext=s.group[e.ke].mon[e.id].open_ext;s.video('close',ee)}
@@ -1881,12 +1886,11 @@ s.camera=function(x,e,cn,tx){
 //                clearTimeout(s.group[d.ke].mon[d.id].eventBasedRecording.timeout)
                 s.group[d.ke].mon[d.id].eventBasedRecording.timeout = setTimeout(function(){
                     s.group[d.ke].mon[d.id].eventBasedRecording.allowEnd=true;
-////                    s.group[d.ke].mon[d.id].eventBasedRecording.process.stdin.setEncoding('utf8');
-////                    s.group[d.ke].mon[d.id].eventBasedRecording.process.stdin.write('q');
-////                    s.group[d.ke].mon[d.id].eventBasedRecording.process.kill('SIGTERM');
-//                    s.group[d.ke].mon[d.id].eventBasedRecording.process.kill();
+//                    s.group[d.ke].mon[d.id].eventBasedRecording.process.stdin.setEncoding('utf8');
+//                    s.group[d.ke].mon[d.id].eventBasedRecording.process.stdin.write('q');
+//                    s.group[d.ke].mon[d.id].eventBasedRecording.process.kill('SIGTERM');
 //                    s.group[d.ke].mon[d.id].closeVideo()
-                },d.mon.details.detector_timeout * 900 * 60)
+                },d.mon.details.detector_timeout * 950 * 60)
                 if(!s.group[d.ke].mon[d.id].eventBasedRecording.process){
                     if(!d.auth){
                         d.auth=s.gid();
@@ -1897,6 +1901,7 @@ s.camera=function(x,e,cn,tx){
                     s.group[d.ke].mon[d.id].eventBasedRecording.allowEnd = false;
                     var runRecord = function(){
                         s.log(d,'Spawned Recorder')
+                        //-t 00:'+moment(new Date(d.mon.details.detector_timeout * 1000 * 60)).format('mm:ss')+'
                         s.group[d.ke].mon[d.id].eventBasedRecording.process = spawn(config.ffmpegDir,s.splitForFFPMEG(('-loglevel warning -analyzeduration 1000000 -probesize 1000000 -re -i http://'+config.ip+':'+config.port+'/'+d.auth+'/hls/'+d.ke+'/'+d.id+'/detectorStream.m3u8 -t 00:'+moment(new Date(d.mon.details.detector_timeout * 1000 * 60)).format('mm:ss')+' -c:v copy -an -strftime 1 "'+s.dir.videos+d.ke+'/'+d.id+'/'+s.moment()+'.mp4"').replace(/\s+/g,' ').trim()))
                         var ffmpegError='';
                         var error
