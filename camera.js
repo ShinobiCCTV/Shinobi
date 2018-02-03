@@ -39,6 +39,7 @@ var jsonfile = require("jsonfile");
 var connectionTester = require('connection-tester');
 var events = require('events');
 var Cam = require('onvif').Cam;
+var knex = require('knex');
 var location = {}
 location.super = __dirname+'/super.json'
 location.config = __dirname+'/conf.json'
@@ -85,6 +86,8 @@ if(config.cron===undefined)config.cron={};
 if(config.cron.deleteOverMax===undefined)config.cron.deleteOverMax=true;
 if(config.cron.deleteOverMaxOffset===undefined)config.cron.deleteOverMaxOffset=0.9;
 if(config.pluginKeys===undefined)config.pluginKeys={};
+if(config.databaseType===undefined){config.databaseType='mysql'}
+
 s={factorAuth:{},child_help:false,totalmem:os.totalmem(),platform:os.platform(),s:JSON.stringify,isWin:(process.platform==='win32')};
 //load languages dynamically
 s.loadedLanguages={}
@@ -124,35 +127,46 @@ s.getDefinitonFile=function(rule){
     }
     return file
 }
-s.connectSQL=function(){
-    sql = mysql.createConnection(config.db);
-    sql.connect(function(err){if(err){s.systemLog(lang['Error Connecting']+' : DB',err);setTimeout(s.connectSQL, 2000);}});
-    sql.on('error',function(err) {s.systemLog(lang['DB Lost.. Retrying..']);s.systemLog(err);s.connectSQL();return;});
-    sql.on('connect',function() {
-        s.sqlQuery = function(query,values,callback){
-            if(!values){values=[]}
-            return sql.query(query,values,function(err,r){
-                if(err)
-                    s.systemLog('s.sqlQuery',err)
-                if(callback)
-                    callback(err,r)
-            })
-        }
-        s.sqlQuery('ALTER TABLE `Videos` ADD COLUMN `details` TEXT NULL DEFAULT NULL AFTER `status`;',function(err){
-            if(err){
-                s.systemLog("Critical update 1/2 already applied");
+s.databaseEngine = knex({
+  client: config.databaseType,
+  connection: config.db
+})
+s.sqlQuery = function(query,values,onMoveOn,hideLog){
+    if(!values){values=[]}
+    if(typeof values === 'function'){
+        var onMoveOn = values;
+        var values = [];
+    }
+    if(!onMoveOn){onMoveOn=function(){}}
+    return s.databaseEngine.raw(query,values)
+        .asCallback(function(err,r){
+            if(err&&config.systemLog){
+                s.systemLog('s.sqlQuery QUERY',query)
+                s.systemLog('s.sqlQuery ERROR',err)
             }
-            s.sqlQuery("CREATE TABLE IF NOT EXISTS `Files` (`ke` varchar(50) NOT NULL,`mid` varchar(50) NOT NULL,`name` tinytext NOT NULL,`size` float NOT NULL DEFAULT '0',`details` text NOT NULL,`status` int(1) NOT NULL DEFAULT '0') ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;",function(err){
-                if(err){
-                    s.systemLog("Critical update 2/2 NOT applied, this could be bad");
+            if(onMoveOn)
+                if(typeof onMoveOn === 'function'){
+                    if(r){
+                        r = r[0];
+                    }
+                    onMoveOn(err,r)
                 }else{
-                    s.systemLog("Critical update 2/2 already applied");
+                    console.log(onMoveOn)
                 }
-            });
-        });
-    });
+        })
 }
-s.connectSQL();
+s.sqlQuery('ALTER TABLE `Videos` ADD COLUMN `details` TEXT NULL DEFAULT NULL AFTER `status`;',function(err){
+    if(err){
+        s.systemLog("Critical update 1/2 already applied");
+    }
+    s.sqlQuery("CREATE TABLE IF NOT EXISTS `Files` (`ke` varchar(50) NOT NULL,`mid` varchar(50) NOT NULL,`name` tinytext NOT NULL,`size` float NOT NULL DEFAULT '0',`details` text NOT NULL,`status` int(1) NOT NULL DEFAULT '0') ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;",function(err){
+        if(err){
+            s.systemLog("Critical update 2/2 NOT applied, this could be bad");
+        }else{
+            s.systemLog("Critical update 2/2 already applied");
+        }
+    },true);
+},true);
 //kill any ffmpeg running
 s.ffmpegKill=function(){
     var cmd=''
@@ -353,7 +367,7 @@ s.systemLog=function(q,w,e){
     if(!w){w=''}
     if(!e){e=''}
     if(config.systemLog===true){
-        if(typeof q==='string'&&sql){
+        if(typeof q==='string'&&s.databaseEngine){
             s.sqlQuery('INSERT INTO Logs (ke,mid,info) VALUES (?,?,?)',['$','$SYSTEM',s.s({type:q,msg:w})]);
             s.tx({f:'log',log:{time:moment(),ke:'$',mid:'$SYSTEM',time:moment(),info:s.s({type:q,msg:w})}},'$');
         }
