@@ -87,6 +87,7 @@ if(config.cron.deleteOverMax===undefined)config.cron.deleteOverMax=true;
 if(config.cron.deleteOverMaxOffset===undefined)config.cron.deleteOverMaxOffset=0.9;
 if(config.pluginKeys===undefined)config.pluginKeys={};
 if(config.databaseType===undefined){config.databaseType='mysql'}
+if(config.databaseLogs===undefined){config.databaseLogs=false}
 
 s={factorAuth:{},child_help:false,totalmem:os.totalmem(),platform:os.platform(),s:JSON.stringify,isWin:(process.platform==='win32')};
 //load languages dynamically
@@ -140,7 +141,7 @@ s.sqlQuery = function(query,values,onMoveOn,hideLog){
     if(!onMoveOn){onMoveOn=function(){}}
     return s.databaseEngine.raw(query,values)
         .asCallback(function(err,r){
-            if(err&&config.systemLog){
+            if(err&&config.databaseLogs){
                 s.systemLog('s.sqlQuery QUERY',query)
                 s.systemLog('s.sqlQuery ERROR',err)
             }
