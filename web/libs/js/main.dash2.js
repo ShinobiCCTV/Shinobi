@@ -1972,7 +1972,7 @@ $.zO.initCanvas=function(){
     e.val=$.zO.rl.val();
     if(!e.val){
         $.zO.f.find('[name="name"]').val('')
-        $.zO.f.find('[name="indifference"]').val('')
+        $.zO.f.find('[name="sensitivity"]').val('')
         $.zO.rp.empty()
     }else{
         e.cord=$.zO.regionViewerDetails.cords[e.val];
@@ -1985,7 +1985,7 @@ $.zO.initCanvas=function(){
         }
         $.zO.f.find('[name="name"]').val(e.val)
         $.zO.e.find('.cord_name').text(e.val)
-        $.zO.f.find('[name="indifference"]').val(e.cord.sensitivity)
+        $.zO.f.find('[name="sensitivity"]').val(e.cord.sensitivity)
         $.zO.e.find('.canvas_holder canvas').remove();
         
         $.zO.initLiveStream()
@@ -2000,7 +2000,7 @@ $.zO.initCanvas=function(){
         e.e.change();
     }
 }
-$.zO.e.on('change','[name="indifference"]',function(e){
+$.zO.e.on('change','[name="sensitivity"]',function(e){
     e.val=$(this).val();
     $.zO.regionViewerDetails.cords[$.zO.rl.val()].sensitivity=e.val;
     $.zO.saveCoords()
