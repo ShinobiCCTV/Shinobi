@@ -1972,7 +1972,7 @@ $.zO.initCanvas=function(){
     e.val=$.zO.rl.val();
     if(!e.val){
         $.zO.f.find('[name="name"]').val('')
-        $.zO.f.find('[name="indifference"]').val('')
+        $.zO.f.find('[name="sensitivity"]').val('')
         $.zO.rp.empty()
     }else{
         e.cord=$.zO.regionViewerDetails.cords[e.val];
@@ -1985,7 +1985,7 @@ $.zO.initCanvas=function(){
         }
         $.zO.f.find('[name="name"]').val(e.val)
         $.zO.e.find('.cord_name').text(e.val)
-        $.zO.f.find('[name="indifference"]').val(e.cord.sensitivity)
+        $.zO.f.find('[name="sensitivity"]').val(e.cord.sensitivity)
         $.zO.e.find('.canvas_holder canvas').remove();
         
         $.zO.initLiveStream()
@@ -2000,7 +2000,7 @@ $.zO.initCanvas=function(){
         e.e.change();
     }
 }
-$.zO.e.on('change','[name="indifference"]',function(e){
+$.zO.e.on('change','[name="sensitivity"]',function(e){
     e.val=$(this).val();
     $.zO.regionViewerDetails.cords[$.zO.rl.val()].sensitivity=e.val;
     $.zO.saveCoords()
@@ -2096,12 +2096,40 @@ $.zO.e.on('click','.add',function(e){
 //probe
 $.pB={e:$('#probe')};$.pB.f=$.pB.e.find('form');$.pB.o=$.pB.e.find('.output_data');
 $.pB.f.submit(function(e){
+
+    $.pB.e.find('._loading').show()
+    $.pB.o.empty();
+    $.pB.e.find('.stop').show();
+    $.pB.e.find('[type="submit"]').hide();
+    
     e.preventDefault();e.e=$(this),e.s=e.e.serializeObject();
     e.s.url=e.s.url.trim();
-    if(e.s.url.indexOf('{{JSON}}')>-1){
-        e.s.url='-v quiet -print_format json -show_format -show_streams '+e.s.url
+    var flags = '';
+    switch(e.s.mode){
+        case'json':
+            flags = '-v quiet -print_format json -show_format -show_streams';
+        break;
     }
-    $.ccio.cx({f:'ffprobe',query:e.s.url})
+//    if(e.s.url.indexOf('{{JSON}}')>-1){
+//        e.s.url='-v quiet -print_format json -show_format -show_streams '+e.s.url
+//    }
+    $.get('/'+$user.auth_token+'/probe/'+$user.ke+'?url='+e.s.url+'&flags='+flags,function(data){
+        if(data.ok===true){
+            var html
+            try{
+                html = $.ccio.init('jsontoblock',JSON.parse(data.result))
+            }catch(err){
+                html = data.result
+            }
+            $.pB.o.append(html)
+        }else{
+            $.ccio.init('note',{title:'Failed to Probe',text:data.error,type:'error'});
+        }
+        $.pB.e.find('._loading').hide()
+        $.pB.o.append('<div><b>END</b></div>');
+        $.pB.e.find('.stop').hide();
+        $.pB.e.find('[type="submit"]').show();
+    })
     return false;
 });
 $.pB.e.on('hidden.bs.modal',function(){

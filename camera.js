@@ -39,6 +39,9 @@ var jsonfile = require("jsonfile");
 var connectionTester = require('connection-tester');
 var events = require('events');
 var Cam = require('onvif').Cam;
+var knex = require('knex');
+const P2P = require('pipe2pam');
+const PamDiff = require('pam-diff');
 var location = {}
 location.super = __dirname+'/super.json'
 location.config = __dirname+'/conf.json'
@@ -85,6 +88,9 @@ if(config.cron===undefined)config.cron={};
 if(config.cron.deleteOverMax===undefined)config.cron.deleteOverMax=true;
 if(config.cron.deleteOverMaxOffset===undefined)config.cron.deleteOverMaxOffset=0.9;
 if(config.pluginKeys===undefined)config.pluginKeys={};
+if(config.databaseType===undefined){config.databaseType='mysql'}
+if(config.databaseLogs===undefined){config.databaseLogs=false}
+
 s={factorAuth:{},child_help:false,totalmem:os.totalmem(),platform:os.platform(),s:JSON.stringify,isWin:(process.platform==='win32')};
 //load languages dynamically
 s.loadedLanguages={}
@@ -124,42 +130,53 @@ s.getDefinitonFile=function(rule){
     }
     return file
 }
-s.connectSQL=function(){
-    sql = mysql.createConnection(config.db);
-    sql.connect(function(err){if(err){s.systemLog(lang['Error Connecting']+' : DB',err);setTimeout(s.connectSQL, 2000);}});
-    sql.on('error',function(err) {s.systemLog(lang['DB Lost.. Retrying..']);s.systemLog(err);s.connectSQL();return;});
-    sql.on('connect',function() {
-        s.sqlQuery = function(query,values,callback){
-            if(!values){values=[]}
-            return sql.query(query,values,function(err,r){
-                if(err)
-                    s.systemLog('s.sqlQuery',err)
-                if(callback)
-                    callback(err,r)
-            })
-        }
-        s.sqlQuery('ALTER TABLE `Videos` ADD COLUMN `details` TEXT NULL DEFAULT NULL AFTER `status`;',function(err){
-            if(err){
-                s.systemLog("Critical update 1/2 already applied");
+s.databaseEngine = knex({
+  client: config.databaseType,
+  connection: config.db
+})
+s.sqlQuery = function(query,values,onMoveOn,hideLog){
+    if(!values){values=[]}
+    if(typeof values === 'function'){
+        var onMoveOn = values;
+        var values = [];
+    }
+    if(!onMoveOn){onMoveOn=function(){}}
+    return s.databaseEngine.raw(query,values)
+        .asCallback(function(err,r){
+            if(err&&config.databaseLogs){
+                s.systemLog('s.sqlQuery QUERY',query)
+                s.systemLog('s.sqlQuery ERROR',err)
             }
-            s.sqlQuery("CREATE TABLE IF NOT EXISTS `Files` (`ke` varchar(50) NOT NULL,`mid` varchar(50) NOT NULL,`name` tinytext NOT NULL,`size` float NOT NULL DEFAULT '0',`details` text NOT NULL,`status` int(1) NOT NULL DEFAULT '0') ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;",function(err){
-                if(err){
-                    s.systemLog("Critical update 2/2 NOT applied, this could be bad");
-                }else{
-                    s.systemLog("Critical update 2/2 already applied");
-                }
-                s.sqlQuery('ALTER TABLE `Events` ADD COLUMN `motionConfidence` decimal(20,15) NULL DEFAULT NULL AFTER `details`;',function(err){
-                    if(err){
-                        s.systemLog("Motion update 1/1 already applied");
-                    } else {
-                        s.systemLog("Motion update 1/1 has now been applied");
+            if(onMoveOn)
+                if(typeof onMoveOn === 'function'){
+                    if(r){
+                        r = r[0];
                     }
-                })
-            });
-        });
-    });
+                    onMoveOn(err,r)
+                }else{
+                    console.log(onMoveOn)
+                }
+        })
 }
-s.connectSQL();
+s.sqlQuery('ALTER TABLE `Videos` ADD COLUMN `details` TEXT NULL DEFAULT NULL AFTER `status`;',function(err){
+    if(err){
+        s.systemLog("Critical update 1/2 already applied");
+    }
+    s.sqlQuery("CREATE TABLE IF NOT EXISTS `Files` (`ke` varchar(50) NOT NULL,`mid` varchar(50) NOT NULL,`name` tinytext NOT NULL,`size` float NOT NULL DEFAULT '0',`details` text NOT NULL,`status` int(1) NOT NULL DEFAULT '0') ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;",function(err){
+        if(err){
+            s.systemLog("Critical update 2/2 NOT applied, this could be bad");
+        }else{
+            s.systemLog("Critical update 2/2 already applied");
+        }
+        s.sqlQuery('ALTER TABLE `Events` ADD COLUMN `motionConfidence` decimal(20,15) NULL DEFAULT NULL AFTER `details`;',function(err){
+            if(err){
+                s.systemLog("Motion update 1/1 already applied");
+            } else {
+                s.systemLog("Motion update 1/1 has now been applied");
+            }
+        }, true)
+    },true);
+},true);
 //kill any ffmpeg running
 s.ffmpegKill=function(){
     var cmd=''
@@ -191,7 +208,7 @@ s.checkCorrectPathEnding=function(x){
 s.md5=function(x){return crypto.createHash('md5').update(x).digest("hex");}
 //send data to detector plugin
 s.ocvTx=function(data){
-    if(!s.ocv){return console.log('Could not send data to detector plugin',data)}
+    if(!s.ocv){return}
     if(s.ocv.isClientPlugin===true){
         s.tx(data,s.ocv.id)
     }else{
@@ -297,6 +314,25 @@ s.fromLong=function(ipl) {
       (ipl >> 8 & 255) + '.' +
       (ipl & 255) );
 };
+s.createPamDiffRegionArray = function(regions){
+    //{name: 'region1', difference: 9, percent: 10, polygon: [{x: 0, y: 0}, {x: 0, y:360}, {x: 160, y: 360}, {x: 160, y: 0}]}
+    var pamDiffCompliantArray = [],json
+    try{
+        json = JSON.parse(regions)
+    }catch(err){
+        json = regions
+    }
+    Object.values(json).forEach(function(region){
+        var polygon = [];
+        region.points.forEach(function(points){
+            polygon.push({x:parseFloat(points[0]),y:parseFloat(points[1])})
+        })
+        region.sensitivity = parseInt(region.sensitivity)
+        pamDiffCompliantArray.push({name: region.name, difference: 9, percent: region.sensitivity, polygon:polygon})
+    })
+    if(pamDiffCompliantArray.length===0){pamDiffCompliantArray = null}
+    return pamDiffCompliantArray;
+}
 s.getRequest = function(url,callback){
     return http.get(url, function(res){
         var body = '';
@@ -314,6 +350,10 @@ s.getRequest = function(url,callback){
 s.kill=function(x,e,p){
     if(s.group[e.ke]&&s.group[e.ke].mon[e.id]&&s.group[e.ke].mon[e.id].spawn !== undefined){
         if(s.group[e.ke].mon[e.id].spawn){
+            s.group[e.ke].mon[e.id].spawn.stdio[3].unpipe();
+            if(s.group[e.ke].mon[e.id].p2p){s.group[e.ke].mon[e.id].p2p.unpipe();}
+            delete(s.group[e.ke].mon[e.id].p2p)
+            delete(s.group[e.ke].mon[e.id].pamDiff)
             try{
             s.group[e.ke].mon[e.id].spawn.removeListener('end',s.group[e.ke].mon[e.id].spawn_exit);
             s.group[e.ke].mon[e.id].spawn.removeListener('exit',s.group[e.ke].mon[e.id].spawn_exit);
@@ -360,7 +400,7 @@ s.systemLog=function(q,w,e){
     if(!w){w=''}
     if(!e){e=''}
     if(config.systemLog===true){
-        if(typeof q==='string'&&sql){
+        if(typeof q==='string'&&s.databaseEngine){
             s.sqlQuery('INSERT INTO Logs (ke,mid,info) VALUES (?,?,?)',['$','$SYSTEM',s.s({type:q,msg:w})]);
             s.tx({f:'log',log:{time:moment(),ke:'$',mid:'$SYSTEM',time:moment(),info:s.s({type:q,msg:w})}},'$');
         }
@@ -1127,7 +1167,11 @@ s.ffmpeg=function(e){
         if(!e.details.detector_fps||e.details.detector_fps===''){e.details.detector_fps=2}
         if(e.details.detector_scale_x&&e.details.detector_scale_x!==''&&e.details.detector_scale_y&&e.details.detector_scale_y!==''){x.dratio=' -s '+e.details.detector_scale_x+'x'+e.details.detector_scale_y}else{x.dratio=' -s 320x240'}
         if(e.details.cust_detect&&e.details.cust_detect!==''){x.cust_detect+=e.details.cust_detect;}
-        x.pipe+=' -f singlejpeg -vf fps='+e.details.detector_fps+x.cust_detect+x.dratio+' pipe:0';
+        if(e.details.detector_pam==='1'){
+            x.pipe+=' -an -c:v pam -pix_fmt gray -f image2pipe -vf fps='+e.details.detector_fps+x.cust_detect+x.dratio+' pipe:3';
+        }else{
+            x.pipe+=' -f singlejpeg -vf fps='+e.details.detector_fps+x.cust_detect+x.dratio+' pipe:3';
+        }
     }
     //api - snapshot bin/ cgi.bin (JPEG Mode)
     if(e.details.snap==='1'||e.details.stream_type==='jpeg'){
@@ -1354,6 +1398,11 @@ s.camera=function(x,e,cn,tx){
         break;
         case'idle':case'stop'://stop monitor
             if(!s.group[e.ke]||!s.group[e.ke].mon[e.id]){return}
+            if(s.group[e.ke].mon[e.id].eventBasedRecording.process){
+                clearTimeout(s.group[e.ke].mon[e.id].eventBasedRecording.timeout)
+                s.group[e.ke].mon[e.id].eventBasedRecording.allowEnd=true;
+                s.group[e.ke].mon[e.id].eventBasedRecording.process.kill('SIGTERM');
+            }
             if(s.group[e.ke].mon[e.id].fswatch){s.group[e.ke].mon[e.id].fswatch.close();delete(s.group[e.ke].mon[e.id].fswatch)}
             if(s.group[e.ke].mon[e.id].fswatchStream){s.group[e.ke].mon[e.id].fswatchStream.close();delete(s.group[e.ke].mon[e.id].fswatchStream)}
             if(s.group[e.ke].mon[e.id].open){ee.filename=s.group[e.ke].mon[e.id].open,ee.ext=s.group[e.ke].mon[e.id].open_ext;s.video('close',ee)}
@@ -1668,13 +1717,56 @@ s.camera=function(x,e,cn,tx){
                             });
                             if(e.details.detector==='1'){
                                 s.ocvTx({f:'init_monitor',id:e.id,ke:e.ke})
+                                //frames from motion detect
+                                if(e.details.detector_pam==='1'){
+                                    var regions = s.createPamDiffRegionArray(s.group[e.ke].mon_conf[e.id].details.cords);
+                                    var width,height
+                                    if(s.group[e.ke].mon_conf[e.id].details.detector_scale_x===''||s.group[e.ke].mon_conf[e.id].details.detector_scale_y===''){
+                                        width = s.group[e.ke].mon_conf[e.id].details.detector_scale_x;
+                                        height = s.group[e.ke].mon_conf[e.id].details.detector_scale_y;
+                                    }else{
+                                        width = e.width
+                                        height = e.height
+                                    }
+                                    s.group[e.ke].mon[e.id].pamDiff = new PamDiff({grayscale: 'luminosity', regions : regions});
+                                    s.group[e.ke].mon[e.id].p2p = new P2P();
+                                    s.group[e.ke].mon[e.id].pamDiff.on('diff', (data) => {
+                                        if(!data){
+                                            console.log('no data')
+                                            return
+                                        }
+                                        data.trigger.forEach(function(trigger){
+                                            var detectorObject = {
+                                                f:'trigger',
+                                                id:e.id,
+                                                ke:e.ke,
+                                                name:trigger.name,
+                                                details:{
+                                                    plug:'built-in',
+                                                    name:trigger.name,
+                                                    reason:'motion',
+                                                    confidence:trigger.percent,
+                                                },
+                                                plates:[],
+                                                imgHeight:height,
+                                                imgWidth:width
+                                            }
+                                            if(s.group[e.ke].init.aws_s3_save=="1"){
+                                                s.queueS3pushRequest(Object.assign({},detectorObject))
+                                            }
+                                            s.camera('motion',detectorObject)
+                                        })
+                                    })
+                                    s.group[e.ke].mon[e.id].spawn.stdio[3].pipe(s.group[e.ke].mon[e.id].p2p).pipe(s.group[e.ke].mon[e.id].pamDiff);
+                                }else{
+                                    s.group[e.ke].mon[e.id].spawn.stdio[3].on('data',function(d){
+                                        if(s.ocv&&e.details.detector==='1'&&e.details.detector_send_frames==='1'){
+
+                                            s.ocvTx({f:'frame',mon:s.group[e.ke].mon_conf[e.id].details,ke:e.ke,id:e.id,time:s.moment(),frame:d},s.group[e.ke].mon[e.id].detectorStreamTx);
+                                        };
+                                    })
+                                }
                             }
-                            //frames from motion detect
-                            s.group[e.ke].mon[e.id].spawn.stdin.on('data',function(d){
-                                if(s.ocv&&e.details.detector==='1'&&e.details.detector_send_frames==='1'){
-                                    s.ocvTx({f:'frame',mon:s.group[e.ke].mon_conf[e.id].details,ke:e.ke,id:e.id,time:s.moment(),frame:d});
-                                };
-                            })
                             //frames to stream
                                ++e.frames;
                            switch(e.details.stream_type){
@@ -1888,12 +1980,11 @@ s.camera=function(x,e,cn,tx){
 //                clearTimeout(s.group[d.ke].mon[d.id].eventBasedRecording.timeout)
                 s.group[d.ke].mon[d.id].eventBasedRecording.timeout = setTimeout(function(){
                     s.group[d.ke].mon[d.id].eventBasedRecording.allowEnd=true;
-////                    s.group[d.ke].mon[d.id].eventBasedRecording.process.stdin.setEncoding('utf8');
-////                    s.group[d.ke].mon[d.id].eventBasedRecording.process.stdin.write('q');
-////                    s.group[d.ke].mon[d.id].eventBasedRecording.process.kill('SIGTERM');
-//                    s.group[d.ke].mon[d.id].eventBasedRecording.process.kill();
+//                    s.group[d.ke].mon[d.id].eventBasedRecording.process.stdin.setEncoding('utf8');
+//                    s.group[d.ke].mon[d.id].eventBasedRecording.process.stdin.write('q');
+//                    s.group[d.ke].mon[d.id].eventBasedRecording.process.kill('SIGTERM');
 //                    s.group[d.ke].mon[d.id].closeVideo()
-                },d.mon.details.detector_timeout * 900 * 60)
+                },d.mon.details.detector_timeout * 950 * 60)
                 if(!s.group[d.ke].mon[d.id].eventBasedRecording.process){
                     if(!d.auth){
                         d.auth=s.gid();
@@ -1904,21 +1995,22 @@ s.camera=function(x,e,cn,tx){
                     s.group[d.ke].mon[d.id].eventBasedRecording.allowEnd = false;
                     var runRecord = function(){
                         s.log(d,'Spawned Recorder')
+                        //-t 00:'+moment(new Date(d.mon.details.detector_timeout * 1000 * 60)).format('mm:ss')+'
                         s.group[d.ke].mon[d.id].eventBasedRecording.process = spawn(config.ffmpegDir,s.splitForFFPMEG(('-loglevel warning -analyzeduration 1000000 -probesize 1000000 -re -i http://'+config.ip+':'+config.port+'/'+d.auth+'/hls/'+d.ke+'/'+d.id+'/detectorStream.m3u8 -t 00:'+moment(new Date(d.mon.details.detector_timeout * 1000 * 60)).format('mm:ss')+' -c:v copy -an -strftime 1 "'+s.dir.videos+d.ke+'/'+d.id+'/'+s.moment()+'.mp4"').replace(/\s+/g,' ').trim()))
                         var ffmpegError='';
                         var error
                         s.group[d.ke].mon[d.id].eventBasedRecording.process.stderr.on('data',function(d){
-                            ffmpegError+=d.toString()
+                            s.log(e,{type:"Traditional Recording",msg:d.toString()})
                         })
                         s.group[d.ke].mon[d.id].eventBasedRecording.process.on('close',function(){
                             if(!s.group[d.ke].mon[d.id].eventBasedRecording.allowEnd){
-                                s.log(d,ffmpegError)
+                                s.log(e,{type:"Traditional Recording",msg:"Detector Recording Complete"})
                                 runRecord()
                                 return
                             }
                             s.group[d.ke].mon[d.id].closeVideo()
                             delete(s.group[d.ke].users[d.auth])
-                            s.log(d,'Clear Recorder Process')
+                            s.log(e,{type:"Traditional Recording",msg:'Clear Recorder Process'})
                             delete(s.group[d.ke].mon[d.id].eventBasedRecording.process)
                             delete(s.group[d.ke].mon[d.id].eventBasedRecording.timeout)
                         })
@@ -4451,6 +4543,51 @@ app.get(['/:auth/h264/:ke/:id/:feed','/:auth/h264/:ke/:id'], function (req, res)
         })
     })
 });
+//FFprobe by API
+app.get('/:auth/probe/:ke',function (req,res){
+    req.ret={ok:false};
+    res.setHeader('Content-Type', 'application/json');
+    res.header("Access-Control-Allow-Origin",req.headers.origin);
+    s.auth(req.params,function(user){
+        switch(req.query.action){
+//            case'stop':
+//                exec('kill -9 '+user.ffprobe.pid,{detatched: true})
+//            break;
+            default:
+                if(!req.query.url){
+                    req.ret.error = 'Missing URL'
+                    res.end(s.s(req.ret, null, 3));
+                    return
+                }
+                if(user.ffprobe){
+                    req.ret.error = 'Account is already probing'
+                    res.end(s.s(req.ret, null, 3));
+                    return
+                }
+                user.ffprobe=1;
+                if(req.query.flags==='default'){
+                    req.query.flags = '-v quiet -print_format json -show_format -show_streams'
+                }else{
+                    if(!req.query.flags){
+                        req.query.flags = ''
+                    }
+                }
+                req.probeCommand = s.splitForFFPMEG(req.query.flags+' -i '+req.query.url).join(' ')
+                exec('ffprobe '+req.probeCommand+' | echo ',function(err,stdout,stderr){
+                    delete(user.ffprobe)
+                    if(err){
+                       req.ret.error=(err)
+                    }else{
+                        req.ret.ok=true
+                        req.ret.result = stdout+stderr
+                    }
+                    req.ret.probe = req.probeCommand
+                    res.end(s.s(req.ret, null, 3));
+                })
+            break;
+        }
+    },res,req);
+})
 try{
 s.cpuUsage=function(e){
     k={}

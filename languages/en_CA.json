@@ -74,6 +74,7 @@
    "Close": "Close",
    "Secure": "Secure",
    "Check": "Check",
+   "Stop": "Stop",
    "Confirm": "Confirm",
    "Enable": "Enable",
    "Enabled": "Enabled",
@@ -607,5 +608,6 @@
    "Object Tag":"Object Tag",
    "Emotion Average":"Emotion Average",
    "Show Regions of Interest":"Show Regions of Interest",
-   "Confidence of Detection":"Confidence of Detection"
+   "Confidence of Detection":"Confidence of Detection",
+   "Use Built-In":"Use Built-In"
 }

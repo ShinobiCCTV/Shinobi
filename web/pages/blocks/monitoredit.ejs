@@ -864,7 +864,7 @@
 <!--     END of Custom     -->
 <!--     START of Detector     -->
           <div class="form-group-group orange" section id="monSectionDetector">
-          <h4><%-lang['Detector']%> : <span><b class="shinobi-detector_name"></b> <b class="shinobi-detector-invert"><%-lang['Not Connected']%></b><b class="shinobi-detector" style="display:none"><%-lang['Connected']%></b></span></h4>
+          <h4><%-lang['Detector']%> : <b class="h_det_pam_input h_det_pam_1">Activated</b><span class="h_det_pam_input h_det_pam_0"><b class="shinobi-detector_name"></b> <b class="shinobi-detector-invert"><%-lang['Not Connected']%></b><b class="shinobi-detector" style="display:none"><%-lang['Connected']%></b></span></h4>
               <blockquote class="global_tip shinobi-detector">
                 <%-lang.DetectorText%>
                 <p class="shinobi-detector-msg"></p>
@@ -874,6 +874,14 @@
                     <div><select class="form-control" detail="detector" selector="h_det">
                         <option value="0" selected><%-lang.No%></option>
                         <option value="1"><%-lang.Yes%></option>
+                    </select></div>
+                </label>
+              </div>
+              <div class="form-group">
+                <label><div><span><%-lang['Use Built-In']%></span></div>
+                    <div><select class="form-control" detail="detector_pam" selector="h_det_pam">
+                            <option value="0" selected><%-lang.No%></option>
+                            <option value="1"><%-lang.Yes%></option>
                     </select></div>
                 </label>
               </div>
@@ -992,38 +1000,36 @@
                         </label>
                       </div>
                   </div>
-                  <div class="shinobi-detector" style="display:none">
-                      <div class="form-group important">
-                        <label><div><span><%-lang['Send Frames']%></span></div>
-                            <div><select class="form-control" detail="detector_send_frames" selector="h_det_fra">
-                                <option value="0" selected><%-lang.No%></option>
-                                <option value="1"><%-lang.Yes%></option>
-                            </select></div>
-                        </label>
-                      </div>
-                      <div class="form-group">
-                        <label><div><span><%-lang['Show Regions of Interest']%></span></div>
-                            <div><select class="form-control" detail="detector_region_of_interest">
-                                <option value="0" selected><%-lang.No%></option>
-                                <option value="1"><%-lang.Yes%></option>
-                            </select></div>
-                        </label>
-                      </div>
-                      <div class="form-group">
-                        <label><div><span><%-lang['Detector Rate']%></span></div>
-                        <div><input class="form-control" detail="detector_fps" placeholder="2"></div>
-                        </label>
-                      </div>
-                      <div class="form-group">
-                        <label><div><span><%-lang['Feed-in Image Width']%></span></div>
-                        <div><input class="form-control" detail="detector_scale_x" placeholder="320"></div>
-                        </label>
-                      </div>
-                      <div class="form-group">
-                        <label><div><span><%-lang['Feed-in Image Height']%></span></div>
-                        <div><input class="form-control" detail="detector_scale_y" placeholder="240"></div>
-                        </label>
-                      </div>
+                  <div class="form-group important">
+                    <label><div><span><%-lang['Send Frames']%></span></div>
+                        <div><select class="form-control" detail="detector_send_frames" selector="h_det_fra">
+                            <option value="0" selected><%-lang.No%></option>
+                            <option value="1"><%-lang.Yes%></option>
+                        </select></div>
+                    </label>
+                  </div>
+                  <div class="form-group">
+                    <label><div><span><%-lang['Show Regions of Interest']%></span></div>
+                        <div><select class="form-control" detail="detector_region_of_interest">
+                            <option value="0" selected><%-lang.No%></option>
+                            <option value="1"><%-lang.Yes%></option>
+                        </select></div>
+                    </label>
+                  </div>
+                  <div class="form-group">
+                    <label><div><span><%-lang['Detector Rate']%></span></div>
+                    <div><input class="form-control" detail="detector_fps" placeholder="2"></div>
+                    </label>
+                  </div>
+                  <div class="form-group">
+                    <label><div><span><%-lang['Feed-in Image Width']%></span></div>
+                    <div><input class="form-control" detail="detector_scale_x" placeholder="320"></div>
+                    </label>
+                  </div>
+                  <div class="form-group">
+                    <label><div><span><%-lang['Feed-in Image Height']%></span></div>
+                    <div><input class="form-control" detail="detector_scale_y" placeholder="240"></div>
+                    </label>
                   </div>
                   <div class="shinobi-detector-opencv shinobi-detector-openalpr shinobi-detector_plug" style="display:none">
                       <div class="form-group">
@@ -1043,28 +1049,26 @@
                         </label>
                       </div>
                   </div>
-                  <div class="shinobi-detector-opencv shinobi-detector-openalpr  shinobi-detector-motion shinobi-detector_plug" style="display:none">
-                      <div class="row">
-                          <div class="form-group col-md-12">
-                            <label><div><span><%-lang['Full Frame Detection']%></span></div>
-                                <div><select class="form-control" detail="detector_frame">
-                                    <option value="0"><%-lang.No%></option>
-                                    <option value="1" selected><%-lang.Yes%></option>
-                                </select></div>
-                            </label>
-                          </div>
-                          <div class="form-group col-md-12">
-                            <label><div><span><%-lang['Indifference']%></span></div>
-                            <div><input class="form-control" detail="detector_sensitivity" placeholder="0.5"></div>
-                            </label>
-                          </div>
+                  <div class="row">
+                      <div class="form-group col-md-12">
+                        <label><div><span><%-lang['Full Frame Detection']%></span></div>
+                            <div><select class="form-control" detail="detector_frame">
+                                <option value="0"><%-lang.No%></option>
+                                <option value="1" selected><%-lang.Yes%></option>
+                            </select></div>
+                        </label>
                       </div>
-                      <div class="hidden">
-                          <div><input detail="cords" placeholder=""></div>
+                      <div class="form-group col-md-12">
+                        <label><div><span><%-lang['Indifference']%></span></div>
+                        <div><input class="form-control" detail="detector_sensitivity" placeholder="0.5"></div>
+                        </label>
                       </div>
-                      <div class="form-group">
-                        <a class="btn btn-danger btn-block" monitor="region"><i class="fa fa-grav"></i> &nbsp; <%-lang['Region Editor']%></a>
-                      </div>
+                  </div>
+                  <div class="hidden">
+                      <div><input detail="cords" placeholder=""></div>
+                  </div>
+                  <div class="form-group">
+                    <a class="btn btn-danger btn-block" monitor="region"><i class="fa fa-grav"></i> &nbsp; <%-lang['Region Editor']%></a>
                   </div>
               </div>
           </div>
