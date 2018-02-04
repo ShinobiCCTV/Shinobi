@@ -327,10 +327,9 @@ s.MainEventController=function(d,cn,tx){
                     if(d.mon.detector_frame_save==="1"){
                        d.base64=s.group[d.ke][d.id].buffer.toString('base64')
                     }
-                    if(d.mon.detector_second==='1'&&d.objectOnly===true){
-                        s.detectObject(s.group[d.ke][d.id].buffer,d,tx)
-                    }else{
-                        if(d.mon.detector_use_motion==="1"||d.mon.detector_use_detect_object!=="1"){
+                        if(d.mon.no_regions==='1'){
+                            s.detectObject(s.group[d.ke][d.id].buffer,d,tx)
+                        }else{
                             if((typeof d.mon.cords ==='string')&&d.mon.cords.trim()===''){
                                 d.mon.cords=[]
                             }else{
@@ -353,11 +352,17 @@ s.MainEventController=function(d,cn,tx){
                             d.width=d.image.width;
                             d.height=d.image.height;
                             d.image.onload = function() {
-                                s.checkAreas(d,tx);
+                                if(d.mon.detector_second==='1'&&d.objectOnly===true){
+                                    s.detectObject(s.group[d.ke][d.id].buffer,d,tx)
+                                }else{
+                                    if(d.mon.detector_use_motion==="1"||d.mon.detector_use_detect_object!=="1"){
+                                        s.checkAreas(d,tx);
+                                    }else{
+                                        s.detectObject(s.group[d.ke][d.id].buffer,d,tx)
+                                    }
+                                }
                             }
                             d.image.src = s.group[d.ke][d.id].buffer;
-                        }else{
-                            s.detectObject(s.group[d.ke][d.id].buffer,d,tx)
                         }
                     }
                     s.group[d.ke][d.id].buffer=null;
