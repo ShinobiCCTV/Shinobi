@@ -40,6 +40,8 @@ var connectionTester = require('connection-tester');
 var events = require('events');
 var Cam = require('onvif').Cam;
 var knex = require('knex');
+const P2P = require('pipe2pam');
+const PamDiff = require('pam-diff');
 var location = {}
 location.super = __dirname+'/super.json'
 location.config = __dirname+'/conf.json'
@@ -305,6 +307,26 @@ s.fromLong=function(ipl) {
       (ipl >> 8 & 255) + '.' +
       (ipl & 255) );
 };
+s.createPamDiffRegionArray = function(regions){
+    //{name: 'region1', difference: 9, percent: 10, polygon: [{x: 0, y: 0}, {x: 0, y:360}, {x: 160, y: 360}, {x: 160, y: 0}]}
+    var pamDiffCompliantArray = [],json
+    try{
+        json = JSON.parse(regions)
+    }catch(err){
+        json = regions
+    }
+    Object.values(json).forEach(function(region){
+        var polygon = [];
+        region.points.forEach(function(points){
+            polygon.push({x:parseFloat(points[0]),y:parseFloat(points[1])})
+        })
+        region.sensitivity = parseInt(region.sensitivity)
+        pamDiffCompliantArray.push({name: region.name, difference: 9, percent: region.sensitivity, polygon:polygon})
+    })
+    console.log(pamDiffCompliantArray)
+    if(pamDiffCompliantArray.length===0){pamDiffCompliantArray = null}
+    return pamDiffCompliantArray;
+}
 s.getRequest = function(url,callback){
     return http.get(url, function(res){
         var body = '';
@@ -322,6 +344,10 @@ s.getRequest = function(url,callback){
 s.kill=function(x,e,p){
     if(s.group[e.ke]&&s.group[e.ke].mon[e.id]&&s.group[e.ke].mon[e.id].spawn !== undefined){
         if(s.group[e.ke].mon[e.id].spawn){
+            s.group[e.ke].mon[e.id].spawn.stdio[3].unpipe();
+            if(s.group[e.ke].mon[e.id].p2p){s.group[e.ke].mon[e.id].p2p.unpipe();}
+            delete(s.group[e.ke].mon[e.id].p2p)
+            delete(s.group[e.ke].mon[e.id].pamDiff)
             try{
             s.group[e.ke].mon[e.id].spawn.removeListener('end',s.group[e.ke].mon[e.id].spawn_exit);
             s.group[e.ke].mon[e.id].spawn.removeListener('exit',s.group[e.ke].mon[e.id].spawn_exit);
@@ -1135,7 +1161,11 @@ s.ffmpeg=function(e){
         if(!e.details.detector_fps||e.details.detector_fps===''){e.details.detector_fps=2}
         if(e.details.detector_scale_x&&e.details.detector_scale_x!==''&&e.details.detector_scale_y&&e.details.detector_scale_y!==''){x.dratio=' -s '+e.details.detector_scale_x+'x'+e.details.detector_scale_y}else{x.dratio=' -s 320x240'}
         if(e.details.cust_detect&&e.details.cust_detect!==''){x.cust_detect+=e.details.cust_detect;}
-        x.pipe+=' -f singlejpeg -vf fps='+e.details.detector_fps+x.cust_detect+x.dratio+' pipe:0';
+        if(e.details.detector_pam==='1'){
+            x.pipe+=' -an -c:v pam -pix_fmt gray -f image2pipe -vf fps='+e.details.detector_fps+x.cust_detect+x.dratio+' pipe:3';
+        }else{
+            x.pipe+=' -f singlejpeg -vf fps='+e.details.detector_fps+x.cust_detect+x.dratio+' pipe:3';
+        }
     }
     //api - snapshot bin/ cgi.bin (JPEG Mode)
     if(e.details.snap==='1'||e.details.stream_type==='jpeg'){
@@ -1681,13 +1711,56 @@ s.camera=function(x,e,cn,tx){
                             });
                             if(e.details.detector==='1'){
                                 s.ocvTx({f:'init_monitor',id:e.id,ke:e.ke})
+                                //frames from motion detect
+                                if(e.details.detector_pam==='1'){
+                                    var regions = s.createPamDiffRegionArray(s.group[e.ke].mon_conf[e.id].details.cords);
+                                    var width,height
+                                    if(s.group[e.ke].mon_conf[e.id].details.detector_scale_x===''||s.group[e.ke].mon_conf[e.id].details.detector_scale_y===''){
+                                        width = s.group[e.ke].mon_conf[e.id].details.detector_scale_x;
+                                        height = s.group[e.ke].mon_conf[e.id].details.detector_scale_y;
+                                    }else{
+                                        width = e.width
+                                        height = e.height
+                                    }
+                                    s.group[e.ke].mon[e.id].pamDiff = new PamDiff({grayscale: 'luminosity', regions : regions});
+                                    s.group[e.ke].mon[e.id].p2p = new P2P();
+                                    s.group[e.ke].mon[e.id].pamDiff.on('diff', (data) => {
+                                        if(!data){
+                                            console.log('no data')
+                                            return
+                                        }
+                                        data.trigger.forEach(function(trigger){
+                                            var detectorObject = {
+                                                f:'trigger',
+                                                id:e.id,
+                                                ke:e.ke,
+                                                name:trigger.name,
+                                                details:{
+                                                    plug:'built-in',
+                                                    name:trigger.name,
+                                                    reason:'motion',
+                                                    confidence:trigger.percent,
+                                                },
+                                                plates:[],
+                                                imgHeight:height,
+                                                imgWidth:width
+                                            }
+                                            if(s.group[e.ke].init.aws_s3_save=="1"){
+                                                s.queueS3pushRequest(Object.assign({},detectorObject))
+                                            }
+                                            s.camera('motion',detectorObject)
+                                        })
+                                    })
+                                    s.group[e.ke].mon[e.id].spawn.stdio[3].pipe(s.group[e.ke].mon[e.id].p2p).pipe(s.group[e.ke].mon[e.id].pamDiff);
+                                }else{
+                                    s.group[e.ke].mon[e.id].spawn.stdio[3].on('data',function(d){
+                                        if(s.ocv&&e.details.detector==='1'&&e.details.detector_send_frames==='1'){
+
+                                            s.ocvTx({f:'frame',mon:s.group[e.ke].mon_conf[e.id].details,ke:e.ke,id:e.id,time:s.moment(),frame:d},s.group[e.ke].mon[e.id].detectorStreamTx);
+                                        };
+                                    })
+                                }
                             }
-                            //frames from motion detect
-                            s.group[e.ke].mon[e.id].spawn.stdin.on('data',function(d){
-                                if(s.ocv&&e.details.detector==='1'&&e.details.detector_send_frames==='1'){
-                                    s.ocvTx({f:'frame',mon:s.group[e.ke].mon_conf[e.id].details,ke:e.ke,id:e.id,time:s.moment(),frame:d});
-                                };
-                            })
                             //frames to stream
                                ++e.frames;
                            switch(e.details.stream_type){
