@@ -4525,6 +4525,53 @@ app.get(['/:auth/h264/:ke/:id/:feed','/:auth/h264/:ke/:id'], function (req, res)
         })
     })
 });
+//FFprobe by API
+app.get('/:auth/probe/:ke',function (req,res){
+    req.ret={ok:false};
+    res.setHeader('Content-Type', 'application/json');
+    res.header("Access-Control-Allow-Origin",req.headers.origin);
+    s.auth(req.params,function(user){
+        switch(req.query.action){
+//            case'stop':
+//                exec('kill -9 '+s.group[req.params.ke].users[req.params.auth].ffprobe.pid,{detatched: true})
+//            break;
+            default:
+                if(!req.query.url){
+                    req.ret.error = 'Missing URL'
+                    res.end(s.s(req.ret, null, 3));
+                    return
+                }
+                if(s.group[req.params.ke].users[req.params.auth].ffprobe){
+                    req.ret.error = 'Account is already probing'
+                    res.end(s.s(req.ret, null, 3));
+                    return
+                }
+                s.group[req.params.ke].users[req.params.auth].ffprobe=1;
+                if(req.query.flags==='default'){
+                    req.query.flags = '-v quiet -print_format json -show_format -show_streams '
+                }else{
+                    if(req.query.flags){
+                        req.query.flags = req.query.flags+' '
+                    }else{
+                        req.query.flags = ''
+                    }
+                }
+                req.probeCommand = req.query.flags+''+req.query.url
+                exec('ffprobe '+req.probeCommand+' | echo ',function(err,stdout,stderr){
+                    delete(s.group[req.params.ke].users[req.params.auth].ffprobe)
+                    if(err){
+                       req.ret.error=(err)
+                    }else{
+                        req.ret.ok=true
+                        req.ret.result = stdout+stderr
+                    }
+                    req.ret.probe = req.probeCommand
+                    res.end(s.s(req.ret, null, 3));
+                })
+            break;
+        }
+    },res,req);
+})
 try{
 s.cpuUsage=function(e){
     k={}
