@@ -4,9 +4,9 @@ echo "========"
 echo "Select your OS"
 echo "If your OS is not on the list please refer to the docs."
 echo "========"
-echo "1. Ubuntu 17.04"
-echo "2. CentOS 7"
-echo "3. MacOS 10.7(+)"
+echo "1. Ubuntu"
+echo "2. CentOS"
+echo "3. MacOS"
 echo "========"
 read oschoicee
 case $oschoicee in

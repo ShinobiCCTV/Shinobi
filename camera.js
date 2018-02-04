@@ -201,7 +201,7 @@ s.checkCorrectPathEnding=function(x){
 s.md5=function(x){return crypto.createHash('md5').update(x).digest("hex");}
 //send data to detector plugin
 s.ocvTx=function(data){
-    if(!s.ocv){return console.log('Could not send data to detector plugin',data)}
+    if(!s.ocv){return}
     if(s.ocv.isClientPlugin===true){
         s.tx(data,s.ocv.id)
     }else{
@@ -323,7 +323,6 @@ s.createPamDiffRegionArray = function(regions){
         region.sensitivity = parseInt(region.sensitivity)
         pamDiffCompliantArray.push({name: region.name, difference: 9, percent: region.sensitivity, polygon:polygon})
     })
-    console.log(pamDiffCompliantArray)
     if(pamDiffCompliantArray.length===0){pamDiffCompliantArray = null}
     return pamDiffCompliantArray;
 }
@@ -4533,7 +4532,7 @@ app.get('/:auth/probe/:ke',function (req,res){
     s.auth(req.params,function(user){
         switch(req.query.action){
 //            case'stop':
-//                exec('kill -9 '+s.group[req.params.ke].users[req.params.auth].ffprobe.pid,{detatched: true})
+//                exec('kill -9 '+user.ffprobe.pid,{detatched: true})
 //            break;
             default:
                 if(!req.query.url){
@@ -4541,24 +4540,22 @@ app.get('/:auth/probe/:ke',function (req,res){
                     res.end(s.s(req.ret, null, 3));
                     return
                 }
-                if(s.group[req.params.ke].users[req.params.auth].ffprobe){
+                if(user.ffprobe){
                     req.ret.error = 'Account is already probing'
                     res.end(s.s(req.ret, null, 3));
                     return
                 }
-                s.group[req.params.ke].users[req.params.auth].ffprobe=1;
+                user.ffprobe=1;
                 if(req.query.flags==='default'){
-                    req.query.flags = '-v quiet -print_format json -show_format -show_streams '
+                    req.query.flags = '-v quiet -print_format json -show_format -show_streams'
                 }else{
-                    if(req.query.flags){
-                        req.query.flags = req.query.flags+' '
-                    }else{
+                    if(!req.query.flags){
                         req.query.flags = ''
                     }
                 }
-                req.probeCommand = req.query.flags+''+req.query.url
+                req.probeCommand = s.splitForFFPMEG(req.query.flags+' -i '+req.query.url).join(' ')
                 exec('ffprobe '+req.probeCommand+' | echo ',function(err,stdout,stderr){
-                    delete(s.group[req.params.ke].users[req.params.auth].ffprobe)
+                    delete(user.ffprobe)
                     if(err){
                        req.ret.error=(err)
                     }else{
