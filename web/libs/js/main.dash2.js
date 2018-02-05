@@ -2137,7 +2137,7 @@ $.pB.e.on('hidden.bs.modal',function(){
 })
 $.pB.e.find('.stop').click(function(e){
     e.e=$(this);
-    $.ccio.cx({f:'ffprobe',ff:'stop'})
+//    $.ccio.cx({f:'ffprobe',ff:'stop'})
 });
 //log viewer
 $.log={e:$('#logs_modal'),lm:$('#log_monitors')};$.log.o=$.log.e.find('table tbody');
@@ -2330,6 +2330,7 @@ $.aM.drawList=function(){
     e.list.html(e.html)
 }
 $.aM.import=function(e){
+    $('#monEditBufferPreview').attr('src','/'+$user.auth_token+'/hls/'+e.values.ke+'/'+e.values.mid+'/detectorStream.m3u8')
     $.aM.e.find('.edit_id').text(e.values.mid);
     $.aM.e.attr('mid',e.values.mid).attr('ke',e.values.ke).attr('auth',e.auth)
     $.each(e.values,function(n,v){
