@@ -3198,6 +3198,10 @@ var tx;
         }
     })
     cn.on('disconnect', function () {
+        if(cn.flvStream){
+            s.group[cn.ke].mon[cn.flvStream].emitter.removeListener('data',s.group[cn.ke].mon[cn.flvStream].contentWriter)
+            return
+        }
         if(cn.ke){
             if(cn.monitor_watching){
                 cn.monitor_count=Object.keys(cn.monitor_watching)
