@@ -1367,10 +1367,26 @@ $.ccio.globalWebsocket=function(d,user){
                             if($.ccio.mon[d.ke+d.id+user.auth_token].flv){
                                 $.ccio.mon[d.ke+d.id+user.auth_token].flv.destroy()
                             }
+                            var url = $.ccio.init('location',user);
+                            var prefix = 'ws'
+                            if(location.protocol==='https:'){
+                                prefix = 'wss'
+                            }
+                            if(url=='/'){
+                                url = prefix+'://'+location.host
+                            }else{
+                                url = prefix+'://'+url.split('://')[1]
+                            }
                             $.ccio.mon[d.ke+d.id+user.auth_token].flv = flvjs.createPlayer({
                                 type: 'flv',
                                 isLive: true,
-                                url: $.ccio.init('location',user)+user.auth_token+'/flv/'+d.ke+'/'+d.id+'/s.flv'
+                                auth_token:user.auth_token,
+                                ke:d.ke,
+                                uid:user.uid,
+                                id:d.id,
+                                maxLatency:2000,
+                                hasAudio:false,
+                                url: url
                             });
                             $.ccio.mon[d.ke+d.id+user.auth_token].flv.attachMediaElement($('#monitor_live_'+d.id+user.auth_token+' .stream-element')[0]);
                             $.ccio.mon[d.ke+d.id+user.auth_token].flv.on('error',function(err){

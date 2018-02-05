@@ -2275,6 +2275,58 @@ var tx;
             }
         }
     })
+    //unique FLV socket stream
+    cn.on('FLV',function(d){
+        cn.ip=cn.request.connection.remoteAddress;
+        var toUTC = function(){
+            return new Date().toISOString();
+        }
+        var tx=function(z){cn.emit('data',z);}
+        d.failed=function(msg){console.log(msg);tx({ok:false,msg:msg,token_used:d.auth,ke:d.ke});cn.disconnect();}
+        d.success=function(r){
+            r=r[0];
+            cn.ke=d.ke,
+            cn.uid=d.uid,
+            cn.auth=d.auth;
+            cn.channel=d.channel;
+            cn.flvStream=d.id;
+            var Emitter
+            if(!d.channel){
+                Emitter = s.group[d.ke].mon[d.id].emitter
+            }else{
+                Emitter = s.group[d.ke].mon[d.id].emitterChannel[parseInt(d.channel)+config.pipeAddition]
+            }
+            tx({time:toUTC(),buffer:s.group[d.ke].mon[d.id].firstFLVchunk})
+            Emitter.on('data',s.group[d.ke].mon[d.id].contentWriter=function(buffer){
+                tx({time:toUTC(),buffer:buffer})
+            })
+        }
+        s.sqlQuery('SELECT ke,uid,auth,mail,details FROM Users WHERE ke=? AND auth=? AND uid=?',[d.ke,d.auth,d.uid],function(err,r) {
+            if(r&&r[0]){
+                d.success(r)
+            }else{
+                s.sqlQuery('SELECT * FROM API WHERE ke=? AND code=? AND uid=?',[d.ke,d.auth,d.uid],function(err,r) {
+                    if(r&&r[0]){
+                        r=r[0]
+                        r.details=JSON.parse(r.details)
+                        if(r.details.auth_socket==='1'){
+                            s.sqlQuery('SELECT ke,uid,auth,mail,details FROM Users WHERE ke=? AND uid=?',[r.ke,r.uid],function(err,r) {
+                                if(r&&r[0]){
+                                    d.success(r)
+                                }else{
+                                    d.failed('User not found')
+                                }
+                            })
+                        }else{
+                            d.failed('Permissions for this key do not allow authentication with Websocket')
+                        }
+                    }else{
+                        d.failed('Not an API key')
+                    }
+                })
+            }
+        })
+    })
     //main socket control functions
     cn.on('f',function(d){
         if(!cn.ke&&d.f==='init'){//socket login
