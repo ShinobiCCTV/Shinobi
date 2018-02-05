@@ -259,7 +259,7 @@
                     <div><input class="form-control" detail="stream_mjpeg_clients" placeholder="20"></div>
                 </label>
               </div>
-              <div class="h_st_input h_st_hls h_st_flv h_st_mpd">
+              <div class="h_st_input h_st_hls h_st_flv">
                   <div class="form-group">
                     <label><div><span><%-lang['HLS Video Encoder']%></span></div>
                         <div><select class="form-control" detail="stream_vcodec" selector="h_hls_v">
@@ -291,29 +291,31 @@
                         </select></div>
                     </label>
                   </div>
-                  <div class="form-group">
-                    <label><div><span><%-lang['HLS Segment Length']%></span></div>
-                        <div><input class="form-control" detail="hls_time" placeholder="2"></div>
-                    </label>
+              </div>
+              <div class="h_st_input h_st_mjpeg h_st_b64 h_st_hls h_st_flv h_hls_v_input h_hls_v_libx264 h_hls_v_libx265 h_hls_v_h264_nvenc h_hls_v_hevc_nvenc h_hls_v_no">
+                  <div class="h_st_input h_st_hls">
+                      <div class="form-group">
+                        <label><div><span><%-lang['HLS Segment Length']%></span></div>
+                            <div><input class="form-control" detail="hls_time" placeholder="2"></div>
+                        </label>
+                      </div>
+                      <div class="form-group">
+                        <label><div><span><%-lang['HLS List Size']%></span></div>
+                            <div><input class="form-control" detail="hls_list_size" placeholder="2"></div>
+                        </label>
+                      </div>
                   </div>
-                  <div class="form-group">
+                  <div class="form-group h_st_input h_st_hls h_st_flv">
                     <label><div><span><%-lang['HLS Preset']%></span></div>
                         <div><input class="form-control" detail="preset_stream" placeholder="ultrafast"></div>
                     </label>
                   </div>
                   <div class="form-group">
-                    <label><div><span><%-lang['HLS List Size']%></span></div>
-                        <div><input class="form-control" detail="hls_list_size" placeholder="2"></div>
-                    </label>
-                  </div>
-              </div>
-              <div class="row">
-                  <div class="form-group col-md-12">
                     <label><div><span><%-lang['Check Signal Interval']%></span></div>
                         <div><input class="form-control" detail="signal_check" placeholder="Set to 0 to Disable"></div>
                     </label>
                   </div>
-                  <div class="form-group col-md-12">
+                  <div class="form-group">
                     <label><div><span><%-lang['Log Signal Event']%></span></div>
                             <div><select class="form-control" detail="signal_check_log">
                                 <option value="0" selected><%-lang.No%></option>
@@ -321,31 +323,25 @@
                             </select></div>
                       </label>
                   </div>
-              </div>
-              <div class=" h_st_input h_st_mjpeg h_st_b64 h_st_hls h_st_flv h_st_mpd h_hls_v_input h_hls_v_libx264 h_hls_v_libx265 h_hls_v_h264_nvenc h_hls_v_hevc_nvenc h_hls_v_no">
-                  <div class="row">
-                      <div class="form-group col-md-12">
-                        <label><div><span><%-lang['Quality']%></span></div>
-                        <div><input class="form-control" placeholder="23" detail="stream_quality"></div>
-                        </label>
-                      </div>
-                      <div class="form-group col-md-12">
-                        <label><div><span><%-lang['Rate']%></span></div>
-                        <div><input class="form-control" detail="stream_fps" placeholder="1"></div>
-                        </label>
-                      </div>
+                  <div class="form-group">
+                    <label><div><span><%-lang['Quality']%></span></div>
+                    <div><input class="form-control" placeholder="23" detail="stream_quality"></div>
+                    </label>
                   </div>
-                  <div class="row">
-                      <div class="form-group col-md-12">
-                        <label><div><span><%-lang['Width']%></span></div>
-                        <div><input class="form-control" type="number" min="1" detail="stream_scale_x" placeholder="640"></div>
-                        </label>
-                      </div>
-                      <div class="form-group col-md-12">
-                        <label><div><span><%-lang['Height']%></span></div>
-                        <div><input class="form-control" type="number" min="1" detail="stream_scale_y" placeholder="480"></div>
-                        </label>
-                      </div>
+                  <div class="form-group">
+                    <label><div><span><%-lang['Rate']%></span></div>
+                    <div><input class="form-control" detail="stream_fps" placeholder="1"></div>
+                    </label>
+                  </div>
+                  <div class="form-group">
+                    <label><div><span><%-lang['Width']%></span></div>
+                    <div><input class="form-control" type="number" min="1" detail="stream_scale_x" placeholder="640"></div>
+                    </label>
+                  </div>
+                  <div class="form-group">
+                    <label><div><span><%-lang['Height']%></span></div>
+                    <div><input class="form-control" type="number" min="1" detail="stream_scale_y" placeholder="480"></div>
+                    </label>
                   </div>
                   <div class="form-group">
                     <label><div><span><%-lang['Rotate']%></span></div>
@@ -1070,6 +1066,64 @@
                   <div class="form-group">
                     <a class="btn btn-danger btn-block" monitor="region"><i class="fa fa-grav"></i> &nbsp; <%-lang['Region Editor']%></a>
                   </div>
+              </div>
+          </div>
+          <div class="form-group-group orange h_rec_mtd_input h_rec_mtd_sip" style="display:none" section id="monSectionDetectorBuffer">
+          <h4><%-lang['Traditional Recording']%></h4>
+              <div class="form-group">
+                <label><div><span><%-lang['HLS Video Encoder']%></span></div>
+                    <div><select class="form-control" detail="detector_buffer_vcodec" selector="h_buff">
+                        <option value="auto" selected><%-lang['Auto']%></option>
+                        <option value="libx264"><%-lang['libx264']%></option>
+                        <option value="h264_vaapi"><%-lang['h264_vaapi']%></option>
+                        <option value="hevc_vaapi"><%-lang['hevc_vaapi']%></option>
+                        <option value="copy"><%-lang['copy']%></option>
+                    </select></div>
+                </label>
+              </div>
+<!--
+              <div class="form-group">
+                <label><div><span><%-lang['Tune']%></span></div>
+                    <div><input class="form-control" detail="detector_buffer_tune" placeholder="zerolatency"></div>
+                </label>
+              </div>
+              <div class="form-group">
+                <label><div><span>G</span></div>
+                    <div><input class="form-control" detail="detector_buffer_g" placeholder="1"></div>
+                </label>
+              </div>
+-->
+              <div class="form-group h_buff_input h_buff_libx264 h_buff_h264_vaapi h_buff_hevc_vaapi">
+                <label><div><span><%-lang['Frame Rate']%></span></div>
+                    <div><input class="form-control" detail="detector_buffer_fps" placeholder="30"></div>
+                </label>
+              </div>
+              <div class="form-group">
+                <label><div><span><%-lang['HLS Segment Length']%></span></div>
+                    <div><input class="form-control" detail="detector_buffer_hls_time" placeholder="2"></div>
+                </label>
+              </div>
+              <div class="form-group">
+                <label><div><span><%-lang['HLS List Size']%></span></div>
+                    <div><input class="form-control" detail="detector_buffer_hls_list_size" placeholder="10"></div>
+                </label>
+              </div>
+              <div class="h_buff_input h_buff_libx264 h_buff_h264_vaapi h_buff_hevc_vaapi">
+                  <div class="form-group">
+                    <label><div><span><%-lang['HLS Start Number']%></span></div>
+                        <div><input class="form-control" detail="detector_buffer_start_number" placeholder="0"></div>
+                    </label>
+                  </div>
+                  <div class="form-group">
+                    <label><div><span><%-lang['HLS Live Start Index']%></span></div>
+                        <div><input class="form-control" detail="detector_buffer_live_start_index" placeholder="-3"></div>
+                    </label>
+                  </div>
+              </div>
+              <div class="form-group">
+                <label><div><span><%-lang['Buffer Preview']%></span></div>
+                    <div><iframe id="monEditBufferPreview" style="width:100%;height:300px;background:#eceaea" class="form-control"></iframe></div>
+                </label>
               </div>
           </div>
           <div class="h_det_input h_det_1" style="display:none">

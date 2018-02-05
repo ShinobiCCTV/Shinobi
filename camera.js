@@ -1183,15 +1183,45 @@ s.ffmpeg=function(e){
     }
     //Raw H.264 stream over HTTP (RTSP simulation)
     if(e.details.detector_trigger=='1'&&e.details.detector_record_method==='sip'){
-        switch(e.type){
-            case'h264':case'hls':case'mp4':
-                x.detectorStreamCodec = 'copy'
-            break;
-            default:
-                x.detectorStreamCodec = 'libx264'
-            break;
+        x.detector_buffer_filters=[]
+        if(!e.details.detector_buffer_vcodec||e.details.detector_buffer_vcodec===''||e.details.detector_buffer_vcodec==='auto'){
+            switch(e.type){
+                case'h264':case'hls':case'mp4':
+                    e.details.detector_buffer_vcodec = 'copy'
+                break;
+                default:
+                    e.details.detector_buffer_vcodec = 'libx264'
+                break;
+            }
         }
-        x.pipe+=' -an -c:v '+x.detectorStreamCodec+' -r 1 -f hls -tune zerolatency -g 1 -hls_time 2 -hls_list_size 10 -start_number 0 -live_start_index -3 -hls_allow_cache 0 -hls_flags +delete_segments+omit_endlist '+e.sdir+'detectorStream.m3u8'
+        if(!e.details.detector_buffer_tune||e.details.detector_buffer_tune===''){e.details.detector_buffer_tune='zerolatency'}
+        if(!e.details.detector_buffer_g||e.details.detector_buffer_g===''){e.details.detector_buffer_g='1'}
+        if(!e.details.detector_buffer_hls_time||e.details.detector_buffer_hls_time===''){e.details.detector_buffer_hls_time='2'}
+        if(!e.details.detector_buffer_hls_list_size||e.details.detector_buffer_hls_list_size===''){e.details.detector_buffer_hls_list_size='10'}
+        if(!e.details.detector_buffer_start_number||e.details.detector_buffer_start_number===''){e.details.detector_buffer_start_number='0'}
+        if(!e.details.detector_buffer_live_start_index||e.details.detector_buffer_live_start_index===''){e.details.detector_buffer_live_start_index='-3'}
+
+        if(e.details.detector_buffer_vcodec.indexOf('_vaapi')>-1){
+            if(x.hwaccel.indexOf('-vaapi_device')>-1){
+                x.detector_buffer_filters.push('format=nv12')
+                x.detector_buffer_filters.push('hwupload')
+            }else{
+                e.details.detector_buffer_vcodec='libx264'
+            }
+        }
+        if(e.details.detector_buffer_vcodec!=='copy'){
+            if(e.details.detector_buffer_fps&&e.details.detector_buffer_fps!==''){
+                x.detector_buffer_fps=' -r '+e.details.detector_buffer_fps
+            }else{
+                x.detector_buffer_fps=' -r 30'
+            }
+        }else{
+            x.detector_buffer_fps=''
+        }
+        if(x.detector_buffer_filters.length>0){
+            x.pipe+=' -vf '+x.detector_buffer_filters.join(',')
+        }
+        x.pipe+=x.detector_buffer_fps+' -an -c:v '+e.details.detector_buffer_vcodec+' -f hls -tune '+e.details.detector_buffer_tune+' -g '+e.details.detector_buffer_g+' -hls_time '+e.details.detector_buffer_hls_time+' -hls_list_size '+e.details.detector_buffer_hls_list_size+' -start_number '+e.details.detector_buffer_start_number+' -live_start_index '+e.details.detector_buffer_live_start_index+' -hls_allow_cache 0 -hls_flags +delete_segments+omit_endlist '+e.sdir+'detectorStream.m3u8'
     }
     if(e.details.rawh264==='1'){
         if(e.details.rawh264_vcodec&&e.details.rawh264_vcodec!==''){x.rawh264_vcodec=' -c:v '+e.details.rawh264_vcodec}else{x.rawh264_vcodec=' -c:v copy'}
@@ -2261,6 +2291,58 @@ var tx;
             }
         }
     })
+    //unique FLV socket stream
+    cn.on('FLV',function(d){
+        cn.ip=cn.request.connection.remoteAddress;
+        var toUTC = function(){
+            return new Date().toISOString();
+        }
+        var tx=function(z){cn.emit('data',z);}
+        d.failed=function(msg){console.log(msg);tx({ok:false,msg:msg,token_used:d.auth,ke:d.ke});cn.disconnect();}
+        d.success=function(r){
+            r=r[0];
+            cn.ke=d.ke,
+            cn.uid=d.uid,
+            cn.auth=d.auth;
+            cn.channel=d.channel;
+            cn.flvStream=d.id;
+            var Emitter
+            if(!d.channel){
+                Emitter = s.group[d.ke].mon[d.id].emitter
+            }else{
+                Emitter = s.group[d.ke].mon[d.id].emitterChannel[parseInt(d.channel)+config.pipeAddition]
+            }
+            tx({time:toUTC(),buffer:s.group[d.ke].mon[d.id].firstFLVchunk})
+            Emitter.on('data',s.group[d.ke].mon[d.id].contentWriter=function(buffer){
+                tx({time:toUTC(),buffer:buffer})
+            })
+        }
+        s.sqlQuery('SELECT ke,uid,auth,mail,details FROM Users WHERE ke=? AND auth=? AND uid=?',[d.ke,d.auth,d.uid],function(err,r) {
+            if(r&&r[0]){
+                d.success(r)
+            }else{
+                s.sqlQuery('SELECT * FROM API WHERE ke=? AND code=? AND uid=?',[d.ke,d.auth,d.uid],function(err,r) {
+                    if(r&&r[0]){
+                        r=r[0]
+                        r.details=JSON.parse(r.details)
+                        if(r.details.auth_socket==='1'){
+                            s.sqlQuery('SELECT ke,uid,auth,mail,details FROM Users WHERE ke=? AND uid=?',[r.ke,r.uid],function(err,r) {
+                                if(r&&r[0]){
+                                    d.success(r)
+                                }else{
+                                    d.failed('User not found')
+                                }
+                            })
+                        }else{
+                            d.failed('Permissions for this key do not allow authentication with Websocket')
+                        }
+                    }else{
+                        d.failed('Not an API key')
+                    }
+                })
+            }
+        })
+    })
     //main socket control functions
     cn.on('f',function(d){
         if(!cn.ke&&d.f==='init'){//socket login
@@ -3132,6 +3214,10 @@ var tx;
         }
     })
     cn.on('disconnect', function () {
+        if(cn.flvStream){
+            s.group[cn.ke].mon[cn.flvStream].emitter.removeListener('data',s.group[cn.ke].mon[cn.flvStream].contentWriter)
+            return
+        }
         if(cn.ke){
             if(cn.monitor_watching){
                 cn.monitor_count=Object.keys(cn.monitor_watching)
