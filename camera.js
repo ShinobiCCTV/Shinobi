@@ -953,6 +953,9 @@ s.ffmpeg=function(e){
             if(e.details.crf&&e.details.crf!==''){x.vcodec+=' -q:v '+e.details.crf}else{x.vcodec+=' -q:v 1';}
         break;
     }
+    if(e.details.vcodec==='h264_vaapi'){
+       x.record_video_filters.push('format=nv12,hwupload');
+    }
     //record - use custom video codec
     if(e.details.vcodec&&e.details.vcodec!==''&&e.details.vcodec!=='default'){x.vcodec=e.details.vcodec}
     //record - use custom audio codec
@@ -1111,7 +1114,7 @@ s.ffmpeg=function(e){
     }
     if(e.details.stream_vcodec==='h264_vaapi'){
         x.stream_video_filters=[]
-        x.stream_video_filters.push('format=nv12|vaapi');
+        x.stream_video_filters.push('format=nv12,hwupload');
         if(e.details.stream_scale_x&&e.details.stream_scale_x!==''&&e.details.stream_scale_y&&e.details.stream_scale_y!==''){
             x.stream_video_filters.push('scale_vaapi=w='+e.details.stream_scale_x+':h='+e.details.stream_scale_y)
         }
