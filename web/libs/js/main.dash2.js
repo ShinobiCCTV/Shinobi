@@ -3714,13 +3714,13 @@ $('body')
         break;
         case'powerview':
             $.pwrvid.e.modal('show')
-            $.pwrvid.m.find('.monitor').remove()
+            $.pwrvid.m.empty()
             $.each($.ccio.mon,function(n,v){
-                $.pwrvid.m.append('<option class="monitor" value="'+v.mid+'">'+v.name+'</option>')
+                $.pwrvid.m.append('<option value="'+v.mid+'">'+v.name+'</option>')
             })
-            e.e=$.pwrvid.m.find('.monitor').prop('selected',false)
+            e.e=$.pwrvid.m.find('option').prop('selected',false)
             if(e.mid!==''){
-                e.e=$.pwrvid.m.find('.monitor[value="'+e.mid+'"]')
+                e.e=$.pwrvid.m.find('[value="'+e.mid+'"]')
             }
             e.e.first().prop('selected',true)
             $.pwrvid.f.submit()
