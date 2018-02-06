@@ -1026,6 +1026,135 @@ switch($user.details.lang){
                 tmp+='<div class="form-group"><label><div><span><%-lang.Secure%> (HTTPS/WSS)</span></div><div><select class="form-control" link="secure"><option value="1"><%-lang.Yes%></option><option selected value="0"><%-lang.No%></option></select></div></label></div>'
                 tmp+='</div>'
             break;
+            case 'stream-channel'://Link Shinobi - 1 set
+                if(!d.channel){
+                    var numberOfChannelsDrawn = $('#monSectionStreamChannels .stream-channel').length
+                    d.channel=numberOfChannelsDrawn
+                }
+                tmp+='<div class="form-group-group blue stream-channel" stream-channel="'+d.channel+'" section id="monSectionChannel'+d.channel+'">'
+                tmp+='  <h4><%-lang["Channel"]%> '+d.channel
+                tmp+='  <div class="pull-right"><a class="btn btn-danger btn-xs delete"><i class="fa fa-trash-o"></i></a></div>'
+                tmp+='  </h4>'
+//                tmp+='      <div class="form-group">'
+//                tmp+='        <label><div><span><%-lang["Input Selector"]%></span></div>'
+//                tmp+='            <div><input class="form-control" channel-detail="stream_map" placeholder="0"></div>'
+//                tmp+='        </label>'
+//                tmp+='      </div>'
+                tmp+='     <div class="form-group">'
+                tmp+='        <label><div><span><%-lang["Stream Type"]%></span></div>'
+                tmp+='            <div><select class="form-control" channel-detail="stream_type" selector="h_st_channel_'+d.channel+'">'
+                tmp+='                <option value="flv"><%-lang["FLV"]%></option>'
+                tmp+='                <option value="h264"><%-lang["Raw H.264 Stream"]%></option>'
+                tmp+='                <option value="hls"><%-lang["HLS (includes Audio)"]%></option>'
+                tmp+='                <option value="mjpeg"><%-lang["MJPEG"]%></option>'
+                tmp+='            </select></div>'
+                tmp+='        </label>'
+                tmp+='      </div>'
+                tmp+='      <div class="form-group h_st_channel_'+d.channel+'_input h_st_channel_'+d.channel+'_mjpeg" style="display:none">'
+                tmp+='        <label><div><span><%-lang["# of Allow MJPEG Clients"]%></span></div>'
+                tmp+='            <div><input class="form-control" channel-detail="stream_mjpeg_clients" placeholder="20"></div>'
+                tmp+='        </label>'
+                tmp+='      </div>'
+                tmp+='      <div class="h_st_channel_'+d.channel+'_input h_st_channel_'+d.channel+'_hls h_st_channel_'+d.channel+'_jsmpeg h_st_channel_'+d.channel+'_flv h_st_channel_'+d.channel+'_h264">'
+                tmp+='          <div class="form-group">'
+                tmp+='            <label><div><span><%-lang["HLS Video Encoder"]%></span></div>'
+                tmp+='                <div><select class="form-control" channel-detail="stream_vcodec" selector="h_hls_v_channel_'+d.channel+'">'
+                tmp+='                    <option value="no" selected><%-lang["Auto"]%></option>'
+                tmp+='                    <option value="libx264"><%-lang["libx264"]%></option>'
+                tmp+='                    <option value="libx265"><%-lang["libx265"]%></option>'
+                tmp+='                    <option value="copy" selected><%-lang["copy"]%></option>'
+                tmp+='                    <optgroup label="<%-lang["Hardware Accelerated"]%>">'
+                tmp+='                        <option value="h264_vaapi"><%-lang["h264_vaapi"]%></option>'
+                tmp+='                        <option value="hevc_vaapi"><%-lang["hevc_vaapi"]%></option>'
+                tmp+='                        <option value="h264_nvenc"><%-lang["h264_nvenc"]%></option>'
+                tmp+='                        <option value="hevc_nvenc"><%-lang["hevc_nvenc"]%></option>'
+                tmp+='                        <option value="h264_qsv"><%-lang["h264_qsv"]%></option>'
+                tmp+='                        <option value="hevc_qsv"><%-lang["hevc_qsv"]%></option>'
+                tmp+='                        <option value="mpeg2_qsv"><%-lang["mpeg2_qsv"]%></option>'
+                tmp+='                    </optgroup>'
+                tmp+='                </select></div>'
+                tmp+='            </label>'
+                tmp+='          </div>'
+                tmp+='          <div class="form-group">'
+                tmp+='            <label><div><span><%-lang["HLS Audio Encoder"]%></span></div>'
+                tmp+='                <div><select class="form-control" channel-detail="stream_acodec">'
+                tmp+='                    <option value="no" selected><%-lang["No Audio"]%></option>'
+                tmp+='                    <option value=""><%-lang["Auto"]%></option>'
+                tmp+='                    <option value="aac"><%-lang["aac"]%></option>'
+                tmp+='                    <option value="ac3"><%-lang["ac3"]%></option>'
+                tmp+='                    <option value="libmp3lame"><%-lang["libmp3lame"]%></option>'
+                tmp+='                    <option value="copy"><%-lang["copy"]%></option>'
+                tmp+='                </select></div>'
+                tmp+='            </label>'
+                tmp+='          </div>'
+                tmp+='      </div>'
+                tmp+='      <div class="h_st_channel_'+d.channel+'_input h_st_channel_'+d.channel+'_hls" style="display:none">'
+                tmp+='          <div class="form-group">'
+                tmp+='            <label><div><span><%-lang["HLS Segment Length"]%></span></div>'
+                tmp+='                <div><input class="form-control" channel-detail="hls_time" placeholder="2"></div>'
+                tmp+='            </label>'
+                tmp+='          </div>'
+                tmp+='          <div class="form-group">'
+                tmp+='            <label><div><span><%-lang["HLS Preset"]%></span></div>'
+                tmp+='                <div><input class="form-control" channel-detail="preset_stream" placeholder="ultrafast"></div>'
+                tmp+='            </label>'
+                tmp+='          </div>'
+                tmp+='          <div class="form-group">'
+                tmp+='            <label><div><span><%-lang["HLS List Size"]%></span></div>'
+                tmp+='                <div><input class="form-control" channel-detail="hls_list_size" placeholder="2"></div>'
+                tmp+='            </label>'
+                tmp+='          </div>'
+                tmp+='      </div>'
+                tmp+='      <div class="h_st_channel_'+d.channel+'_input h_st_channel_'+d.channel+'_mjpeg h_st_channel_'+d.channel+'_b64 h_st_channel_'+d.channel+'_hls h_st_channel_'+d.channel+'_jsmpeg h_st_channel_'+d.channel+'_flv h_st_channel_'+d.channel+'_h264 h_hls_v_channel_'+d.channel+'_input h_hls_v_channel_'+d.channel+'_libx264 h_hls_v_channel_'+d.channel+'_libx265 h_hls_v_channel_'+d.channel+'_h264_nvenc h_hls_v_channel_'+d.channel+'_hevc_nvenc h_hls_v_channel_'+d.channel+'_no" style="display:none">'
+                tmp+='          <div class="row">'
+                tmp+='              <div class="form-group col-md-12">'
+                tmp+='                <label><div><span><%-lang["Quality"]%></span></div>'
+                tmp+='                <div><input class="form-control" placeholder="23" channel-detail="stream_quality"></div>'
+                tmp+='                </label>'
+                tmp+='              </div>'
+                tmp+='              <div class="form-group col-md-12">'
+                tmp+='                <label><div><span><%-lang["Rate"]%></span></div>'
+                tmp+='                <div><input class="form-control" channel-detail="stream_fps" placeholder="1"></div>'
+                tmp+='                </label>'
+                tmp+='              </div>'
+                tmp+='          </div>'
+                tmp+='          <div class="row">'
+                tmp+='              <div class="form-group col-md-12">'
+                tmp+='                <label><div><span><%-lang["Width"]%></span></div>'
+                tmp+='                <div><input class="form-control" type="number" min="1" channel-detail="stream_scale_x" placeholder="640"></div>'
+                tmp+='                </label>'
+                tmp+='              </div>'
+                tmp+='              <div class="form-group col-md-12">'
+                tmp+='                <label><div><span><%-lang["Height"]%></span></div>'
+                tmp+='                <div><input class="form-control" type="number" min="1" channel-detail="stream_scale_y" placeholder="480"></div>'
+                tmp+='                </label>'
+                tmp+='              </div>'
+                tmp+='          </div>'
+                tmp+='          <div class="form-group">'
+                tmp+='            <label><div><span><%-lang["Rotate"]%></span></div>'
+                tmp+='                    <div><select class="form-control" channel-detail="rotate_stream">'
+                tmp+='                        <option value="no" selected><%-lang["No Rotation"]%></option>'
+                tmp+='                        <option value="2,transpose=2"><%-lang["180 Degrees"]%></option>'
+                tmp+='                        <option value="0"><%-lang["90 Counter Clockwise and Vertical Flip (default)"]%></option>'
+                tmp+='                        <option value="1"><%-lang["90 Clockwise"]%></option>'
+                tmp+='                        <option value="2"><%-lang["90 Clockwise and Vertical Flip"]%></option>'
+                tmp+='                        <option value="3"><%-lang["90 Clockwise and Vertical Flip"]%></option>'
+                tmp+='                    </select></div>'
+                tmp+='              </label>'
+                tmp+='          </div>'
+                tmp+='          <div class="form-group">'
+                tmp+='            <label><div><span><%-lang["Video Filter"]%></span></div>'
+                tmp+='            <div><input class="form-control" channel-detail="svf"></div>'
+                tmp+='            </label>'
+                tmp+='          </div>'
+                tmp+='          <div class="form-group">'
+                tmp+='              <label><div><span><%-lang["Stream Flags"]%></span></div>'
+                tmp+='              <div><input class="form-control" channel-detail="cust_stream"></div>'
+                tmp+='          </label>'
+                tmp+='          </div>'
+                tmp+='      </div>'
+                tmp+='  </div>'
+            break;
         }
         if(z){
             $(z).prepend(tmp)
@@ -1076,6 +1205,11 @@ switch($user.details.lang){
                 $('#filters_where .row:last [where="p1"]').val(d.p1)
                 $('#filters_where .row:last [where="p2"]').val(d.p2)
                 $('#filters_where .row:last [where="p3"]').val(d.p3)
+            break;
+            case'stream-channel':
+                var channeList = $.aM.channels.find('.channels_list')
+                channeList.append(tmp)
+                channeList.find('.stream-channel').last().find('[channel-detail="stream_vcodec"]').change()
             break;
             case'link-set':
                 $('[links="'+d.host+'"] [link="secure"]').val(d.secure).change()
@@ -2265,7 +2399,7 @@ $.multimon.e.on('shown.bs.modal',function() {
 //Monitor Editor
 $.aM={e:$('#add_monitor')};
 $.aM.f=$.aM.e.find('form')
-//$.aM.channels=$('#monedit_stream_channels')
+$.aM.channels=$('#monSectionStreamChannels')
 $.aM.e.find('.follow-list ul').affix();
 $.each(<%-JSON.stringify(define["Monitor Settings"].blocks)%>,function(n,v){
     $.each(v.info,function(m,b){
@@ -2341,7 +2475,16 @@ $.aM.drawList=function(){
         e.e=$(v)
         e.id = e.e.attr('id');
         e.title = e.e.find('h4').first().html();
-        e.html += '<li><a class="scrollTo" href="#'+e.id+'" scrollToParent="#add_monitor .modal-body">'+e.title+'</a></li>'
+        var div = document.createElement('div');
+        div.innerHTML = e.title;
+        var elements = div.getElementsByTagName('a');
+        while (elements[0])
+           elements[0].parentNode.removeChild(elements[0])
+        var elements = div.getElementsByTagName('small');
+        while (elements[0])
+           elements[0].parentNode.removeChild(elements[0])
+        var repl = div.innerHTML;
+        e.html += '<li><a class="scrollTo" href="#'+e.id+'" scrollToParent="#add_monitor .modal-body">'+repl+'</a></li>'
     })
     e.list.html(e.html)
 }
@@ -2349,21 +2492,22 @@ $.aM.import=function(e){
     $('#monEditBufferPreview').attr('src','/'+$user.auth_token+'/hls/'+e.values.ke+'/'+e.values.mid+'/detectorStream.m3u8')
     $.aM.e.find('.edit_id').text(e.values.mid);
     $.aM.e.attr('mid',e.values.mid).attr('ke',e.values.ke).attr('auth',e.auth)
+    $.aM.channels.find('.channels_list').empty()
     $.each(e.values,function(n,v){
         $.aM.e.find('[name="'+n+'"]').val(v).change()
     })
     e.ss=JSON.parse(e.values.details);
     //get channels
-//    if(e.ss.stream_channels&&e.ss.stream_channels!==''){
-//        $.each(JSON.parse(e.ss.stream_channels),function(n,v){
-//            $.ccio.tm('stream-channel')
-//            var parent = $('[stream-channel="'+n+'"]')
-//            console.log(n,v)
-//            $.each(v,function(m,b){
-//                parent.find('[channel-detail="'+m+'"]').val(b)
-//            })
-//        })
-//    }
+    if(e.ss.stream_channels&&e.ss.stream_channels!==''){
+        $.each(JSON.parse(e.ss.stream_channels),function(n,v){
+            $.ccio.tm('stream-channel')
+            var parent = $('[stream-channel="'+n+'"]')
+            console.log(n,v)
+            $.each(v,function(m,b){
+                parent.find('[channel-detail="'+m+'"]').val(b)
+            })
+        })
+    }
     $.aM.e.find('[detail]').each(function(n,v){
         v=$(v).attr('detail');if(!e.ss[v]){e.ss[v]=''}
     })
@@ -2492,31 +2636,31 @@ $.aM.f.submit(function(e){
     $.aM.e.modal('hide')
     return false;
 });
-//$.aM.channels.on('click','.add',function(){
-//    $.ccio.tm('stream-channel')
-//})
-//$.aM.channels.on('click','.delete',function(){
-//    $(this).parents('[section]').remove()
-//    var inputs = $('[channel-detail]')
-//    if(inputs.length===0){
-//        $.aM.e.find('[detail="stream_channels"]').val('[]').change()
-//    }else{
-//        inputs.first().change()
-//    }
-//})
-//$.aM.e.on('change','[channel-detail]',function(){
-//  var e={};
-//    e.e=$.aM.channels.find('.channels_list [section]')
-//    e.s=[]
-//    e.e.each(function(n,v){
-//        var channel={}
-//        $.each($(v).find('[channel-detail]'),function(m,b){
-//            channel[$(b).attr('channel-detail')]=$(b).val()
-//        });
-//        e.s.push(channel)
-//    });
-//    $.aM.e.find('[detail="stream_channels"]').val(JSON.stringify(e.s)).change()
-//})
+$.aM.channels.on('click','.add',function(){
+    $.ccio.tm('stream-channel')
+})
+$.aM.channels.on('click','.delete',function(){
+    $(this).parents('.stream-channel').remove()
+    var inputs = $('[channel-detail]')
+    if(inputs.length===0){
+        $.aM.e.find('[detail="stream_channels"]').val('[]').change()
+    }else{
+        inputs.find('[channel-detail="stream_vcodec"]').change()
+    }
+})
+$.aM.e.on('change','[channel-detail]',function(){
+  var e={};
+    e.e=$.aM.channels.find('.channels_list [section]')
+    e.s=[]
+    e.e.each(function(n,v){
+        var channel={}
+        $.each($(v).find('[channel-detail]'),function(m,b){
+            channel[$(b).attr('channel-detail')]=$(b).val()
+        });
+        e.s.push(channel)
+    });
+    $.aM.e.find('[detail="stream_channels"]').val(JSON.stringify(e.s)).change()
+})
 $.aM.e.on('change','[group]',function(){
   var e={};
     e.e=$.aM.e.find('[group]:checked');

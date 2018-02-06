@@ -90,6 +90,7 @@ if(config.cron.deleteOverMaxOffset===undefined)config.cron.deleteOverMaxOffset=0
 if(config.pluginKeys===undefined)config.pluginKeys={};
 if(config.databaseType===undefined){config.databaseType='mysql'}
 if(config.databaseLogs===undefined){config.databaseLogs=false}
+if(config.pipeAddition===undefined){config.pipeAddition=7}else{config.pipeAddition=parseInt(config.pipeAddition)}
 
 s={factorAuth:{},child_help:false,totalmem:os.totalmem(),platform:os.platform(),s:JSON.stringify,isWin:(process.platform==='win32')};
 //load languages dynamically
@@ -501,6 +502,7 @@ s.init=function(x,e,k,fn){
             if(!s.group[e.ke].users){s.group[e.ke].users={}}
             if(!s.group[e.ke].mon[e.mid]){s.group[e.ke].mon[e.mid]={}}
             if(!s.group[e.ke].mon[e.mid].streamIn){s.group[e.ke].mon[e.mid].streamIn={}};
+            if(!s.group[e.ke].mon[e.mid].emitterChannel){s.group[e.ke].mon[e.mid].emitterChannel={}};
             if(!s.group[e.ke].mon[e.mid].eventBasedRecording){s.group[e.ke].mon[e.mid].eventBasedRecording={}};
             if(!s.group[e.ke].mon[e.mid].watch){s.group[e.ke].mon[e.mid].watch={}};
             if(!s.group[e.ke].mon[e.mid].fixingVideos){s.group[e.ke].mon[e.mid].fixingVideos={}};
@@ -1155,6 +1157,138 @@ s.ffmpeg=function(e){
             x.pipe=''
         break;
     }
+    var createStreamChannel = function(number,channel){
+        var x = {}
+        if(!number||number==''){
+            x.channel_sdir = e.sdir;
+        }else{
+            x.channel_sdir = e.sdir+'channel'+number+'/';
+            if (!fs.existsSync(x.channel_sdir)){
+                fs.mkdirSync(x.channel_sdir);
+            }
+        }
+        x.stream_video_filters=[]
+        //stream - frames per second
+        if(!channel.sfps||channel.sfps===''){
+            channel.sfps=parseFloat(channel.sfps);
+            if(isNaN(channel.sfps)){channel.sfps=1}
+        }
+        if(channel.stream_fps&&channel.stream_fps!==''){x.stream_fps=' -r '+channel.stream_fps}else{x.stream_fps=''}
+        
+        //stream - hls vcodec
+        if(channel.stream_vcodec&&channel.stream_vcodec!=='no'){
+            if(channel.stream_vcodec!==''){x.stream_vcodec=' -c:v '+channel.stream_vcodec}else{x.stream_vcodec=' -c:v libx264'}
+        }else{
+            x.stream_vcodec='';
+        }
+        //stream - hls acodec
+        if(channel.stream_acodec!=='no'){
+        if(channel.stream_acodec&&channel.stream_acodec!==''){x.stream_acodec=' -c:a '+channel.stream_acodec}else{x.stream_acodec=''}
+        }else{
+            x.stream_acodec=' -an';
+        }
+        //stream - resolution
+        if(channel.stream_scale_x&&channel.stream_scale_x!==''&&channel.stream_scale_y&&channel.stream_scale_y!==''){
+            x.ratio=channel.stream_scale_x+'x'+channel.stream_scale_y;
+        }
+        //stream - hls segment time
+        if(channel.hls_time&&channel.hls_time!==''){x.hls_time=channel.hls_time}else{x.hls_time="2"}
+        //hls list size
+        if(channel.hls_list_size&&channel.hls_list_size!==''){x.hls_list_size=channel.hls_list_size}else{x.hls_list_size=2}
+        //stream - custom flags
+        if(channel.cust_stream&&channel.cust_stream!==''){x.cust_stream=' '+channel.cust_stream}else{x.cust_stream=''}
+        //stream - preset
+        if(channel.preset_stream&&channel.preset_stream!==''){x.preset_stream=' -preset '+channel.preset_stream;}else{x.preset_stream=''}
+        //stream - quality
+        if(channel.stream_quality&&channel.stream_quality!==''){x.stream_quality=channel.stream_quality}else{x.stream_quality=''}
+        //hardware acceleration
+        if(e.details.accelerator&&e.details.accelerator==='1'){
+            if(e.details.hwaccel&&e.details.hwaccel!==''){
+                x.hwaccel+=' -hwaccel '+e.details.hwaccel;
+            }
+            if(e.details.hwaccel_vcodec&&e.details.hwaccel_vcodec!==''){
+                x.hwaccel+=' -c:v '+e.details.hwaccel_vcodec;
+            }
+            if(e.details.hwaccel_device&&e.details.hwaccel_device!==''){
+                switch(e.details.hwaccel){
+                    case'vaapi':
+                        x.hwaccel+=' -vaapi_device '+e.details.hwaccel_device+' -hwaccel_output_format vaapi';
+                    break;
+                    default:
+                        x.hwaccel+=' -hwaccel_device '+e.details.hwaccel_device;
+                    break;
+                }
+            }
+    //        else{
+    //            if(e.details.hwaccel==='vaapi'){
+    //                x.hwaccel+=' -hwaccel_device 0';
+    //            }
+    //        }
+        }
+        
+        if(channel.rotate_stream&&channel.rotate_stream!==""&&channel.rotate_stream!=="no"){
+            x.stream_video_filters.push('transpose='+channel.rotate_stream);
+        }
+        //stream - video filter
+        if(channel.svf&&channel.svf!==''){
+            x.stream_video_filters.push(channel.svf)
+        }
+        if(x.stream_video_filters.length>0){
+            x.stream_video_filters=' -vf '+x.stream_video_filters.join(',')
+        }else{
+            x.stream_video_filters=''
+        }
+//        if(!channel.stream_map||channel.stream_map==''){
+//            x.stream_map=" -map 0"
+//        }else{
+//            x.stream_map=" -map "+channel.stream_map
+//        }
+            x.stream_map=""
+////
+        switch(channel.stream_type){
+            case'h264':
+                if(channel.stream_vcodec!=='copy'){
+                    if(x.cust_stream.indexOf('-s ')===-1){x.cust_stream+=' -s '+x.ratio}
+                    x.cust_stream+=x.stream_fps
+                    if(x.stream_quality)x.stream_quality=' -crf '+x.stream_quality;
+                    x.cust_stream+=x.stream_quality
+                    x.cust_stream+=x.preset_stream
+                }
+                x.pipe=x.stream_map+' -f mpegts'+x.stream_acodec+x.stream_vcodec+x.stream_video_filters+x.cust_stream+' pipe:'+number;
+            break;
+            case'flv':
+                if(channel.stream_vcodec!=='copy'){
+                    if(x.cust_stream.indexOf('-s ')===-1){x.cust_stream+=' -s '+x.ratio}
+                    x.cust_stream+=x.stream_fps
+                    if(x.stream_quality)x.stream_quality=' -crf '+x.stream_quality;
+                    x.cust_stream+=x.stream_quality
+                    x.cust_stream+=x.preset_stream
+                }
+                x.pipe=x.stream_map+' -f flv'+x.stream_acodec+x.stream_vcodec+x.stream_video_filters+x.cust_stream+' pipe:'+number;
+            break;
+            case'hls':
+                if(channel.stream_vcodec!=='h264_vaapi'){
+                    if(x.stream_quality)x.stream_quality=' -crf '+x.stream_quality;
+                    if(x.cust_stream.indexOf('-tune')===-1){x.cust_stream+=' -tune zerolatency'}
+                    if(x.cust_stream.indexOf('-g ')===-1){x.cust_stream+=' -g 1'}
+                }
+                x.pipe=x.stream_map+x.preset_stream+x.stream_quality+x.stream_acodec+x.stream_vcodec+x.stream_fps+' -f hls -s '+x.ratio+x.stream_video_filters+x.cust_stream+' -hls_time '+x.hls_time+' -hls_list_size '+x.hls_list_size+' -start_number 0 -hls_allow_cache 0 -hls_flags +delete_segments+omit_endlist "'+x.channel_sdir+'s.m3u8"';
+            break;
+            case'mjpeg':
+                if(x.stream_quality)x.stream_quality=' -q:v '+x.stream_quality;
+                x.pipe=x.stream_map+' -c:v mjpeg -f mpjpeg -boundary_tag shinobi'+x.cust_stream+x.stream_video_filters+x.stream_quality+x.stream_fps+' -s '+x.ratio+' pipe:'+number;
+            break;
+            default:
+                x.pipe=''
+            break;
+        }
+        return x.pipe
+    }
+    if(e.details.stream_channels){
+        e.details.stream_channels.forEach(function(v,n){
+            x.pipe+=createStreamChannel(n+config.pipeAddition,v)
+        })
+    }
     //detector - plugins, motion
     if(e.details.detector==='1'&&e.details.detector_send_frames==='1'){
         if(!e.details.detector_fps||e.details.detector_fps===''){e.details.detector_fps=2}
@@ -1216,27 +1350,6 @@ s.ffmpeg=function(e){
         }
         x.pipe+=x.detector_buffer_fps+' -an -c:v '+e.details.detector_buffer_vcodec+' -f hls -tune '+e.details.detector_buffer_tune+' -g '+e.details.detector_buffer_g+' -hls_time '+e.details.detector_buffer_hls_time+' -hls_list_size '+e.details.detector_buffer_hls_list_size+' -start_number '+e.details.detector_buffer_start_number+' -live_start_index '+e.details.detector_buffer_live_start_index+' -hls_allow_cache 0 -hls_flags +delete_segments+omit_endlist '+e.sdir+'detectorStream.m3u8'
     }
-    if(e.details.rawh264==='1'){
-        if(e.details.rawh264_vcodec&&e.details.rawh264_vcodec!==''){x.rawh264_vcodec=' -c:v '+e.details.rawh264_vcodec}else{x.rawh264_vcodec=' -c:v copy'}
-        if(e.details.rawh264_acodec==='no'){
-            x.rawh264_acodec=''
-        }else{
-            if(e.details.rawh264_acodec&&e.details.rawh264_acodec!==''){x.rawh264_acodec=' -c:a '+e.details.rawh264_acodec}else{x.rawh264_acodec=' -c:a aac'}
-        }
-        x.rawh264_fps=''
-        x.cust_rawh264=''
-        x.rawh264_ratio=''
-        x.rawh264_vf=''
-        x.rawh264_crf=''
-        if(x.rawh264_vcodec!=='copy'){
-            if(e.details.rawh264_crf&&e.details.rawh264_crf!==''){x.rawh264_crf=' -crf '+e.details.rawh264_crf}else{x.rawh264_crf=''}
-            if(e.details.rawh264_fps&&e.details.rawh264_fps!==''){x.rawh264_fps=e.details.rawh264_fps}else{x.rawh264_fps=''}
-            if(e.details.rawh264_vf&&e.details.rawh264_vf!==''){x.rawh264_vf=' -vf '+e.details.rawh264_vf}else{x.rawh264_vf=''}
-            if(e.details.rawh264_scale_x&&e.details.rawh264_scale_x!==''&&e.details.rawh264_scale_y&&e.details.rawh264_scale_y!==''){x.rawh264_ratio=' -s '+e.details.rawh264_scale_x+'x'+e.details.rawh264_scale_y}else{x.rawh264_ratio=''}
-        }
-        if(e.details.cust_rawh264&&e.details.cust_rawh264!==''){x.cust_rawh264=' '+e.details.cust_rawh264;}else{x.cust_rawh264=''}
-        x.pipe+=' -f mpegts '+x.rawh264_vcodec+x.rawh264_acodec+x.rawh264_fps+x.cust_rawh264+x.rawh264_ratio+x.rawh264_vf+' http://127.0.0.1:'+config.port+'/streamIn/'+e.ke+'/'+e.mid+'/1';
-    }
 //    //Stream to YouTube (Stream out to server)
 //    if(e.details.stream_server==='1'){
 //        if(!e.details.stream_server_vbr||e.details.stream_server_vbr===''){e.details.stream_server_vbr='256k'}
@@ -1295,8 +1408,16 @@ s.ffmpeg=function(e){
         break;
     }
     s.group[e.ke].mon[e.mid].ffmpeg=x.tmp;
+    x.stdioPipes=[]
+    var times = config.pipeAddition;
+    if(e.details.stream_channels){
+        times+=e.details.stream_channels.length
+    }
+    for(var i=0; i < times; i++){
+        x.stdioPipes.push('pipe')
+    }
     x.tmp = s.splitForFFPMEG(x.tmp.replace(/\s+/g,' ').trim())
-    return spawn(config.ffmpegDir,x.tmp,{detached: true,stdio:['pipe', 'pipe', 'pipe', 'pipe', 'pipe']});
+    return spawn(config.ffmpegDir,x.tmp,{detached: true,stdio:x.stdioPipes});
 }
 s.file=function(x,e){
     if(!e){e={}};
@@ -1324,7 +1445,7 @@ s.camera=function(x,e,cn,tx){
     if(e.details&&(e.details instanceof Object)===false){
         try{e.details=JSON.parse(e.details)}catch(err){}
     }
-    ['detector_cascades','cords'].forEach(function(v){
+    (['detector_cascades','cords']).forEach(function(v){
         if(e.details&&e.details[v]&&(e.details[v] instanceof Object)===false){
             try{
                 e.details[v]=JSON.parse(e.details[v]);
@@ -1333,7 +1454,17 @@ s.camera=function(x,e,cn,tx){
                 e.details[v]={};
             }
         }
-    })
+    });
+    (['stream_channels']).forEach(function(v){
+        if(e.details&&e.details[v]&&(e.details[v] instanceof Array)===false){
+            try{
+                e.details[v]=JSON.parse(e.details[v]);
+                if(!e.details[v])e.details[v]=[];
+            }catch(err){
+                e.details[v]=[];
+            }
+        }
+    });
     switch(x){
         case'snapshot'://get snapshot from monitor URL
             if(config.doSnapshot===true){
@@ -1512,6 +1643,7 @@ s.camera=function(x,e,cn,tx){
                 fs.mkdirSync(e.sdir);
             }else{
                 s.file('delete',e.sdir+'*')
+                s.file('delete',e.sdir+'channel*')
             }
             //start "no motion" checker
             if(e.details.detector=='1'&&e.details.detector_notrigger=='1'){
@@ -1826,6 +1958,38 @@ s.camera=function(x,e,cn,tx){
                            }
                             if(e.frame_to_stream){
                                 s.group[e.ke].mon[e.id].spawn.stdout.on('data',e.frame_to_stream);
+                            }
+                            if(e.details.stream_channels&&e.details.stream_channels!==''){
+                                var createStreamEmitter = function(channel,number){
+                                    if(!s.group[e.ke].mon[e.id].emitterChannel[number+config.pipeAddition]){
+                                        s.group[e.ke].mon[e.id].emitterChannel[number+config.pipeAddition] = new events.EventEmitter().setMaxListeners(0);
+                                    }
+                                   switch(channel.stream_type){
+                                       case'mjpeg':
+                                           e.frame_to_stream=function(d){
+                                               e.resetStreamCheck()
+                                               s.group[e.ke].mon[e.id].emitterChannel[number+config.pipeAddition].emit('data',d);
+                                           }
+                                       break;
+                                       case'flv':
+                                           e.frame_to_stream=function(d){
+                                               if(!s.group[e.ke].mon[e.id].firstFLVchunk)s.group[e.ke].mon[e.id].firstFLVchunk = d;
+                                               e.resetStreamCheck()
+                                               s.group[e.ke].mon[e.id].emitterChannel[number+config.pipeAddition].emit('data',d);
+                                           }
+                                       break;
+                                       case'h264':
+                                           e.frame_to_stream=function(d){
+                                               e.resetStreamCheck()
+                                               s.group[e.ke].mon[e.id].emitterChannel[number+config.pipeAddition].emit('data',d);
+                                           }
+                                       break;
+                                   }
+                                    if(e.frame_to_stream){
+                                        s.group[e.ke].mon[e.id].spawn.stdio[number+config.pipeAddition].on('data',e.frame_to_stream);
+                                    }
+                                }
+                                e.details.stream_channels.forEach(createStreamEmitter)
                             }
                             if(x==='record'||e.type==='mjpeg'||e.type==='h264'||e.type==='local'){
                                 s.group[e.ke].mon[e.id].spawn.stderr.on('data',function(d){
@@ -3783,10 +3947,15 @@ app.get('/:auth/mpd/:ke/:id/:file', function (req,res){
     s.auth(req.params,req.fn,res,req);
 });
 // Get HLS stream (m3u8)
-app.get('/:auth/hls/:ke/:id/:file', function (req,res){
+app.get(['/:auth/hls/:ke/:id/:file','/:auth/hls/:ke/:id/:channel/:file'], function (req,res){
     res.header("Access-Control-Allow-Origin",req.headers.origin);
     req.fn=function(user){
-        req.dir=s.dir.streams+req.params.ke+'/'+req.params.id+'/'+req.params.file;
+        req.dir=s.dir.streams+req.params.ke+'/'+req.params.id+'/'
+        if(req.params.channel){
+            req.dir+='channel'+(parseInt(req.params.channel)+config.pipeAddition)+'/'+req.params.file;
+        }else{
+            req.dir+=req.params.file;
+        }
         res.on('finish',function(){res.end();});
         if (fs.existsSync(req.dir)){
             fs.createReadStream(req.dir).pipe(res);
@@ -3800,7 +3969,7 @@ app.get('/:auth/hls/:ke/:id/:file', function (req,res){
 app.get('/:auth/jpeg/:ke/:id/s.jpg', function(req,res){
     res.header("Access-Control-Allow-Origin",req.headers.origin);
     s.auth(req.params,function(user){
-        if(user.details.sub&&user.details.allmonitors!=='1'&&user.details.monitors.indexOf(req.params.id)===-1){
+        if(user.details.sub&&user.details.allmonitors!=='1'&&user.details.monitors&&user.details.monitors.indexOf(req.params.id)===-1){
             res.end(user.lang['Not Permitted'])
             return
         }
@@ -3819,11 +3988,16 @@ app.get('/:auth/jpeg/:ke/:id/s.jpg', function(req,res){
     },res,req);
 });
 //Get FLV stream
-app.get('/:auth/flv/:ke/:id/s.flv', function(req,res) {
+app.get(['/:auth/flv/:ke/:id/s.flv','/:auth/flv/:ke/:id/:channel/s.flv'], function(req,res) {
     res.header("Access-Control-Allow-Origin",req.headers.origin);
     s.auth(req.params,function(user){
         if(s.group[req.params.ke].mon[req.params.id].firstFLVchunk){
-            if(!req.params.feed){req.params.feed='1'}
+            var Emitter
+            if(!req.params.channel){
+                Emitter = s.group[req.params.ke].mon[req.params.id].emitter
+            }else{
+                Emitter = s.group[req.params.ke].mon[req.params.id].emitterChannel[parseInt(req.params.channel)+config.pipeAddition]
+            }
             //variable name of contentWriter
             var contentWriter
             //set headers
@@ -3832,12 +4006,12 @@ app.get('/:auth/flv/:ke/:id/s.flv', function(req,res) {
             //write first frame on stream
             res.write(s.group[req.params.ke].mon[req.params.id].firstFLVchunk)
             //write new frames as they happen
-            s.group[req.params.ke].mon[req.params.id].emitter.on('data',contentWriter=function(buffer){
+            Emitter.on('data',contentWriter=function(buffer){
                 res.write(buffer)
             })
             //remove contentWriter when client leaves
             res.on('close', function () {
-                s.group[req.params.ke].mon[req.params.id].emitter.removeListener('data',contentWriter)
+                Emitter.removeListener('data',contentWriter)
             })
         }else{
             res.setHeader('Content-Type', 'application/json');
@@ -3845,38 +4019,44 @@ app.get('/:auth/flv/:ke/:id/s.flv', function(req,res) {
         }
     })
 })
-//Get MJPEG stream
-app.get(['/:auth/mjpeg/:ke/:id','/:auth/mjpeg/:ke/:id/:addon'], function(req,res) {
+app.get(['/:auth/mjpeg/:ke/:id','/:auth/mjpeg/:ke/:id/:channel'], function(req,res) {
     res.header("Access-Control-Allow-Origin",req.headers.origin);
-    if(req.params.addon=='full'){
+    if(req.query.full=='true'){
         res.render('mjpeg',{url:'/'+req.params.auth+'/mjpeg/'+req.params.ke+'/'+req.params.id});
         res.end()
     }else{
         s.auth(req.params,function(user){
-            if(user.permissions.watch_stream==="0"||user.details.sub&&user.details.allmonitors!=='1'&&user.details.monitors.indexOf(req.params.id)===-1){
-                res.end(user.lang['Not Permitted'])
-                return
-            }
-            res.writeHead(200, {
-            'Content-Type': 'multipart/x-mixed-replace; boundary=shinobi',
-            'Cache-Control': 'no-cache',
-            'Connection': 'keep-alive',
-            'Pragma': 'no-cache'
-            });
-            var contentWriter,content = fs.readFileSync(config.defaultMjpeg,'binary');
-            res.write("--shinobi\r\n");
-            res.write("Content-Type: image/jpeg\r\n");
-            res.write("Content-Length: " + content.length + "\r\n");
-            res.write("\r\n");
-            res.write(content,'binary');
-            res.write("\r\n");
-            if(s.group[req.params.ke]&&s.group[req.params.ke].mon[req.params.id]&&s.group[req.params.ke].mon[req.params.id].emitter){
-                s.group[req.params.ke].mon[req.params.id].emitter.on('data',contentWriter=function(d){
+            if(s.group[req.params.ke]&&s.group[req.params.ke].mon[req.params.id]){
+                if(user.permissions.watch_stream==="0"||user.details.sub&&user.details.allmonitors!=='1'&&user.details.monitors.indexOf(req.params.id)===-1){
+                    res.end(user.lang['Not Permitted'])
+                    return
+                }
+
+                var Emitter
+                if(!req.params.channel){
+                    Emitter = s.group[req.params.ke].mon[req.params.id].emitter
+                }else{
+                    Emitter = s.group[req.params.ke].mon[req.params.id].emitterChannel[parseInt(req.params.channel)+config.pipeAddition]
+                }
+                res.writeHead(200, {
+                'Content-Type': 'multipart/x-mixed-replace; boundary=shinobi',
+                'Cache-Control': 'no-cache',
+                'Connection': 'keep-alive',
+                'Pragma': 'no-cache'
+                });
+                var contentWriter,content = fs.readFileSync(config.defaultMjpeg,'binary');
+                res.write("--shinobi\r\n");
+                res.write("Content-Type: image/jpeg\r\n");
+                res.write("Content-Length: " + content.length + "\r\n");
+                res.write("\r\n");
+                res.write(content,'binary');
+                res.write("\r\n");
+                Emitter.on('data',contentWriter=function(d){
                     content = d;
                     res.write(content,'binary');
                 })
                 res.on('close', function () {
-                    s.group[req.params.ke].mon[req.params.id].emitter.removeListener('data',contentWriter)
+                    Emitter.removeListener('data',contentWriter)
                 });
             }else{
                 res.end();
@@ -3934,16 +4114,38 @@ app.get(['/:auth/monitor/:ke','/:auth/monitor/:ke/:id'], function (req,res){
             }
         }
         s.sqlQuery(req.sql,req.ar,function(err,r){
-//            r.forEach(function(v,n){
-//                r[n].subStream={}
-//                var details = JSON.parse(r[n].details)
-//                if(details.rawh264==='1'){
-//                    r[n].subStream.h264 = '/'+req.params.auth+'/h264/'+v.ke+'/'+v.mid+'/1'
-//                }
-//                if(details.snap==='1'){
-//                    r[n].subStream.jpeg = '/'+req.params.auth+'/jpeg/'+v.ke+'/'+v.mid+'/s.jpg'
-//                }
-//            })
+            r.forEach(function(v,n){
+                if(s.group[v.ke]&&s.group[v.ke].mon[v.mid]&&s.group[v.ke].mon[v.mid].watch){
+                    r[n].currentlyWatching=Object.keys(s.group[v.ke].mon[v.mid].watch).length
+                }
+                r[n].subStream={}
+                var details = JSON.parse(r[n].details)
+                if(details.snap==='1'){
+                    r[n].subStream.jpeg = '/'+req.params.auth+'/jpeg/'+v.ke+'/'+v.mid+'/s.jpg'
+                }
+                if(details.stream_channels&&details.stream_channels!==''){
+                    details.stream_channels=JSON.parse(details.stream_channels)
+                    r[n].channels=[]
+                    details.stream_channels.forEach(function(b,m){
+                        var streamURL
+                        switch(b.stream_type){
+                            case'mjpeg':
+                                streamURL='/'+req.params.auth+'/mjpeg/'+v.ke+'/'+v.mid+'/'+m
+                            break;
+                            case'hls':
+                                streamURL='/'+req.params.auth+'/hls/'+v.ke+'/'+v.mid+'/'+m+'/s.m3u8'
+                            break;
+                            case'h264':
+                                streamURL='/'+req.params.auth+'/h264/'+v.ke+'/'+v.mid+'/'+m
+                            break;
+                            case'flv':
+                                streamURL='/'+req.params.auth+'/flv/'+v.ke+'/'+v.mid+'/'+m+'/s.flv'
+                            break;
+                        }
+                        r[n].channels.push(streamURL)
+                    })
+                }
+            })
             if(r.length===1){r=r[0];}
             res.end(s.s(r, null, 3));
         })
@@ -4585,13 +4787,17 @@ app.all(['/streamIn/:ke/:id','/streamIn/:ke/:id/:feed'], function (req, res) {
     }
 })
 //simulate RTSP over HTTP
-app.get(['/:auth/h264/:ke/:id/:feed','/:auth/h264/:ke/:id'], function (req, res) {
+app.get(['/:auth/h264/:ke/:id/:channel','/:auth/h264/:ke/:id'], function (req, res) {
     res.header("Access-Control-Allow-Origin",req.headers.origin);
     s.auth(req.params,function(user){
-        if(!req.params.feed){req.params.feed='1'}
-        if(!s.group[req.params.ke].mon[req.params.id].streamIn[req.params.feed]){
-            s.group[req.params.ke].mon[req.params.id].streamIn[req.params.feed] = new events.EventEmitter().setMaxListeners(0)
+        if(!req.query.feed){req.query.feed='1'}
+        var Emitter
+        if(!req.params.channel){
+            Emitter = s.group[req.params.ke].mon[req.params.id].streamIn[req.query.feed]
+        }else{
+            Emitter = s.group[req.params.ke].mon[req.params.id].emitterChannel[parseInt(req.params.channel)+config.pipeAddition]
         }
+        s.init('streamIn',req.params)
         var contentWriter
         var date = new Date();
         res.writeHead(200, {
@@ -4602,11 +4808,11 @@ app.get(['/:auth/h264/:ke/:id/:feed','/:auth/h264/:ke/:id'], function (req, res)
             'Content-Type': 'video/mp4',
             'Server': 'Shinobi H.264 Test Stream',
         });
-        s.group[req.params.ke].mon[req.params.id].streamIn[req.params.feed].on('data',contentWriter=function(buffer){
+        Emitter.on('data',contentWriter=function(buffer){
             res.write(buffer)
         })
         res.on('close', function () {
-            s.group[req.params.ke].mon[req.params.id].streamIn[req.params.feed].removeListener('data',contentWriter)
+            Emitter.removeListener('data',contentWriter)
         })
     })
 });
