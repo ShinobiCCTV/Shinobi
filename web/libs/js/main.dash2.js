@@ -1032,8 +1032,8 @@ switch($user.details.lang){
                     var numberOfChannelsDrawn = $('#monSectionStreamChannels .stream-channel').length
                     d.channel=numberOfChannelsDrawn
                 }
-                tmp+='<div class="form-group-group blue stream-channel" stream-channel="'+d.channel+'" section id="monSectionChannel'+tempID+'">'
-                tmp+='  <h4><%-lang["Channel"]%> '+d.channel
+                tmp+='<div class="form-group-group blue stream-channel" section id="monSectionChannel'+tempID+'">'
+                tmp+='  <h4><%-lang["Channel"]%> <span class="place">'+d.channel+'</span>'
                 tmp+='  <div class="pull-right"><a class="btn btn-danger btn-xs delete"><i class="fa fa-trash-o"></i></a></div>'
                 tmp+='  </h4>'
 //                tmp+='      <div class="form-group">'
@@ -2675,8 +2675,10 @@ $.aM.f.submit(function(e){
     return false;
 });
 $.aM.channelPlacementInit = function(){
-    $('[stream-channel]').each(function(n,v){
-        $(this).attr('stream-channel',n)
+    $('.stream-channel').each(function(n,v){
+        var _this = $(this)
+        _this.attr('stream-channel',n)
+        _this.find('.place').text(n)
     })
 }
 $.aM.channels.on('click','.add',function(){
