@@ -2806,11 +2806,19 @@ $.aM.f.find('[name="type"]').change(function(e){
 })
 $.aM.md=$.aM.f.find('[detail]');
 $.aM.md.change($.ccio.form.details)
-$.aM.f.on('change','[selector]',function(e){
-    e.v=$(this).val();e.a=$(this).attr('selector')
+$.aM.f.on('change','[selector]',function(){
+    e={e:$(this)}
+    e.v=e.e.val();
+    e.a=e.e.attr('selector')
+    e.triggerChange=e.e.attr('triggerchange')
+        console.log(e.triggerChange)
     $.aM.f.find('.'+e.a+'_input').hide()
     $.aM.f.find('.'+e.a+'_'+e.v).show();
     $.aM.f.find('.'+e.a+'_text').text($(this).find('option:selected').text())
+    if(e.triggerChange&&e.triggerChange!==''){
+        console.log(e.triggerChange)
+        $(e.triggerChange).trigger('change')
+    }
     $.aM.drawList()
 });
 $.aM.f.find('[name="type"]').change(function(e){
