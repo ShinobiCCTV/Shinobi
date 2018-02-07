@@ -2444,6 +2444,9 @@ var tx;
     })
     //unique FLV socket stream
     cn.on('FLV',function(d){
+        if(!s.group[d.ke]||!s.group[d.ke].mon||!s.group[d.ke].mon[d.id]){
+            cn.disconnect();return;
+        }
         cn.ip=cn.request.connection.remoteAddress;
         var toUTC = function(){
             return new Date().toISOString();
@@ -2452,17 +2455,20 @@ var tx;
         d.failed=function(msg){console.log(msg);tx({ok:false,msg:msg,token_used:d.auth,ke:d.ke});cn.disconnect();}
         d.success=function(r){
             r=r[0];
-            cn.ke=d.ke,
-            cn.uid=d.uid,
-            cn.auth=d.auth;
-            cn.channel=d.channel;
-            cn.flvStream=d.id;
             var Emitter
             if(!d.channel){
                 Emitter = s.group[d.ke].mon[d.id].emitter
             }else{
                 Emitter = s.group[d.ke].mon[d.id].emitterChannel[parseInt(d.channel)+config.pipeAddition]
             }
+            if(!Emitter){
+                cn.disconnect();return;
+            }
+            cn.ke=d.ke,
+            cn.uid=d.uid,
+            cn.auth=d.auth;
+            cn.channel=d.channel;
+            cn.flvStream=d.id;
             tx({time:toUTC(),buffer:s.group[d.ke].mon[d.id].firstFLVchunk})
             Emitter.on('data',s.group[d.ke].mon[d.id].contentWriter=function(buffer){
                 tx({time:toUTC(),buffer:buffer})
