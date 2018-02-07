@@ -2369,6 +2369,27 @@ $.multimon.e.find('.import_config').click(function(){
 //        });
     });
 })
+$.multimon.e.find('.delete').click(function(){
+    var arr=[];
+    $.each($.multimon.f.serializeObject(),function(n,v){
+        arr.push($.ccio.mon[n])
+    })
+    if(arr.length===0){
+        $.ccio.init('note',{title:'No Monitors Selected',text:'Select atleast one monitor to delete.',type:'error'});
+        return
+    }
+    $.confirm.e.modal('show');
+    $.confirm.title.text('<%-cleanLang(lang['Delete'])%> <%-cleanLang(lang['Monitors'])%>')
+    e.html='<p><%-cleanLang(lang.DeleteMonitorsText)%></p>';
+    $.confirm.body.html(e.html)
+    $.confirm.click({title:'Delete',class:'btn-danger'},function(){
+        $.each(arr,function(n,v){
+            $.get('/'+v.user.auth_token+'/configureMonitor/'+v.ke+'/'+v.mid+'/delete',function(data){
+                console.log(data)
+            })
+        })
+    });
+})
 $.multimon.e.find('.save_config').click(function(){
     var e={};e.e=$(this);
     var arr=[];
