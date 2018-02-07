@@ -503,6 +503,7 @@ s.init=function(x,e,k,fn){
             if(!s.group[e.ke].mon[e.mid]){s.group[e.ke].mon[e.mid]={}}
             if(!s.group[e.ke].mon[e.mid].streamIn){s.group[e.ke].mon[e.mid].streamIn={}};
             if(!s.group[e.ke].mon[e.mid].emitterChannel){s.group[e.ke].mon[e.mid].emitterChannel={}};
+            if(!s.group[e.ke].mon[e.mid].firstFLVchunk){s.group[e.ke].mon[e.mid].firstFLVchunk={}};
             if(!s.group[e.ke].mon[e.mid].eventBasedRecording){s.group[e.ke].mon[e.mid].eventBasedRecording={}};
             if(!s.group[e.ke].mon[e.mid].watch){s.group[e.ke].mon[e.mid].watch={}};
             if(!s.group[e.ke].mon[e.mid].fixingVideos){s.group[e.ke].mon[e.mid].fixingVideos={}};
@@ -1930,7 +1931,7 @@ s.camera=function(x,e,cn,tx){
                            switch(e.details.stream_type){
                                case'flv':
                                    e.frame_to_stream=function(d){
-                                       if(!s.group[e.ke].mon[e.id].firstFLVchunk)s.group[e.ke].mon[e.id].firstFLVchunk = d;
+                                       if(!s.group[e.ke].mon[e.id].firstFLVchunk['MAIN'])s.group[e.ke].mon[e.id].firstFLVchunk['MAIN'] = d;
                                        e.resetStreamCheck()
                                        s.group[e.ke].mon[e.id].emitter.emit('data',d);
                                    }
@@ -1976,7 +1977,7 @@ s.camera=function(x,e,cn,tx){
                                        break;
                                        case'flv':
                                            e.frame_to_stream=function(d){
-                                               if(!s.group[e.ke].mon[e.id].firstFLVchunk)s.group[e.ke].mon[e.id].firstFLVchunk = d;
+                                               if(!s.group[e.ke].mon[e.id].firstFLVchunk[number+config.pipeAddition])s.group[e.ke].mon[e.id].firstFLVchunk[number+config.pipeAddition] = d;
                                                e.resetStreamCheck()
                                                s.group[e.ke].mon[e.id].emitterChannel[number+config.pipeAddition].emit('data',d);
                                            }
@@ -2455,11 +2456,13 @@ var tx;
         d.failed=function(msg){console.log(msg);tx({ok:false,msg:msg,token_used:d.auth,ke:d.ke});cn.disconnect();}
         d.success=function(r){
             r=r[0];
-            var Emitter
+            var Emitter,chunkChannel
             if(!d.channel){
                 Emitter = s.group[d.ke].mon[d.id].emitter
+                chunkChannel = 'MAIN'
             }else{
                 Emitter = s.group[d.ke].mon[d.id].emitterChannel[parseInt(d.channel)+config.pipeAddition]
+                chunkChannel = parseInt(d.channel)+config.pipeAddition
             }
             if(!Emitter){
                 cn.disconnect();return;
@@ -2469,7 +2472,7 @@ var tx;
             cn.auth=d.auth;
             cn.channel=d.channel;
             cn.flvStream=d.id;
-            tx({time:toUTC(),buffer:s.group[d.ke].mon[d.id].firstFLVchunk})
+            tx({time:toUTC(),buffer:s.group[d.ke].mon[d.id].firstFLVchunk[chunkChannel]})
             Emitter.on('data',s.group[d.ke].mon[d.id].contentWriter=function(buffer){
                 tx({time:toUTC(),buffer:buffer})
             })
@@ -4000,20 +4003,22 @@ app.get('/:auth/jpeg/:ke/:id/s.jpg', function(req,res){
 app.get(['/:auth/flv/:ke/:id/s.flv','/:auth/flv/:ke/:id/:channel/s.flv'], function(req,res) {
     res.header("Access-Control-Allow-Origin",req.headers.origin);
     s.auth(req.params,function(user){
-        if(s.group[req.params.ke].mon[req.params.id].firstFLVchunk){
-            var Emitter
-            if(!req.params.channel){
-                Emitter = s.group[req.params.ke].mon[req.params.id].emitter
-            }else{
-                Emitter = s.group[req.params.ke].mon[req.params.id].emitterChannel[parseInt(req.params.channel)+config.pipeAddition]
-            }
+        var Emitter,chunkChannel
+        if(!d.channel){
+            Emitter = s.group[d.ke].mon[d.id].emitter
+            chunkChannel = 'MAIN'
+        }else{
+            Emitter = s.group[d.ke].mon[d.id].emitterChannel[parseInt(d.channel)+config.pipeAddition]
+            chunkChannel = parseInt(d.channel)+config.pipeAddition
+        }
+        if(s.group[req.params.ke].mon[req.params.id].firstFLVchunk[chunkChannel]){
             //variable name of contentWriter
             var contentWriter
             //set headers
             res.setHeader('Content-Type', 'video/x-flv');
             res.setHeader('Access-Control-Allow-Origin','*');
             //write first frame on stream
-            res.write(s.group[req.params.ke].mon[req.params.id].firstFLVchunk)
+            res.write(s.group[req.params.ke].mon[req.params.id].firstFLVchunk[chunkChannel])
             //write new frames as they happen
             Emitter.on('data',contentWriter=function(buffer){
                 res.write(buffer)
