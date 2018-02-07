@@ -1033,7 +1033,7 @@ switch($user.details.lang){
                     d.channel=numberOfChannelsDrawn
                 }
                 tmp+='<div class="form-group-group blue stream-channel" section id="monSectionChannel'+tempID+'">'
-                tmp+='  <h4><%-lang["Channel"]%> <span class="place">'+d.channel+'</span>'
+                tmp+='  <h4><%-lang["Stream Channel"]%> <span class="place">'+d.channel+'</span>'
                 tmp+='  <div class="pull-right"><a class="btn btn-danger btn-xs delete"><i class="fa fa-trash-o"></i></a></div>'
                 tmp+='  </h4>'
 //                tmp+='      <div class="form-group">'
@@ -1208,7 +1208,7 @@ switch($user.details.lang){
                 $('#filters_where .row:last [where="p3"]').val(d.p3)
             break;
             case'stream-channel':
-                var channeList = $.aM.channels.find('.channels_list')
+                var channeList = $.aM.channels
                 channeList.append(tmp)
                 channeList.find('.stream-channel').last().find('[channel-detail="stream_vcodec"]').change()
             break;
@@ -2447,57 +2447,6 @@ $.each(<%-JSON.stringify(define["Monitor Settings"].blocks)%>,function(n,v){
         v.parent.append('<small class="hover">'+b.description+'</small>')
     })
 })
-//if(!$.ccio.op().tabsOpen){
-//    $.ccio.op('tabsOpen',{})
-//}
-//$.aM.tab=function(x,e){
-//    var k={e:$('#monedit_tabs')}
-//    k.tabs=$.ccio.op().tabsOpen
-//    k.append=function(e){
-//        k.e.append('<li class="mdl-menu__item" mid="'+e.mid+'" ke="'+e.ke+'" auth="'+$user.auth_token+'"><a title="Delete Pending Changes" class="delete btn btn-default btn-xs">&nbsp;<i class="fa fa-trash-o"></i>&nbsp;</a> &nbsp; <span class="name">'+e.name+'</span> <small>'+e.mid+'</small></li>')
-//    }
-//    if(!x){
-//        $.each(k.tabs,function(n,v){
-//            k.append(v)
-//        })
-//        return
-//    }
-//    if(!e.mid||e.mid===''){return}
-//    e.ke=$user.ke
-//    k.launcher=k.e.find('[mid="'+e.mid+'"][ke="'+e.ke+'"]')
-//    switch(x){
-//        case'add':
-//            k.tabs[e.mid]=e
-//            if(k.launcher.length===0){
-//                k.append(e)
-//            }else{
-//                k.launcher.find('.name').text(e.name)
-//            }
-//        break;
-//        case'delete':
-//            delete(k.tabs[e.mid])
-//            k.launcher.remove()
-//        break;
-//    }
-//    $.ccio.op('tabsOpen',k.tabs)
-//}
-//$.aM.tab()
-//$.aM.e.on('click','#monedit_tabs li .delete',function(e){
-//    e.preventDefault()
-//    $.aM.tab('delete',$.ccio.op().tabsOpen[$(this).parents('li').attr('mid')])
-//})
-//$.aM.e.on('click','#monedit_tabs li',function(){
-//    e={e:$(this)}
-//    e.mid=e.e.attr('mid')
-//    e.ke=e.e.attr('ke')
-//    e.values=$.ccio.op().tabsOpen[e.mid]
-//    if(e.values){
-//        $.aM.import(e)
-//    }
-//})
-//$.aM.f.find('input,select,textarea').change(function(e){
-//    $.aM.tab('add',$.aM.f.serializeObject())
-//})
 $.aM.drawList=function(){
     e={list:$.aM.e.find('.follow-list ul'),html:''}
     $.aM.e.find('[section]:visible').each(function(n,v){
@@ -2521,7 +2470,7 @@ $.aM.import=function(e){
     $('#monEditBufferPreview').attr('src','/'+$user.auth_token+'/hls/'+e.values.ke+'/'+e.values.mid+'/detectorStream.m3u8')
     $.aM.e.find('.edit_id').text(e.values.mid);
     $.aM.e.attr('mid',e.values.mid).attr('ke',e.values.ke).attr('auth',e.auth)
-    $.aM.channels.find('.channels_list').empty()
+    $.aM.channels.empty()
     $.each(e.values,function(n,v){
         $.aM.e.find('[name="'+n+'"]').val(v).change()
     })
@@ -2681,9 +2630,6 @@ $.aM.channelPlacementInit = function(){
         _this.find('.place').text(n)
     })
 }
-$.aM.channels.on('click','.add',function(){
-    $.ccio.tm('stream-channel')
-})
 $.aM.channels.on('click','.delete',function(){
     $(this).parents('.stream-channel').remove()
     var inputs = $('[channel-detail]')
@@ -2696,7 +2642,7 @@ $.aM.channels.on('click','.delete',function(){
 })
 $.aM.e.on('change','[channel-detail]',function(){
   var e={};
-    e.e=$.aM.channels.find('.channels_list [section]')
+    e.e=$.aM.channels.find('.stream-channel')
     e.s=[]
     e.e.each(function(n,v){
         var channel={}
@@ -2797,6 +2743,9 @@ $.aM.e.find('.save_config').click(function(e){
         .attr('href',e.dataStr)
         .attr('download','Shinobi_'+e.mid+'_config.json')
         [0].click()
+});
+$.aM.e.find('.add_channel').click(function(e){
+    $.ccio.tm('stream-channel')
 });
 $.aM.f.find('[detail="stream_type"]').change(function(e){
     e.e=$(this);
