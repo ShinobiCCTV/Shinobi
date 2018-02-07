@@ -2453,7 +2453,10 @@ var tx;
             return new Date().toISOString();
         }
         var tx=function(z){cn.emit('data',z);}
-        d.failed=function(msg){console.log(msg);tx({ok:false,msg:msg,token_used:d.auth,ke:d.ke});cn.disconnect();}
+        d.failed=function(msg){
+            tx({f:'stop_reconnect',msg:msg,token_used:d.auth,ke:d.ke});
+            cn.disconnect();
+        }
         d.success=function(r){
             r=r[0];
             var Emitter,chunkChannel
@@ -4425,7 +4428,7 @@ app.all(['/:auth/configureMonitor/:ke/:id','/:auth/configureMonitor/:ke/:id/:f']
             if(!user.details.sub||user.details.allmonitors==='1'||user.details.monitor_edit.indexOf(req.monitor.mid)>-1){
                     if(req.monitor&&req.monitor.mid&&req.monitor.name){
                         req.set=[],req.ar=[];
-                        req.monitor.mid=req.monitor.mid.replace(/[^\w\s]/gi,'').replace(/ /g,'');
+                        req.monitor.mid=req.params.id.replace(/[^\w\s]/gi,'').replace(/ /g,'');
                         try{
                             JSON.parse(req.monitor.details)
                         }catch(er){
