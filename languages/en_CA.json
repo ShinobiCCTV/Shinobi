@@ -222,6 +222,7 @@
    "Paste JSON here.": "Paste JSON here.",
    "Delete Monitor": "Delete Monitor",
    "DeleteMonitorText": "Do you want to delete this monitor? You cannot recover it. The files for this ID will remain in the filesystem. If you choose to recreate a monitor with the same ID the videos and events will become visible in the dashboard.",
+   "DeleteMonitorsText": "Do you want to delete these monitors? You cannot recover them. The files for these IDs will remain in the filesystem. If you choose to recreate a monitor with one of the IDs the videos and events will become visible in the dashboard.",
    "Invalid JSON": "Invalid JSON",
    "InvalidJSONText": "Please ensure this is a valid JSON string for Shinobi monitor configuration.",
    "Passwords don't match": "Passwords don't match",
