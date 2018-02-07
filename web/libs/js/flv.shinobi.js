@@ -3906,6 +3906,11 @@
                                     transports:['websocket']
                                 });
                                 l._ws = t;
+                                var monitor = $.ccio.mon[e.config.ke+e.config.id+e.config.auth_token];
+                                if(monitor){
+                                    monitor.flvWebSocket = t;
+                                    monitor.stopFlvReconnect = false;
+                                }
                                 if(!e.config.maxLatency){
                                     l._maxLatency = 1000;
                                 }else{
@@ -3921,10 +3926,20 @@
                                     });
                                     _this._status = l.LoaderStatus.kBuffering;
                                 });
+                                t.on('f',function(d){
+                                    switch(d.f){
+                                        case'stop_reconnect':
+                                            console.log('stop_reconnect',e.config.id)
+                                            monitor.stopFlvReconnect = true;
+                                        break;
+                                    }
+                                })
                                 t.on('disconnect',function(){
-                                    if (!0 === this._requestAbort) return void(this._requestAbort = !1);
-                                    this._status = l.LoaderStatus.kComplete, this._onComplete && this._onComplete(0, this._receivedLength - 1)
-                                    l._ws.connect()
+                                    if(monitor.stopFlvReconnect!==true){
+                                        if (!0 === this._requestAbort) return void(this._requestAbort = !1);
+                                        this._status = l.LoaderStatus.kComplete, this._onComplete && this._onComplete(0, this._receivedLength - 1)
+                                        t.connect()
+                                    }
                                 });
                                 t.on('data',_this._onWebSocketMessage.bind(_this));
                                 t.on('error',_this._onWebSocketError.bind(_this));
