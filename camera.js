@@ -1932,8 +1932,11 @@ s.camera=function(x,e,cn,tx){
                                case'flv':
                                    e.frame_to_stream=function(d){
                                        if(!s.group[e.ke].mon[e.id].firstFLVchunk['MAIN'])s.group[e.ke].mon[e.id].firstFLVchunk['MAIN'] = d;
-                                       e.resetStreamCheck()
-                                       s.group[e.ke].mon[e.id].emitter.emit('data',d);
+                                       e.frame_to_stream=function(d){
+                                           e.resetStreamCheck()
+                                           s.group[e.ke].mon[e.id].emitter.emit('data',d);
+                                       }
+                                       e.frame_to_stream(d)
                                    }
                                break;
                                case'mjpeg':
@@ -1968,29 +1971,30 @@ s.camera=function(x,e,cn,tx){
                                     if(!s.group[e.ke].mon[e.id].emitterChannel[number+config.pipeAddition]){
                                         s.group[e.ke].mon[e.id].emitterChannel[number+config.pipeAddition] = new events.EventEmitter().setMaxListeners(0);
                                     }
+                                   var frame_to_stream
                                    switch(channel.stream_type){
                                        case'mjpeg':
-                                           e.frame_to_stream=function(d){
-                                               e.resetStreamCheck()
+                                           frame_to_stream=function(d){
                                                s.group[e.ke].mon[e.id].emitterChannel[number+config.pipeAddition].emit('data',d);
                                            }
                                        break;
                                        case'flv':
-                                           e.frame_to_stream=function(d){
+                                           frame_to_stream=function(d){
                                                if(!s.group[e.ke].mon[e.id].firstFLVchunk[number+config.pipeAddition])s.group[e.ke].mon[e.id].firstFLVchunk[number+config.pipeAddition] = d;
-                                               e.resetStreamCheck()
-                                               s.group[e.ke].mon[e.id].emitterChannel[number+config.pipeAddition].emit('data',d);
+                                               frame_to_stream=function(d){
+                                                   s.group[e.ke].mon[e.id].emitterChannel[number+config.pipeAddition].emit('data',d);
+                                               }
+                                               frame_to_stream(d)
                                            }
                                        break;
                                        case'h264':
-                                           e.frame_to_stream=function(d){
-                                               e.resetStreamCheck()
+                                           frame_to_stream=function(d){
                                                s.group[e.ke].mon[e.id].emitterChannel[number+config.pipeAddition].emit('data',d);
                                            }
                                        break;
                                    }
-                                    if(e.frame_to_stream){
-                                        s.group[e.ke].mon[e.id].spawn.stdio[number+config.pipeAddition].on('data',e.frame_to_stream);
+                                    if(frame_to_stream){
+                                        s.group[e.ke].mon[e.id].spawn.stdio[number+config.pipeAddition].on('data',frame_to_stream);
                                     }
                                 }
                                 e.details.stream_channels.forEach(createStreamEmitter)
@@ -4007,12 +4011,12 @@ app.get(['/:auth/flv/:ke/:id/s.flv','/:auth/flv/:ke/:id/:channel/s.flv'], functi
     res.header("Access-Control-Allow-Origin",req.headers.origin);
     s.auth(req.params,function(user){
         var Emitter,chunkChannel
-        if(!d.channel){
-            Emitter = s.group[d.ke].mon[d.id].emitter
+        if(!req.params.channel){
+            Emitter = s.group[req.params.ke].mon[req.params.id].emitter
             chunkChannel = 'MAIN'
         }else{
-            Emitter = s.group[d.ke].mon[d.id].emitterChannel[parseInt(d.channel)+config.pipeAddition]
-            chunkChannel = parseInt(d.channel)+config.pipeAddition
+            Emitter = s.group[req.params.ke].mon[req.params.id].emitterChannel[parseInt(req.params.channel)+config.pipeAddition]
+            chunkChannel = parseInt(req.params.channel)+config.pipeAddition
         }
         if(s.group[req.params.ke].mon[req.params.id].firstFLVchunk[chunkChannel]){
             //variable name of contentWriter

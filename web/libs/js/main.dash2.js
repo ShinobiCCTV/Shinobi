@@ -1211,6 +1211,7 @@ switch($user.details.lang){
                 var channeList = $.aM.channels
                 channeList.append(tmp)
                 channeList.find('.stream-channel').last().find('[channel-detail="stream_vcodec"]').change()
+                return tempID;
             break;
             case'link-set':
                 $('[links="'+d.host+'"] [link="secure"]').val(d.secure).change()
@@ -1502,27 +1503,37 @@ $.ccio.globalWebsocket=function(d,user){
                             if($.ccio.mon[d.ke+d.id+user.auth_token].flv){
                                 $.ccio.mon[d.ke+d.id+user.auth_token].flv.destroy()
                             }
-                            var url = $.ccio.init('location',user);
-                            var prefix = 'ws'
-                            if(location.protocol==='https:'){
-                                prefix = 'wss'
-                            }
-                            if(url=='/'){
-                                url = prefix+'://'+location.host
+                            var options = {};
+                            if(d.d.stream_flv_type==='ws'){
+                                var url = $.ccio.init('location',user);
+                                var prefix = 'ws'
+                                if(location.protocol==='https:'){
+                                    prefix = 'wss'
+                                }
+                                if(url=='/'){
+                                    url = prefix+'://'+location.host
+                                }else{
+                                    url = prefix+'://'+url.split('://')[1]
+                                }
+                                options = {
+                                    type: 'flv',
+                                    isLive: true,
+                                    auth_token:user.auth_token,
+                                    ke:d.ke,
+                                    uid:user.uid,
+                                    id:d.id,
+                                    maxLatency:2000,
+                                    hasAudio:false,
+                                    url: url
+                                }
                             }else{
-                                url = prefix+'://'+url.split('://')[1]
+                                options = {
+                                    type: 'flv',
+                                    isLive: true,
+                                    url: $.ccio.init('location',user)+user.auth_token+'/flv/'+d.ke+'/'+d.id+'/s.flv'
+                                }
                             }
-                            $.ccio.mon[d.ke+d.id+user.auth_token].flv = flvjs.createPlayer({
-                                type: 'flv',
-                                isLive: true,
-                                auth_token:user.auth_token,
-                                ke:d.ke,
-                                uid:user.uid,
-                                id:d.id,
-                                maxLatency:2000,
-                                hasAudio:false,
-                                url: url
-                            });
+                            $.ccio.mon[d.ke+d.id+user.auth_token].flv = flvjs.createPlayer(options);
                             $.ccio.mon[d.ke+d.id+user.auth_token].flv.attachMediaElement($('#monitor_live_'+d.id+user.auth_token+' .stream-element')[0]);
                             $.ccio.mon[d.ke+d.id+user.auth_token].flv.on('error',function(err){
                                 console.log(err)
@@ -2484,8 +2495,9 @@ $.aM.import=function(e){
             stream_channels = e.ss.stream_channels;
         }
         $.each(stream_channels,function(n,v){
-            $.ccio.tm('stream-channel')
-            var parent = $('[stream-channel="'+n+'"]')
+            var tempID = $.ccio.tm('stream-channel')
+            console.log(tempID)
+            var parent = $('#monSectionChannel'+tempID)
             $.each(v,function(m,b){
                 parent.find('[channel-detail="'+m+'"]').val(b)
             })

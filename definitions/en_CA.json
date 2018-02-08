@@ -264,6 +264,14 @@
                      {
                         "name": "Base64",
                         "info": "Sending Base64 encoded frames over WebSocket. This avoids caching but there is no audio."
+                     },
+                     {
+                        "name": "FLV",
+                        "info": "Sending FLV encoded frames over WebSocket."
+                     },
+                     {
+                        "name": "kVid",
+                        "info": "Using Kevin Godell's custom JavaScript MP4 segmenting engine."
                      }
                   ]
                },
@@ -271,6 +279,14 @@
                   "name": "detail=signal_check",
                   "field": "Check Signal Interval",
                   "description": "How often your client will check each stream to see if it is alive. This is calculated in minutes.",
+                  "default": "10",
+                  "example": "",
+                  "possible": ""
+               },
+               {
+                  "name": "detail=stream_flv_type",
+                  "field": "FLV Stream Type",
+                  "description": "The method you will view your FLV stream. Both methods are always active for each stream regardless of your viewing choice for the Shinobi Dashboard.",
                   "default": "10",
                   "example": "",
                   "possible": ""
