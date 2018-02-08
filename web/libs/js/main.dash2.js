@@ -1508,7 +1508,7 @@ $.ccio.globalWebsocket=function(d,user){
                                 if(d.d.stream_flv_maxLatency&&d.d.stream_flv_maxLatency!==''){
                                     d.d.stream_flv_maxLatency = parseInt(d.d.stream_flv_maxLatency)
                                 }else{
-                                    d.d.stream_flv_maxLatency = 5000;
+                                    d.d.stream_flv_maxLatency = 20000;
                                 }
                                 var url = $.ccio.init('location',user);
                                 var prefix = 'ws'
