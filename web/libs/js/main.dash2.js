@@ -1026,6 +1026,136 @@ switch($user.details.lang){
                 tmp+='<div class="form-group"><label><div><span><%-lang.Secure%> (HTTPS/WSS)</span></div><div><select class="form-control" link="secure"><option value="1"><%-lang.Yes%></option><option selected value="0"><%-lang.No%></option></select></div></label></div>'
                 tmp+='</div>'
             break;
+            case 'stream-channel'://Link Shinobi - 1 set
+                var tempID = $.ccio.gid();
+                if(!d.channel){
+                    var numberOfChannelsDrawn = $('#monSectionStreamChannels .stream-channel').length
+                    d.channel=numberOfChannelsDrawn
+                }
+                tmp+='<div class="form-group-group blue stream-channel" section id="monSectionChannel'+tempID+'">'
+                tmp+='  <h4><%-lang["Stream Channel"]%> <span class="place">'+d.channel+'</span>'
+                tmp+='  <div class="pull-right"><a class="btn btn-danger btn-xs delete"><i class="fa fa-trash-o"></i></a></div>'
+                tmp+='  </h4>'
+//                tmp+='      <div class="form-group">'
+//                tmp+='        <label><div><span><%-lang["Input Selector"]%></span></div>'
+//                tmp+='            <div><input class="form-control" channel-detail="stream_map" placeholder="0"></div>'
+//                tmp+='        </label>'
+//                tmp+='      </div>'
+                tmp+='     <div class="form-group">'
+                tmp+='        <label><div><span><%-lang["Stream Type"]%></span></div>'
+                tmp+='            <div><select class="form-control" channel-detail="stream_type" selector="h_st_channel_'+tempID+'" triggerChange="#monSectionChannel'+tempID+' [channel-detail=stream_vcodec]">'
+                tmp+='                <option value="flv"><%-lang["FLV"]%></option>'
+                tmp+='                <option value="h264"><%-lang["Raw H.264 Stream"]%></option>'
+                tmp+='                <option value="hls"><%-lang["HLS (includes Audio)"]%></option>'
+                tmp+='                <option value="mjpeg"><%-lang["MJPEG"]%></option>'
+                tmp+='            </select></div>'
+                tmp+='        </label>'
+                tmp+='      </div>'
+                tmp+='      <div class="form-group h_st_channel_'+tempID+'_input h_st_channel_'+tempID+'_mjpeg" style="display:none">'
+                tmp+='        <label><div><span><%-lang["# of Allow MJPEG Clients"]%></span></div>'
+                tmp+='            <div><input class="form-control" channel-detail="stream_mjpeg_clients" placeholder="20"></div>'
+                tmp+='        </label>'
+                tmp+='      </div>'
+                tmp+='      <div class="h_st_channel_'+tempID+'_input h_st_channel_'+tempID+'_hls h_st_channel_'+tempID+'_jsmpeg h_st_channel_'+tempID+'_flv h_st_channel_'+tempID+'_h264">'
+                tmp+='          <div class="form-group">'
+                tmp+='            <label><div><span><%-lang["HLS Video Encoder"]%></span></div>'
+                tmp+='                <div><select class="form-control" channel-detail="stream_vcodec" selector="h_hls_v_channel_'+tempID+'">'
+                tmp+='                    <option value="no" selected><%-lang["Auto"]%></option>'
+                tmp+='                    <option value="libx264"><%-lang["libx264"]%></option>'
+                tmp+='                    <option value="libx265"><%-lang["libx265"]%></option>'
+                tmp+='                    <option value="copy" selected><%-lang["copy"]%></option>'
+                tmp+='                    <optgroup label="<%-lang["Hardware Accelerated"]%>">'
+                tmp+='                        <option value="h264_vaapi"><%-lang["h264_vaapi"]%></option>'
+                tmp+='                        <option value="hevc_vaapi"><%-lang["hevc_vaapi"]%></option>'
+                tmp+='                        <option value="h264_nvenc"><%-lang["h264_nvenc"]%></option>'
+                tmp+='                        <option value="hevc_nvenc"><%-lang["hevc_nvenc"]%></option>'
+                tmp+='                        <option value="h264_qsv"><%-lang["h264_qsv"]%></option>'
+                tmp+='                        <option value="hevc_qsv"><%-lang["hevc_qsv"]%></option>'
+                tmp+='                        <option value="mpeg2_qsv"><%-lang["mpeg2_qsv"]%></option>'
+                tmp+='                    </optgroup>'
+                tmp+='                </select></div>'
+                tmp+='            </label>'
+                tmp+='          </div>'
+                tmp+='          <div class="form-group">'
+                tmp+='            <label><div><span><%-lang["HLS Audio Encoder"]%></span></div>'
+                tmp+='                <div><select class="form-control" channel-detail="stream_acodec">'
+                tmp+='                    <option value="no" selected><%-lang["No Audio"]%></option>'
+                tmp+='                    <option value=""><%-lang["Auto"]%></option>'
+                tmp+='                    <option value="aac"><%-lang["aac"]%></option>'
+                tmp+='                    <option value="ac3"><%-lang["ac3"]%></option>'
+                tmp+='                    <option value="libmp3lame"><%-lang["libmp3lame"]%></option>'
+                tmp+='                    <option value="copy"><%-lang["copy"]%></option>'
+                tmp+='                </select></div>'
+                tmp+='            </label>'
+                tmp+='          </div>'
+                tmp+='      </div>'
+                tmp+='      <div class="h_st_channel_'+tempID+'_input h_st_channel_'+tempID+'_hls" style="display:none">'
+                tmp+='          <div class="form-group">'
+                tmp+='            <label><div><span><%-lang["HLS Segment Length"]%></span></div>'
+                tmp+='                <div><input class="form-control" channel-detail="hls_time" placeholder="2"></div>'
+                tmp+='            </label>'
+                tmp+='          </div>'
+                tmp+='          <div class="form-group">'
+                tmp+='            <label><div><span><%-lang["HLS Preset"]%></span></div>'
+                tmp+='                <div><input class="form-control" channel-detail="preset_stream" placeholder="ultrafast"></div>'
+                tmp+='            </label>'
+                tmp+='          </div>'
+                tmp+='          <div class="form-group">'
+                tmp+='            <label><div><span><%-lang["HLS List Size"]%></span></div>'
+                tmp+='                <div><input class="form-control" channel-detail="hls_list_size" placeholder="2"></div>'
+                tmp+='            </label>'
+                tmp+='          </div>'
+                tmp+='      </div>'
+                tmp+='      <div class="h_st_channel_'+tempID+'_input h_st_channel_'+tempID+'_mjpeg h_st_channel_'+tempID+'_b64 h_st_channel_'+tempID+'_hls h_st_channel_'+tempID+'_jsmpeg h_st_channel_'+tempID+'_flv h_st_channel_'+tempID+'_h264 h_hls_v_channel_'+tempID+'_input h_hls_v_channel_'+tempID+'_libx264 h_hls_v_channel_'+tempID+'_libx265 h_hls_v_channel_'+tempID+'_h264_nvenc h_hls_v_channel_'+tempID+'_hevc_nvenc h_hls_v_channel_'+tempID+'_no" style="display:none">'
+                tmp+='          <div class="row">'
+                tmp+='              <div class="form-group col-md-12">'
+                tmp+='                <label><div><span><%-lang["Quality"]%></span></div>'
+                tmp+='                <div><input class="form-control" placeholder="23" channel-detail="stream_quality"></div>'
+                tmp+='                </label>'
+                tmp+='              </div>'
+                tmp+='              <div class="form-group col-md-12">'
+                tmp+='                <label><div><span><%-lang["Rate"]%></span></div>'
+                tmp+='                <div><input class="form-control" channel-detail="stream_fps" placeholder="1"></div>'
+                tmp+='                </label>'
+                tmp+='              </div>'
+                tmp+='          </div>'
+                tmp+='          <div class="row">'
+                tmp+='              <div class="form-group col-md-12">'
+                tmp+='                <label><div><span><%-lang["Width"]%></span></div>'
+                tmp+='                <div><input class="form-control" type="number" min="1" channel-detail="stream_scale_x" placeholder="640"></div>'
+                tmp+='                </label>'
+                tmp+='              </div>'
+                tmp+='              <div class="form-group col-md-12">'
+                tmp+='                <label><div><span><%-lang["Height"]%></span></div>'
+                tmp+='                <div><input class="form-control" type="number" min="1" channel-detail="stream_scale_y" placeholder="480"></div>'
+                tmp+='                </label>'
+                tmp+='              </div>'
+                tmp+='          </div>'
+                tmp+='          <div class="form-group">'
+                tmp+='            <label><div><span><%-lang["Rotate"]%></span></div>'
+                tmp+='                    <div><select class="form-control" channel-detail="rotate_stream">'
+                tmp+='                        <option value="no" selected><%-lang["No Rotation"]%></option>'
+                tmp+='                        <option value="2,transpose=2"><%-lang["180 Degrees"]%></option>'
+                tmp+='                        <option value="0"><%-lang["90 Counter Clockwise and Vertical Flip (default)"]%></option>'
+                tmp+='                        <option value="1"><%-lang["90 Clockwise"]%></option>'
+                tmp+='                        <option value="2"><%-lang["90 Clockwise and Vertical Flip"]%></option>'
+                tmp+='                        <option value="3"><%-lang["90 Clockwise and Vertical Flip"]%></option>'
+                tmp+='                    </select></div>'
+                tmp+='              </label>'
+                tmp+='          </div>'
+                tmp+='          <div class="form-group">'
+                tmp+='            <label><div><span><%-lang["Video Filter"]%></span></div>'
+                tmp+='            <div><input class="form-control" channel-detail="svf"></div>'
+                tmp+='            </label>'
+                tmp+='          </div>'
+                tmp+='          <div class="form-group">'
+                tmp+='              <label><div><span><%-lang["Stream Flags"]%></span></div>'
+                tmp+='              <div><input class="form-control" channel-detail="cust_stream"></div>'
+                tmp+='          </label>'
+                tmp+='          </div>'
+                tmp+='      </div>'
+                tmp+='  </div>'
+            break;
         }
         if(z){
             $(z).prepend(tmp)
@@ -1076,6 +1206,12 @@ switch($user.details.lang){
                 $('#filters_where .row:last [where="p1"]').val(d.p1)
                 $('#filters_where .row:last [where="p2"]').val(d.p2)
                 $('#filters_where .row:last [where="p3"]').val(d.p3)
+            break;
+            case'stream-channel':
+                var channeList = $.aM.channels
+                channeList.append(tmp)
+                channeList.find('.stream-channel').last().find('[channel-detail="stream_vcodec"]').change()
+                return tempID;
             break;
             case'link-set':
                 $('[links="'+d.host+'"] [link="secure"]').val(d.secure).change()
@@ -1367,11 +1503,42 @@ $.ccio.globalWebsocket=function(d,user){
                             if($.ccio.mon[d.ke+d.id+user.auth_token].flv){
                                 $.ccio.mon[d.ke+d.id+user.auth_token].flv.destroy()
                             }
-                            $.ccio.mon[d.ke+d.id+user.auth_token].flv = flvjs.createPlayer({
-                                type: 'flv',
-                                isLive: true,
-                                url: $.ccio.init('location',user)+user.auth_token+'/flv/'+d.ke+'/'+d.id+'/s.flv'
-                            });
+                            var options = {};
+                            if(d.d.stream_flv_type==='ws'){
+                                if(d.d.stream_flv_maxLatency&&d.d.stream_flv_maxLatency!==''){
+                                    d.d.stream_flv_maxLatency = parseInt(d.d.stream_flv_maxLatency)
+                                }else{
+                                    d.d.stream_flv_maxLatency = 20000;
+                                }
+                                var url = $.ccio.init('location',user);
+                                var prefix = 'ws'
+                                if(location.protocol==='https:'){
+                                    prefix = 'wss'
+                                }
+                                if(url=='/'){
+                                    url = prefix+'://'+location.host
+                                }else{
+                                    url = prefix+'://'+url.split('://')[1]
+                                }
+                                options = {
+                                    type: 'flv',
+                                    isLive: true,
+                                    auth_token:user.auth_token,
+                                    ke:d.ke,
+                                    uid:user.uid,
+                                    id:d.id,
+                                    maxLatency:d.d.stream_flv_maxLatency,
+                                    hasAudio:false,
+                                    url: url
+                                }
+                            }else{
+                                options = {
+                                    type: 'flv',
+                                    isLive: true,
+                                    url: $.ccio.init('location',user)+user.auth_token+'/flv/'+d.ke+'/'+d.id+'/s.flv'
+                                }
+                            }
+                            $.ccio.mon[d.ke+d.id+user.auth_token].flv = flvjs.createPlayer(options);
                             $.ccio.mon[d.ke+d.id+user.auth_token].flv.attachMediaElement($('#monitor_live_'+d.id+user.auth_token+' .stream-element')[0]);
                             $.ccio.mon[d.ke+d.id+user.auth_token].flv.on('error',function(err){
                                 console.log(err)
@@ -1419,7 +1586,7 @@ $.ccio.globalWebsocket=function(d,user){
                         d.fn()
                     break;
                     case'mjpeg':
-                        $('#monitor_live_'+d.id+user.auth_token+' .stream-element').attr('src',user.auth_token+'/mjpeg/'+d.ke+'/'+d.id+'/full')
+                        $('#monitor_live_'+d.id+user.auth_token+' .stream-element').attr('src',user.auth_token+'/mjpeg/'+d.ke+'/'+d.id+'/?full=true')
                     break;
                 }
             }
@@ -1972,7 +2139,7 @@ $.zO.initCanvas=function(){
     e.val=$.zO.rl.val();
     if(!e.val){
         $.zO.f.find('[name="name"]').val('')
-        $.zO.f.find('[name="indifference"]').val('')
+        $.zO.f.find('[name="sensitivity"]').val('')
         $.zO.rp.empty()
     }else{
         e.cord=$.zO.regionViewerDetails.cords[e.val];
@@ -1985,7 +2152,7 @@ $.zO.initCanvas=function(){
         }
         $.zO.f.find('[name="name"]').val(e.val)
         $.zO.e.find('.cord_name').text(e.val)
-        $.zO.f.find('[name="indifference"]').val(e.cord.sensitivity)
+        $.zO.f.find('[name="sensitivity"]').val(e.cord.sensitivity)
         $.zO.e.find('.canvas_holder canvas').remove();
         
         $.zO.initLiveStream()
@@ -2000,7 +2167,7 @@ $.zO.initCanvas=function(){
         e.e.change();
     }
 }
-$.zO.e.on('change','[name="indifference"]',function(e){
+$.zO.e.on('change','[name="sensitivity"]',function(e){
     e.val=$(this).val();
     $.zO.regionViewerDetails.cords[$.zO.rl.val()].sensitivity=e.val;
     $.zO.saveCoords()
@@ -2096,12 +2263,40 @@ $.zO.e.on('click','.add',function(e){
 //probe
 $.pB={e:$('#probe')};$.pB.f=$.pB.e.find('form');$.pB.o=$.pB.e.find('.output_data');
 $.pB.f.submit(function(e){
+
+    $.pB.e.find('._loading').show()
+    $.pB.o.empty();
+    $.pB.e.find('.stop').show();
+    $.pB.e.find('[type="submit"]').hide();
+    
     e.preventDefault();e.e=$(this),e.s=e.e.serializeObject();
     e.s.url=e.s.url.trim();
-    if(e.s.url.indexOf('{{JSON}}')>-1){
-        e.s.url='-v quiet -print_format json -show_format -show_streams '+e.s.url
+    var flags = '';
+    switch(e.s.mode){
+        case'json':
+            flags = '-v quiet -print_format json -show_format -show_streams';
+        break;
     }
-    $.ccio.cx({f:'ffprobe',query:e.s.url})
+//    if(e.s.url.indexOf('{{JSON}}')>-1){
+//        e.s.url='-v quiet -print_format json -show_format -show_streams '+e.s.url
+//    }
+    $.get('/'+$user.auth_token+'/probe/'+$user.ke+'?url='+e.s.url+'&flags='+flags,function(data){
+        if(data.ok===true){
+            var html
+            try{
+                html = $.ccio.init('jsontoblock',JSON.parse(data.result))
+            }catch(err){
+                html = data.result
+            }
+            $.pB.o.append(html)
+        }else{
+            $.ccio.init('note',{title:'Failed to Probe',text:data.error,type:'error'});
+        }
+        $.pB.e.find('._loading').hide()
+        $.pB.o.append('<div><b>END</b></div>');
+        $.pB.e.find('.stop').hide();
+        $.pB.e.find('[type="submit"]').show();
+    })
     return false;
 });
 $.pB.e.on('hidden.bs.modal',function(){
@@ -2109,7 +2304,7 @@ $.pB.e.on('hidden.bs.modal',function(){
 })
 $.pB.e.find('.stop').click(function(e){
     e.e=$(this);
-    $.ccio.cx({f:'ffprobe',ff:'stop'})
+//    $.ccio.cx({f:'ffprobe',ff:'stop'})
 });
 //log viewer
 $.log={e:$('#logs_modal'),lm:$('#log_monitors')};$.log.o=$.log.e.find('table tbody');
@@ -2170,17 +2365,45 @@ $.multimon.e.find('.import_config').click(function(){
 //        $.confirm.body.html('<%-cleanLang(lang.ImportMultiMonitorConfigurationText)%>')
 //        $.confirm.click({title:'Save Set',class:'btn-danger'},function(){
             try{
-                e.monitorList=JSON.parse($.confirm.e.find('textarea').val());
-                $.each(e.monitorList,function(n,v){
+                var postMonitor = function(v){
                     $.post('/'+$user.auth_token+'/configureMonitor/'+$user.ke+'/'+v.mid,{data:JSON.stringify(v,null,3)},function(d){
                         $.ccio.log(d)
                     })
-                })
+                }
+                e.monitorList=JSON.parse($.confirm.e.find('textarea').val());
+                if(e.monitorList.mid){
+                    postMonitor(e.monitorList)
+                }else{
+                    $.each(e.monitorList,function(n,v){
+                        postMonitor(v)
+                    })
+                }
             }catch(err){
                 $.ccio.log(err)
                 $.ccio.init('note',{title:'<%-cleanLang(lang['Invalid JSON'])%>',text:'<%-cleanLang(lang.InvalidJSONText)%>',type:'error'})
             }
 //        });
+    });
+})
+$.multimon.e.find('.delete').click(function(){
+    var arr=[];
+    $.each($.multimon.f.serializeObject(),function(n,v){
+        arr.push($.ccio.mon[n])
+    })
+    if(arr.length===0){
+        $.ccio.init('note',{title:'No Monitors Selected',text:'Select atleast one monitor to delete.',type:'error'});
+        return
+    }
+    $.confirm.e.modal('show');
+    $.confirm.title.text('<%-cleanLang(lang['Delete'])%> <%-cleanLang(lang['Monitors'])%>')
+    e.html='<p><%-cleanLang(lang.DeleteMonitorsText)%></p>';
+    $.confirm.body.html(e.html)
+    $.confirm.click({title:'Delete',class:'btn-danger'},function(){
+        $.each(arr,function(n,v){
+            $.get('/'+v.user.auth_token+'/configureMonitor/'+v.ke+'/'+v.mid+'/delete',function(data){
+                console.log(data)
+            })
+        })
     });
 })
 $.multimon.e.find('.save_config').click(function(){
@@ -2221,7 +2444,7 @@ $.multimon.e.on('shown.bs.modal',function() {
 //Monitor Editor
 $.aM={e:$('#add_monitor')};
 $.aM.f=$.aM.e.find('form')
-//$.aM.channels=$('#monedit_stream_channels')
+$.aM.channels=$('#monSectionStreamChannels')
 $.aM.e.find('.follow-list ul').affix();
 $.each(<%-JSON.stringify(define["Monitor Settings"].blocks)%>,function(n,v){
     $.each(v.info,function(m,b){
@@ -2240,90 +2463,60 @@ $.each(<%-JSON.stringify(define["Monitor Settings"].blocks)%>,function(n,v){
         v.parent.append('<small class="hover">'+b.description+'</small>')
     })
 })
-//if(!$.ccio.op().tabsOpen){
-//    $.ccio.op('tabsOpen',{})
-//}
-//$.aM.tab=function(x,e){
-//    var k={e:$('#monedit_tabs')}
-//    k.tabs=$.ccio.op().tabsOpen
-//    k.append=function(e){
-//        k.e.append('<li class="mdl-menu__item" mid="'+e.mid+'" ke="'+e.ke+'" auth="'+$user.auth_token+'"><a title="Delete Pending Changes" class="delete btn btn-default btn-xs">&nbsp;<i class="fa fa-trash-o"></i>&nbsp;</a> &nbsp; <span class="name">'+e.name+'</span> <small>'+e.mid+'</small></li>')
-//    }
-//    if(!x){
-//        $.each(k.tabs,function(n,v){
-//            k.append(v)
-//        })
-//        return
-//    }
-//    if(!e.mid||e.mid===''){return}
-//    e.ke=$user.ke
-//    k.launcher=k.e.find('[mid="'+e.mid+'"][ke="'+e.ke+'"]')
-//    switch(x){
-//        case'add':
-//            k.tabs[e.mid]=e
-//            if(k.launcher.length===0){
-//                k.append(e)
-//            }else{
-//                k.launcher.find('.name').text(e.name)
-//            }
-//        break;
-//        case'delete':
-//            delete(k.tabs[e.mid])
-//            k.launcher.remove()
-//        break;
-//    }
-//    $.ccio.op('tabsOpen',k.tabs)
-//}
-//$.aM.tab()
-//$.aM.e.on('click','#monedit_tabs li .delete',function(e){
-//    e.preventDefault()
-//    $.aM.tab('delete',$.ccio.op().tabsOpen[$(this).parents('li').attr('mid')])
-//})
-//$.aM.e.on('click','#monedit_tabs li',function(){
-//    e={e:$(this)}
-//    e.mid=e.e.attr('mid')
-//    e.ke=e.e.attr('ke')
-//    e.values=$.ccio.op().tabsOpen[e.mid]
-//    if(e.values){
-//        $.aM.import(e)
-//    }
-//})
-//$.aM.f.find('input,select,textarea').change(function(e){
-//    $.aM.tab('add',$.aM.f.serializeObject())
-//})
 $.aM.drawList=function(){
     e={list:$.aM.e.find('.follow-list ul'),html:''}
     $.aM.e.find('[section]:visible').each(function(n,v){
         e.e=$(v)
         e.id = e.e.attr('id');
         e.title = e.e.find('h4').first().html();
-        e.html += '<li><a class="scrollTo" href="#'+e.id+'" scrollToParent="#add_monitor .modal-body">'+e.title+'</a></li>'
+        var div = document.createElement('div');
+        div.innerHTML = e.title;
+        var elements = div.getElementsByTagName('a');
+        while (elements[0])
+           elements[0].parentNode.removeChild(elements[0])
+        var elements = div.getElementsByTagName('small');
+        while (elements[0])
+           elements[0].parentNode.removeChild(elements[0])
+        var repl = div.innerHTML;
+        e.html += '<li><a class="scrollTo" href="#'+e.id+'" scrollToParent="#add_monitor .modal-body">'+repl+'</a></li>'
     })
     e.list.html(e.html)
 }
 $.aM.import=function(e){
+    $('#monEditBufferPreview').attr('src','/'+$user.auth_token+'/hls/'+e.values.ke+'/'+e.values.mid+'/detectorStream.m3u8')
     $.aM.e.find('.edit_id').text(e.values.mid);
     $.aM.e.attr('mid',e.values.mid).attr('ke',e.values.ke).attr('auth',e.auth)
+    $.aM.channels.empty()
     $.each(e.values,function(n,v){
         $.aM.e.find('[name="'+n+'"]').val(v).change()
     })
     e.ss=JSON.parse(e.values.details);
     //get channels
-//    if(e.ss.stream_channels&&e.ss.stream_channels!==''){
-//        $.each(JSON.parse(e.ss.stream_channels),function(n,v){
-//            $.ccio.tm('stream-channel')
-//            var parent = $('[stream-channel="'+n+'"]')
-//            console.log(n,v)
-//            $.each(v,function(m,b){
-//                parent.find('[channel-detail="'+m+'"]').val(b)
-//            })
-//        })
-//    }
+    if(e.ss.stream_channels&&e.ss.stream_channels!==''){
+        var stream_channels
+        try{
+            stream_channels = JSON.parse(e.ss.stream_channels)
+        }catch(er){
+            stream_channels = e.ss.stream_channels;
+        }
+        $.each(stream_channels,function(n,v){
+            var tempID = $.ccio.tm('stream-channel')
+            console.log(tempID)
+            var parent = $('#monSectionChannel'+tempID)
+            $.each(v,function(m,b){
+                parent.find('[channel-detail="'+m+'"]').val(b)
+            })
+        })
+    }
     $.aM.e.find('[detail]').each(function(n,v){
         v=$(v).attr('detail');if(!e.ss[v]){e.ss[v]=''}
     })
     $.each(e.ss,function(n,v){
-        $.aM.e.find('[detail="'+n+'"]').val(v).change();
+        var theVal = v;
+        if(v instanceof Object){
+            theVal = JSON.stringify(v);
+        }
+        $.aM.e.find('[detail="'+n+'"]').val(theVal).change();
     });
     $.each(e.ss,function(n,v){
         try{
@@ -2442,36 +2635,39 @@ $.aM.f.submit(function(e){
     $.post('/'+$user.auth_token+'/configureMonitor/'+$user.ke+'/'+e.s.mid,{data:JSON.stringify(e.s)},function(d){
         $.ccio.log(d)
     })
-    if(!$.ccio.mon[e.s.ke+e.s.mid+$user.auth_token]){$.ccio.mon[e.s.ke+e.s.mid+$user.auth_token]={}}
-    $.each(e.s,function(n,v){$.ccio.mon[e.s.ke+e.s.mid+$user.auth_token][n]=v;})
     $.aM.e.modal('hide')
     return false;
 });
-//$.aM.channels.on('click','.add',function(){
-//    $.ccio.tm('stream-channel')
-//})
-//$.aM.channels.on('click','.delete',function(){
-//    $(this).parents('[section]').remove()
-//    var inputs = $('[channel-detail]')
-//    if(inputs.length===0){
-//        $.aM.e.find('[detail="stream_channels"]').val('[]').change()
-//    }else{
-//        inputs.first().change()
-//    }
-//})
-//$.aM.e.on('change','[channel-detail]',function(){
-//  var e={};
-//    e.e=$.aM.channels.find('.channels_list [section]')
-//    e.s=[]
-//    e.e.each(function(n,v){
-//        var channel={}
-//        $.each($(v).find('[channel-detail]'),function(m,b){
-//            channel[$(b).attr('channel-detail')]=$(b).val()
-//        });
-//        e.s.push(channel)
-//    });
-//    $.aM.e.find('[detail="stream_channels"]').val(JSON.stringify(e.s)).change()
-//})
+$.aM.channelPlacementInit = function(){
+    $('.stream-channel').each(function(n,v){
+        var _this = $(this)
+        _this.attr('stream-channel',n)
+        _this.find('.place').text(n)
+    })
+}
+$.aM.channels.on('click','.delete',function(){
+    $(this).parents('.stream-channel').remove()
+    var inputs = $('[channel-detail]')
+    if(inputs.length===0){
+        $.aM.e.find('[detail="stream_channels"]').val('[]').change()
+    }else{
+        inputs.first().change()
+    }
+    $.aM.channelPlacementInit()
+})
+$.aM.e.on('change','[channel-detail]',function(){
+  var e={};
+    e.e=$.aM.channels.find('.stream-channel')
+    e.s=[]
+    e.e.each(function(n,v){
+        var channel={}
+        $.each($(v).find('[channel-detail]'),function(m,b){
+            channel[$(b).attr('channel-detail')]=$(b).val()
+        });
+        e.s.push(channel)
+    });
+    $.aM.e.find('[detail="stream_channels"]').val(JSON.stringify(e.s)).change()
+})
 $.aM.e.on('change','[group]',function(){
   var e={};
     e.e=$.aM.e.find('[group]:checked');
@@ -2563,6 +2759,9 @@ $.aM.e.find('.save_config').click(function(e){
         .attr('download','Shinobi_'+e.mid+'_config.json')
         [0].click()
 });
+$.aM.e.find('.add_channel').click(function(e){
+    $.ccio.tm('stream-channel')
+});
 $.aM.f.find('[detail="stream_type"]').change(function(e){
     e.e=$(this);
     if(e.e.val()==='jpeg'){$.aM.f.find('[detail="snap"]').val('1').change()}
@@ -2573,11 +2772,18 @@ $.aM.f.find('[name="type"]').change(function(e){
 })
 $.aM.md=$.aM.f.find('[detail]');
 $.aM.md.change($.ccio.form.details)
-$.aM.f.on('change','[selector]',function(e){
-    e.v=$(this).val();e.a=$(this).attr('selector')
+$.aM.f.on('change','[selector]',function(){
+    e={e:$(this)}
+    e.v=e.e.val();
+    e.a=e.e.attr('selector')
+    e.triggerChange=e.e.attr('triggerchange')
     $.aM.f.find('.'+e.a+'_input').hide()
     $.aM.f.find('.'+e.a+'_'+e.v).show();
     $.aM.f.find('.'+e.a+'_text').text($(this).find('option:selected').text())
+    if(e.triggerChange&&e.triggerChange!==''){
+        console.log(e.triggerChange)
+        $(e.triggerChange).trigger('change')
+    }
     $.aM.drawList()
 });
 $.aM.f.find('[name="type"]').change(function(e){
@@ -3669,13 +3875,13 @@ $('body')
         break;
         case'powerview':
             $.pwrvid.e.modal('show')
-            $.pwrvid.m.find('.monitor').remove()
+            $.pwrvid.m.empty()
             $.each($.ccio.mon,function(n,v){
-                $.pwrvid.m.append('<option class="monitor" value="'+v.mid+'">'+v.name+'</option>')
+                $.pwrvid.m.append('<option value="'+v.mid+'">'+v.name+'</option>')
             })
-            e.e=$.pwrvid.m.find('.monitor').prop('selected',false)
+            e.e=$.pwrvid.m.find('option').prop('selected',false)
             if(e.mid!==''){
-                e.e=$.pwrvid.m.find('.monitor[value="'+e.mid+'"]')
+                e.e=$.pwrvid.m.find('[value="'+e.mid+'"]')
             }
             e.e.first().prop('selected',true)
             $.pwrvid.f.submit()
@@ -3908,90 +4114,165 @@ $('body')
                 e.mt.find('span').text('Add'),e.mt.find('i').attr('class','fa fa-plus');
                 //default values
                 e.values={
-                    "mode":"stop",
-                    "mid":$.ccio.gid(),
-                    "name":"",
-                    "protocol":"http",
-                    "ext":"mp4",
-                    "type":"jpeg",
-                    "host":"",
-                    "path":"",
-                    "port":"",
-                    "fps":"1",
-                    "width":"640",
-                    "height":"480",
-                    "details":JSON.stringify({
-                            "auto_host_enable":"0",
-                            "timestamp_x":"(w-tw)/2",
-                            "timestamp_y":"0",
-                            "timestamp_color":"white",
-                            "timestamp_font_size":"10",
-                            "timestamp_box_color":"0x00000000@1",
-                            "rtsp_transport":"tcp",
-                            "detector_frame":"1",
-                            "detector_mail":"0",
-                            "fatal_max":"",
-                            "groups":"[]",
-                            "muser":"",
-                            "mpass":"",
-                            "sfps":"1",
-                            "aduration":"",
-                            "snap":"1",
-                            "detector":"0",
-                            "detector_trigger":null,
-                            "detector_save":null,
-                            "detector_face":null,
-                            "detector_fullbody":null,
-                            "detector_car":null,
-                            "detector_timeout":"",
-                            "detector_fps":"",
-                            "detector_scale_x":"640",
-                            "detector_scale_y":"480",
-                            "detector_send_frames":"1",
-                            "detector_record_method":"del",
-                            "stream_type":"b64",
-                            "stream_vcodec":"libx264",
-                            "stream_acodec":"no",
-                            "hls_time":"2",
-                            "preset_stream":"ultrafast",
-                            "hls_list_size":"3",
-                            "signal_check":"10",
-                            "signal_check_log":"0",
-                            "stream_quality":"15",
-                            "stream_fps":"2",
-                            "stream_scale_x":"",
-                            "stream_scale_y":"",
-                            "svf":"",
-                            "vcodec":"libx264",
-                            "crf":"1",
-                            "preset_record":"",
-                            "acodec":"none",
-                            "timestamp":"0",
-                            "dqf":"0",
-                            "cutoff":"15",
-                            "vf":"",
-                            "control":"0",
-                            "control_stop":"0",
-                            "control_url_stop_timeout":"",
-                            "control_url_center":"",
-                            "control_url_left":"",
-                            "control_url_left_stop":"",
-                            "control_url_right":"",
-                            "control_url_right_stop":"",
-                            "control_url_up":"",
-                            "control_url_up_stop":"",
-                            "control_url_down":"",
-                            "control_url_down_stop":"",
-                            "cust_input":"",
-                            "cust_detect":"",
-                            "cust_stream":"",
-                            "cust_record":"",
-                            "custom_output":"",
-                            "loglevel":"warning",
-                            "sqllog":"0"
-                        }),
-                    "shto":"[]",
-                    "shfr":"[]"
+                    "mode": "start",
+                    "mid": $.ccio.gid(),
+                    "name": "Some Stream",
+                    "type": "h264",
+                    "protocol": "rtsp",
+                    "host": "",
+                    "port": "",
+                    "path": "",
+                    "ext": "mp4",
+                    "fps": "1",
+                    "width": "640",
+                    "height": "480",
+                    "details": JSON.stringify({
+                        "fatal_max": "0",
+                        "notes": "",
+                        "dir": "",
+                        "auto_host_enable": "1",
+                        "auto_host": "",
+                        "rtsp_transport": "tcp",
+                        "muser": "",
+                        "mpass": "",
+                        "port_force": "0",
+                        "aduration": "1000000",
+                        "probesize": "1000000",
+                        "stream_loop": "0",
+                        "sfps": "1",
+                        "accelerator": "0",
+                        "hwaccel": "0",
+                        "hwaccel_vcodec": "",
+                        "hwaccel_device": "",
+                        "stream_type": "hls",
+                        "stream_mjpeg_clients": "",
+                        "stream_vcodec": "copy",
+                        "stream_acodec": "no",
+                        "hls_time": "2",
+                        "preset_stream": "ultrafast",
+                        "hls_list_size": "3",
+                        "signal_check": "10",
+                        "signal_check_log": "0",
+                        "stream_quality": "15",
+                        "stream_fps": "2",
+                        "stream_scale_x": "",
+                        "stream_scale_y": "",
+                        "rotate_stream": "no",
+                        "svf": "",
+                        "stream_timestamp": "0",
+                        "stream_timestamp_font": "",
+                        "stream_timestamp_font_size": "",
+                        "stream_timestamp_color": "",
+                        "stream_timestamp_box_color": "",
+                        "stream_timestamp_x": "",
+                        "stream_timestamp_y": "",
+                        "stream_watermark": "0",
+                        "stream_watermark_location": "",
+                        "stream_watermark_position": "tr",
+                        "snap": "1",
+                        "snap_fps": "",
+                        "snap_scale_x": "",
+                        "snap_scale_y": "",
+                        "snap_vf": "",
+                        "rawh264": "0",
+                        "rawh264_vcodec": "copy",
+                        "rawh264_acodec": "",
+                        "rawh264_fps": "",
+                        "rawh264_scale_x": "",
+                        "rawh264_scale_y": "",
+                        "rawh264_crf": "",
+                        "rawh264_vf": "",
+                        "vcodec": "copy",
+                        "crf": "1",
+                        "preset_record": "",
+                        "acodec": "no",
+                        "dqf": "0",
+                        "cutoff": "15",
+                        "rotate_record": "no",
+                        "vf": "",
+                        "timestamp": "0",
+                        "timestamp_font": "",
+                        "timestamp_font_size": "10",
+                        "timestamp_color": "white",
+                        "timestamp_box_color": "0x00000000@1",
+                        "timestamp_x": "(w-tw)/2",
+                        "timestamp_y": "0",
+                        "watermark": "0",
+                        "watermark_location": "",
+                        "watermark_position": "tr",
+                        "cust_input": "",
+                        "cust_snap": "",
+                        "cust_rawh264": "",
+                        "cust_detect": "",
+                        "cust_stream": "",
+                        "cust_stream_server": "",
+                        "cust_record": "",
+                        "custom_output": "",
+                        "detector": "0",
+                        "detector_pam": "1",
+                        "detector_webhook": "0",
+                        "detector_webhook_url": "",
+                        "detector_command_enable": "0",
+                        "detector_command": "",
+                        "detector_command_timeout": "",
+                        "detector_lock_timeout": "",
+                        "detector_save": "0",
+                        "detector_frame_save": "0",
+                        "detector_mail": "0",
+                        "detector_mail_timeout": "",
+                        "detector_record_method": "sip",
+                        "detector_trigger": "1",
+                        "detector_trigger_record_fps": "",
+                        "detector_timeout": "10",
+                        "watchdog_reset": "0",
+                        "detector_delete_motionless_videos": "0",
+                        "detector_send_frames": "1",
+                        "detector_region_of_interest": "0",
+                        "detector_fps": "",
+                        "detector_scale_x": "640",
+                        "detector_scale_y": "480",
+                        "detector_use_motion": "1",
+                        "detector_use_detect_object": "0",
+                        "detector_frame": "0",
+                        "detector_sensitivity": "",
+                        "cords": "[]",
+                        "detector_buffer_vcodec": "auto",
+                        "detector_buffer_fps": "",
+                        "detector_buffer_hls_time": "",
+                        "detector_buffer_hls_list_size": "",
+                        "detector_buffer_start_number": "",
+                        "detector_buffer_live_start_index": "",
+                        "detector_lisence_plate": "0",
+                        "detector_lisence_plate_country": "us",
+                        "detector_notrigger": "0",
+                        "detector_notrigger_mail": "0",
+                        "detector_notrigger_timeout": "",
+                        "control": "0",
+                        "control_base_url": "",
+                        "control_stop": "0",
+                        "control_url_stop_timeout": "",
+                        "control_url_center": "",
+                        "control_url_left": "",
+                        "control_url_left_stop": "",
+                        "control_url_right": "",
+                        "control_url_right_stop": "",
+                        "control_url_up": "",
+                        "control_url_up_stop": "",
+                        "control_url_down": "",
+                        "control_url_down_stop": "",
+                        "control_url_enable_nv": "",
+                        "control_url_disable_nv": "",
+                        "control_url_zoom_out": "",
+                        "control_url_zoom_out_stop": "",
+                        "control_url_zoom_in": "",
+                        "control_url_zoom_in_stop": "",
+                        "groups": "[]",
+                        "loglevel": "warning",
+                        "sqllog": "0",
+                        "detector_cascades": ""
+                    }),
+                    "shto": "[]",
+                    "shfr": "[]"
                 }
             }else{
                 e.p.find('.am_notice_edit').show()

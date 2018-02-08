@@ -58,6 +58,14 @@
                   "default": "",
                   "example": "",
                   "possible": ""
+               },
+               {
+                  "name": "detail=dir",
+                  "field": "Storage Location",
+                  "description": "Location of where recorded files will be saved. You can configure more locations with the <code>addStorage</code> variable.",
+                  "default": "",
+                  "example": "",
+                  "possible": ""
                }
             ]
          },
@@ -93,6 +101,30 @@
                         "info": "Continuous Recording. Segments are made every 15 minutes by default."
                      }
                   ]
+               },
+               {
+                  "name": "detail=auto_host_enable",
+                  "field": "Automatic",
+                  "description": "Feed the individual pieces required to build a stream URL or provide the full URL and allow Shinobi to parse it for you.",
+                  "default": "",
+                  "example": "",
+                  "possible": ""
+               },
+               {
+                  "name": "detail=auto_host",
+                  "field": "Full URL Path",
+                  "description": "The full Stream URL.",
+                  "default": "",
+                  "example": "",
+                  "possible": ""
+               },
+               {
+                  "name": "detail=accelerator",
+                  "field": "Accelerator",
+                  "description": "Hardware Acceleration (HWAccel) for decoding streams.",
+                  "default": "",
+                  "example": "",
+                  "possible": ""
                },
                {
                   "name": "protocol",
@@ -232,6 +264,14 @@
                      {
                         "name": "Base64",
                         "info": "Sending Base64 encoded frames over WebSocket. This avoids caching but there is no audio."
+                     },
+                     {
+                        "name": "FLV",
+                        "info": "Sending FLV encoded frames over WebSocket."
+                     },
+                     {
+                        "name": "kVid",
+                        "info": "Using Kevin Godell's custom JavaScript MP4 segmenting engine."
                      }
                   ]
                },
@@ -239,6 +279,14 @@
                   "name": "detail=signal_check",
                   "field": "Check Signal Interval",
                   "description": "How often your client will check each stream to see if it is alive. This is calculated in minutes.",
+                  "default": "10",
+                  "example": "",
+                  "possible": ""
+               },
+               {
+                  "name": "detail=stream_flv_type",
+                  "field": "FLV Stream Type",
+                  "description": "The method you will view your FLV stream. Both methods are always active for each stream regardless of your viewing choice for the Shinobi Dashboard.",
                   "default": "10",
                   "example": "",
                   "possible": ""
@@ -670,6 +718,14 @@
                   "name": "detail=detector",
                   "field": "Enabled",
                   "description": "This will add another output in the FFMPEG command for the motion detector. A detector plugin must be connected for this to have any effect.",
+                  "default": "No",
+                  "example": "",
+                  "possible": ""
+               },
+               {
+                  "name": "detail=detector_pam",
+                  "field": "Use Built-In",
+                  "description": "Use Kevin Godell's Motion Detector. This is built into Shinobi and requires no other configuration to activate.",
                   "default": "No",
                   "example": "",
                   "possible": ""
