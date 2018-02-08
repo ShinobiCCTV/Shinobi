@@ -12,6 +12,11 @@ process.on('uncaughtException', function (err) {
     console.error('Uncaught Exception occured!');
     console.error(err.stack);
 });
+process.on('SIGINT', function() {
+    console.log("\nGracefully shutting down from SIGINT (Ctrl+C)");
+    console.log("Exiting...");
+    process.exit();
+});
 var fs = require('fs');
 var os = require('os');
 var URL = require('url');
@@ -148,6 +153,13 @@ s.connectSQL=function(){
                 }else{
                     s.systemLog("Critical update 2/2 already applied");
                 }
+                s.sqlQuery('ALTER TABLE `Events` ADD COLUMN `motionConfidence` decimal(20,15) NULL DEFAULT NULL AFTER `details`;',function(err){
+                    if(err){
+                        s.systemLog("Motion update 1/1 already applied");
+                    } else {
+                        s.systemLog("Motion update 1/1 has now been applied");
+                    }
+                })
             });
         });
     });
@@ -2003,7 +2015,16 @@ s.camera=function(x,e,cn,tx){
             }
             //save this detection result in SQL, only coords. not image.
             if(d.mon.details.detector_save==='1'){
-                s.sqlQuery('INSERT INTO Events (ke,mid,details) VALUES (?,?,?)',[d.ke,d.id,JSON.stringify(d.details)])
+                if (d.details.plug==='Motion') {
+                    //console.log('Saving Event: ' + d.details.confidence + ' / ' + config.motionDetection.minDBConfidence);
+                    if (d.details.confidence > config.motionDetection.minDBConfidence) {
+                        s.sqlQuery('INSERT INTO Events (ke,mid,details,motionConfidence) VALUES (?,?,?,?)', [d.ke, d.id, JSON.stringify(d.details), d.details.confidence]);
+                    } else {
+                        //console.log('Skipping Motion Event Record, Confidence: ' + d.details.confidence);
+                    }
+                } else {
+                    s.sqlQuery('INSERT INTO Events (ke,mid,details) VALUES (?,?,?)', [d.ke, d.id, JSON.stringify(d.details)])
+                }
             }
             if(d.mon.details.detector_command_enable==='1'&&!s.group[d.ke].mon[d.id].detector_command){
                 if(!d.mon.details.detector_command_timeout||d.mon.details.detector_command_timeout===''){
@@ -2431,13 +2452,16 @@ var tx;
                                     if(d.videoLimit){
                                         d.videoURL.push('limit='+d.videoLimit)
                                     }
-                                    d.eventURL.push('/'+d.eventStartDate)
+
                                     if(d.videoStartDate){
                                         d.videoURL.push('start='+d.videoStartDate)
                                     }
                                     if(d.videoEndDate){
                                         d.videoURL.push('end='+d.videoEndDate)
                                     }
+
+                                    d.eventURL.push('/'+d.minConfidenceLimit);
+                                    d.eventURL.push('/'+d.eventLimit);
                                     if(d.eventStartDate){
                                         d.eventURL.push('/'+d.eventStartDate)
                                     }
@@ -2447,7 +2471,8 @@ var tx;
                                     if(d.videoURL.length>0){d.videoURL = '?'+d.videoURL.join('&');}else{d.videoURL=''}
                                     d.getURL = 'http://'+config.ip+':'+config.port+'/'+cn.auth;
                                     d.videoURL = d.getURL+'/videos/'+cn.ke+'/'+d.mid+d.videoURL;
-                                    d.eventURL = d.getURL+'/events/'+cn.ke+'/'+d.mid+'?'+d.eventURL.join('&');
+                                    d.eventURL = d.getURL+'/events/'+cn.ke+'/'+d.mid+d.eventURL.join('');
+                                    //confidence, limit, start, end
                                     s.getRequest(d.videoURL,function(videos){
                                         s.getRequest(d.eventURL,function(events){
                                             tx({f:'drawPowerVideoMainTimeLine',videos:videos,events:events})
@@ -3869,7 +3894,10 @@ app.get(['/:auth/videos/:ke','/:auth/videos/:ke/:id'], function (req,res){
     },res,req);
 });
 // Get events json (motion logs)
-app.get(['/:auth/events/:ke','/:auth/events/:ke/:id','/:auth/events/:ke/:id/:limit','/:auth/events/:ke/:id/:limit/:start','/:auth/events/:ke/:id/:limit/:start/:end'], function (req,res){
+app.get(['/:auth/events/:ke','/:auth/events/:ke/:id/:confidence','/:auth/events/:ke/:id/:confidence/:limit','/:auth/events/:ke/:id/:confidence/:limit/:start','/:auth/events/:ke/:id/:confidence/:limit/:start/:end'], function (req,res){
+    //console.log('Event Request: ' + req.url);
+    //console.log('Params:');
+    //console.log(req.params);
     req.ret={ok:false};
     res.setHeader('Content-Type', 'application/json');
     res.header("Access-Control-Allow-Origin",req.headers.origin);
@@ -3908,6 +3936,8 @@ app.get(['/:auth/events/:ke','/:auth/events/:ke/:id','/:auth/events/:ke/:id/:lim
                 req.ar.push(decodeURIComponent(req.params.start))
             }
         }
+        if(!req.params.confidence||req.params.confidence == ''){ req.params.confidence = config.motionDetection.minDBConfidence; }
+        req.sql+=' and motionConfidence > ' + req.params.confidence;
         if(!req.params.limit||req.params.limit==''){req.params.limit=100}
         req.sql+=' ORDER BY `time` DESC LIMIT '+req.params.limit+'';
         s.sqlQuery(req.sql,req.ar,function(err,r){

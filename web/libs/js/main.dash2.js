@@ -3349,6 +3349,7 @@ $.pwrvid.drawTimeline=function(getData){
     e.live_header=$.pwrvid.lv.find('h3 span');
     e.live=$.pwrvid.lv.find('iframe');
     e.dateRange=$.pwrvid.dr.data('daterangepicker');
+    if(e.minConfidenceLimit===''){e.minConfidenceLimit=40}
     if(e.eventLimit===''){e.eventLimit=500}
     if(e.videoLimit===''){e.videoLimit=0}
     e.live_header.text($.ccio.mon[$user.ke+mid+$user.auth_token].name)
@@ -3367,6 +3368,7 @@ $.pwrvid.drawTimeline=function(getData){
             f:'monitor',
             ff:'get',
             fff:'videos&events',
+            minConfidenceLimit:$('#pvideo_event_min_confidence').val(),
             videoLimit:$('#pvideo_video_limit').val(),
             eventLimit:$('#pvideo_event_limit').val(),
             startDate:$.ccio.init('th',e.dateRange.startDate),
