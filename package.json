@@ -25,7 +25,8 @@
     "ejs": "^2.5.5",
     "express": "^4.14.0",
     "jsonfile": "^3.0.1",
-    "moment": "^2.17.0",
+    "ldapauth-fork": "^4.0.2",
+    "moment": "^2.20.1",
     "mysql": "^2.12.0",
     "nodemailer": "^4.0.1",
     "onvif": "^0.5.3",
@@ -33,8 +34,7 @@
     "request": "^2.79.0",
     "socket.io": "^1.7.1",
     "socket.io-client": "^1.7.2",
-    "webdav": "^0.3.1",
-    "ldapauth-fork": "^4.0.2"
+    "webdav": "^0.3.1"
   },
   "devDependencies": {}
 }
