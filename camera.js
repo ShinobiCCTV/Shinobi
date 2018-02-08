@@ -169,6 +169,13 @@ s.sqlQuery('ALTER TABLE `Videos` ADD COLUMN `details` TEXT NULL DEFAULT NULL AFT
         }else{
             s.systemLog("Critical update 2/2 already applied");
         }
+        s.sqlQuery('ALTER TABLE `Events` ADD COLUMN `motionConfidence` decimal(20,15) NULL DEFAULT NULL AFTER `details`;',function(err){
+            if(err){
+                s.systemLog("Motion update 1/1 already applied");
+            } else {
+                s.systemLog("Motion update 1/1 has now been applied");
+            }
+        }, true)
     },true);
 },true);
 //kill any ffmpeg running
@@ -2297,7 +2304,16 @@ s.camera=function(x,e,cn,tx){
             }
             //save this detection result in SQL, only coords. not image.
             if(d.mon.details.detector_save==='1'){
-                s.sqlQuery('INSERT INTO Events (ke,mid,details) VALUES (?,?,?)',[d.ke,d.id,JSON.stringify(d.details)])
+                if (d.details.plug==='Motion') {
+                    //console.log(config.motionDetection.minDBConfidence);
+                    if (d.details.confidence > config.motionDetection.minDBConfidence) {
+                        s.sqlQuery('INSERT INTO Events (ke,mid,details,motionConfidence) VALUES (?,?,?,?)', [d.ke, d.id, JSON.stringify(d.details), d.details.confidence]);
+                    } else {
+                        //console.log('Skipping Motion Event Record, Confidence: ' + d.details.confidence);
+                    }
+                } else {
+                    s.sqlQuery('INSERT INTO Events (ke,mid,details) VALUES (?,?,?)', [d.ke, d.id, JSON.stringify(d.details)])
+                }
             }
             if(d.mon.details.detector_command_enable==='1'&&!s.group[d.ke].mon[d.id].detector_command){
                 if(!d.mon.details.detector_command_timeout||d.mon.details.detector_command_timeout===''){
@@ -4270,7 +4286,7 @@ app.get(['/:auth/videos/:ke','/:auth/videos/:ke/:id'], function (req,res){
     },res,req);
 });
 // Get events json (motion logs)
-app.get(['/:auth/events/:ke','/:auth/events/:ke/:id','/:auth/events/:ke/:id/:limit','/:auth/events/:ke/:id/:limit/:start','/:auth/events/:ke/:id/:limit/:start/:end'], function (req,res){
+app.get(['/:auth/events/:ke','/:auth/events/:ke/:id','/:auth/events/:ke/:id/:limit','/:auth/events/:ke/:id/:limit/:start','/:auth/events/:ke/:id/:confidence/:limit/:start/:end'], function (req,res){
     req.ret={ok:false};
     res.setHeader('Content-Type', 'application/json');
     res.header("Access-Control-Allow-Origin",req.headers.origin);
@@ -4309,8 +4325,11 @@ app.get(['/:auth/events/:ke','/:auth/events/:ke/:id','/:auth/events/:ke/:id/:lim
                 req.ar.push(decodeURIComponent(req.params.start))
             }
         }
+        if(!req.params.confidence||req.params.confidence == ''){ req.params.confidence = config.motionDetection.minDBConfidence; }
+        req.sql+=' and motionConfidence > ' + req.params.confidence;
         if(!req.params.limit||req.params.limit==''){req.params.limit=100}
         req.sql+=' ORDER BY `time` DESC LIMIT '+req.params.limit+'';
+        //console.log(req.sql);
         s.sqlQuery(req.sql,req.ar,function(err,r){
             if(err){
                 err.sql=req.sql;
