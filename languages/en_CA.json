@@ -615,6 +615,8 @@
    "Confidence":"Confidence",
    "Add Channel":"Add Channel",
    "Automatic":"Automatic",
+   "Max Latency":"Max Latency",
+   "Loop Stream":"Loop Stream",
    "Object Tag":"Object Tag",
    "Emotion Average":"Emotion Average",
    "Show Regions of Interest":"Show Regions of Interest",

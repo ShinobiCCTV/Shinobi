@@ -1505,6 +1505,11 @@ $.ccio.globalWebsocket=function(d,user){
                             }
                             var options = {};
                             if(d.d.stream_flv_type==='ws'){
+                                if(d.d.stream_flv_maxLatency&&d.d.stream_flv_maxLatency!==''){
+                                    d.d.stream_flv_maxLatency = parseInt(d.d.stream_flv_maxLatency)
+                                }else{
+                                    d.d.stream_flv_maxLatency = 5000;
+                                }
                                 var url = $.ccio.init('location',user);
                                 var prefix = 'ws'
                                 if(location.protocol==='https:'){
@@ -1522,7 +1527,7 @@ $.ccio.globalWebsocket=function(d,user){
                                     ke:d.ke,
                                     uid:user.uid,
                                     id:d.id,
-                                    maxLatency:2000,
+                                    maxLatency:d.d.stream_flv_maxLatency,
                                     hasAudio:false,
                                     url: url
                                 }
