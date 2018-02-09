@@ -2664,7 +2664,6 @@ var tx;
                             d.for.forEach(function(v){
                                 d.set.push(v),d.qu.push('?'),d.ar.push(d.form[v]);
                             });
-                            d.ar.push(cn.ke);
                             s.sqlQuery('INSERT INTO API ('+d.set.join(',')+') VALUES ('+d.qu.join(',')+')',d.ar,function(err,r){
                                 d.form.time=s.moment(new Date,'YYYY-DD-MM HH:mm:ss');
                                 if(!err){tx({f:'api_key_added',form:d.form});}else{s.systemLog(err)}
