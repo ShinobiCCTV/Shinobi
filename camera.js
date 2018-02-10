@@ -308,8 +308,7 @@ s.fromLong=function(ipl) {
       (ipl >> 8 & 255) + '.' +
       (ipl & 255) );
 };
-s.createPamDiffRegionArray = function(regions){
-    //{name: 'region1', difference: 9, percent: 10, polygon: [{x: 0, y: 0}, {x: 0, y:360}, {x: 160, y: 360}, {x: 160, y: 0}]}
+s.createPamDiffRegionArray = function(regions,globalSensitivity,fullFrame){
     var pamDiffCompliantArray = [],
         arrayForOtherStuff = [],
         json
@@ -318,12 +317,19 @@ s.createPamDiffRegionArray = function(regions){
     }catch(err){
         json = regions
     }
+    if(fullFrame){
+        json[fullFrame.name]=fullFrame;
+    }
     Object.values(json).forEach(function(region){
         region.polygon = [];
         region.points.forEach(function(points){
             region.polygon.push({x:parseFloat(points[0]),y:parseFloat(points[1])})
         })
-        region.sensitivity = parseInt(region.sensitivity)
+        if(region.sensitivity===''){
+            region.sensitivity = globalSensitivity
+        }else{
+            region.sensitivity = parseInt(region.sensitivity)
+        }
         pamDiffCompliantArray.push({name: region.name, difference: 9, percent: region.sensitivity, polygon:region.polygon})
         arrayForOtherStuff[region.name] = region;
     })
@@ -1881,8 +1887,10 @@ s.camera=function(x,e,cn,tx){
                                 s.ocvTx({f:'init_monitor',id:e.id,ke:e.ke})
                                 //frames from motion detect
                                 if(e.details.detector_pam==='1'){
-                                    var regions = s.createPamDiffRegionArray(s.group[e.ke].mon_conf[e.id].details.cords);
-                                    var width,height
+                                    var width,
+                                        height,
+                                        globalSensitivity,
+                                        fullFrame = false
                                     if(s.group[e.ke].mon_conf[e.id].details.detector_scale_x===''||s.group[e.ke].mon_conf[e.id].details.detector_scale_y===''){
                                         width = s.group[e.ke].mon_conf[e.id].details.detector_scale_x;
                                         height = s.group[e.ke].mon_conf[e.id].details.detector_scale_y;
@@ -1890,6 +1898,24 @@ s.camera=function(x,e,cn,tx){
                                         width = e.width
                                         height = e.height
                                     }
+                                    if(e.details.detector_sensitivity===''){
+                                        globalSensitivity = 10
+                                    }else{
+                                        globalSensitivity = parseInt(e.details.detector_sensitivity)
+                                    }
+                                    if(e.details.detector_frame==='1'){
+                                        fullFrame={
+                                            name:'FULL_FRAME',
+                                            sensitivity:globalSensitivity,
+                                            points:[
+                                                [0,0],
+                                                [0,height],
+                                                [width,height],
+                                                [width,0]
+                                            ]
+                                        };
+                                    }
+                                    var regions = s.createPamDiffRegionArray(s.group[e.ke].mon_conf[e.id].details.cords,globalSensitivity,fullFrame);
                                     var noiseFilterArray = [];
                                     s.group[e.ke].mon[e.id].pamDiff = new PamDiff({grayscale: 'luminosity', regions : regions.forPam});
                                     s.group[e.ke].mon[e.id].p2p = new P2P();
