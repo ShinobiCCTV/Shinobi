@@ -1945,8 +1945,9 @@ s.camera=function(x,e,cn,tx){
                                     }
                                     var filterTheNoise = function(trigger){
                                         if(noiseFilterArray[trigger.name].length > 2){
-                                            var thePreviousTriggerPercent = noiseFilterArray[trigger.name][noiseFilterArray[trigger.name].length - 1]
-                                            if(((trigger.percent - thePreviousTriggerPercent) < 2)||(thePreviousTriggerPercent - trigger.percent) > -2){
+                                            var thePreviousTriggerPercent = noiseFilterArray[trigger.name][noiseFilterArray[trigger.name].length - 1];
+                                            var triggerDifference = trigger.percent - thePreviousTriggerPercent;
+                                            if(((trigger.percent - thePreviousTriggerPercent) < 4)||(thePreviousTriggerPercent - trigger.percent) > -4){
                                                 noiseFilterArray[trigger.name].push(trigger.percent);
                                             }
                                         }else{
