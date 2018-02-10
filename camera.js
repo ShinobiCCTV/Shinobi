@@ -1916,7 +1916,10 @@ s.camera=function(x,e,cn,tx){
                                         };
                                     }
                                     var regions = s.createPamDiffRegionArray(s.group[e.ke].mon_conf[e.id].details.cords,globalSensitivity,fullFrame);
-                                    var noiseFilterArray = [];
+                                    var noiseFilterArray = {};
+                                    Object.keys(regions.notForPam).forEach(function(name){
+                                        noiseFilterArray[name]=[];
+                                    })
                                     s.group[e.ke].mon[e.id].pamDiff = new PamDiff({grayscale: 'luminosity', regions : regions.forPam});
                                     s.group[e.ke].mon[e.id].p2p = new P2P();
                                     var sendTrigger = function(trigger){
@@ -1941,25 +1944,25 @@ s.camera=function(x,e,cn,tx){
                                         s.camera('motion',detectorObject)
                                     }
                                     var filterTheNoise = function(trigger){
-                                        if(noiseFilterArray.length > 2){
-                                            var thePreviousTriggerPercent = noiseFilterArray[noiseFilterArray.length - 1]
+                                        if(noiseFilterArray[trigger.name].length > 2){
+                                            var thePreviousTriggerPercent = noiseFilterArray[trigger.name][noiseFilterArray[trigger.name].length - 1]
                                             if(((trigger.percent - thePreviousTriggerPercent) < 2)||(thePreviousTriggerPercent - trigger.percent) > -2){
-                                                noiseFilterArray.push(trigger.percent);
+                                                noiseFilterArray[trigger.name].push(trigger.percent);
                                             }
                                         }else{
-                                            noiseFilterArray.push(trigger.percent);
+                                            noiseFilterArray[trigger.name].push(trigger.percent);
                                         }
-                                        if(noiseFilterArray.length > 10){
-                                            noiseFilterArray = noiseFilterArray.splice(1,10)
+                                        if(noiseFilterArray[trigger.name].length > 10){
+                                            noiseFilterArray[trigger.name] = noiseFilterArray[trigger.name].splice(1,10)
                                         }
                                         var theNoise = 0;
-                                        noiseFilterArray.forEach(function(v,n){
+                                        noiseFilterArray[trigger.name].forEach(function(v,n){
                                             theNoise += v;
                                         })
-                                        theNoise = theNoise / noiseFilterArray.length;
+                                        theNoise = theNoise / noiseFilterArray[trigger.name].length;
                                         var triggerPercentWithoutNoise = trigger.percent - theNoise;
 //                                        console.log('------',trigger.name)
-//                                        console.log('noiseMadeFromThis',noiseFilterArray)
+//                                        console.log('noiseMadeFromThis',noiseFilterArray[trigger.name])
 //                                        console.log('theNoise',theNoise)
 //                                        console.log('trigger.percent - thePreviousTriggerPercent',(trigger.percent - thePreviousTriggerPercent))
 //                                        console.log('thePreviousTriggerPercent - trigger.percent',(thePreviousTriggerPercent - trigger.percent))
