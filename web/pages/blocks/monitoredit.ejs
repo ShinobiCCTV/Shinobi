@@ -824,6 +824,14 @@
               </div>
               <div class="h_det_input h_det_1" style="display:none">
                   <div class="form-group">
+                    <label><div><span><%-lang['Noise Filter']%></span></div>
+                        <div><select class="form-control" detail="detector_noise_filter">
+                                <option value="0" selected><%-lang.No%></option>
+                                <option value="1"><%-lang.Yes%></option>
+                        </select></div>
+                    </label>
+                  </div>
+                  <div class="form-group">
                     <label><div><span><%-lang['Webhook']%></span></div>
                         <div><select class="form-control" detail="detector_webhook" selector="h_det_web">
                             <option value="0" selected><%-lang.No%></option>

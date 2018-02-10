@@ -310,22 +310,25 @@ s.fromLong=function(ipl) {
 };
 s.createPamDiffRegionArray = function(regions){
     //{name: 'region1', difference: 9, percent: 10, polygon: [{x: 0, y: 0}, {x: 0, y:360}, {x: 160, y: 360}, {x: 160, y: 0}]}
-    var pamDiffCompliantArray = [],json
+    var pamDiffCompliantArray = [],
+        arrayForOtherStuff = [],
+        json
     try{
         json = JSON.parse(regions)
     }catch(err){
         json = regions
     }
     Object.values(json).forEach(function(region){
-        var polygon = [];
+        region.polygon = [];
         region.points.forEach(function(points){
-            polygon.push({x:parseFloat(points[0]),y:parseFloat(points[1])})
+            region.polygon.push({x:parseFloat(points[0]),y:parseFloat(points[1])})
         })
         region.sensitivity = parseInt(region.sensitivity)
-        pamDiffCompliantArray.push({name: region.name, difference: 9, percent: region.sensitivity, polygon:polygon})
+        pamDiffCompliantArray.push({name: region.name, difference: 9, percent: region.sensitivity, polygon:region.polygon})
+        arrayForOtherStuff[region.name] = region;
     })
     if(pamDiffCompliantArray.length===0){pamDiffCompliantArray = null}
-    return pamDiffCompliantArray;
+    return {forPam:pamDiffCompliantArray,notForPam:arrayForOtherStuff};
 }
 s.getRequest = function(url,callback){
     return http.get(url, function(res){
@@ -1887,35 +1890,70 @@ s.camera=function(x,e,cn,tx){
                                         width = e.width
                                         height = e.height
                                     }
-                                    s.group[e.ke].mon[e.id].pamDiff = new PamDiff({grayscale: 'luminosity', regions : regions});
+                                    var noiseFilterArray = [];
+                                    s.group[e.ke].mon[e.id].pamDiff = new PamDiff({grayscale: 'luminosity', regions : regions.forPam});
                                     s.group[e.ke].mon[e.id].p2p = new P2P();
-                                    s.group[e.ke].mon[e.id].pamDiff.on('diff', (data) => {
-                                        if(!data){
-                                            console.log('no data')
-                                            return
-                                        }
-                                        data.trigger.forEach(function(trigger){
-                                            var detectorObject = {
-                                                f:'trigger',
-                                                id:e.id,
-                                                ke:e.ke,
+                                    var sendTrigger = function(trigger){
+                                        var detectorObject = {
+                                            f:'trigger',
+                                            id:e.id,
+                                            ke:e.ke,
+                                            name:trigger.name,
+                                            details:{
+                                                plug:'built-in',
                                                 name:trigger.name,
-                                                details:{
-                                                    plug:'built-in',
-                                                    name:trigger.name,
-                                                    reason:'motion',
-                                                    confidence:trigger.percent,
-                                                },
-                                                plates:[],
-                                                imgHeight:height,
-                                                imgWidth:width
+                                                reason:'motion',
+                                                confidence:trigger.percent,
+                                            },
+                                            plates:[],
+                                            imgHeight:height,
+                                            imgWidth:width
+                                        }
+                                        if(s.group[e.ke].init.aws_s3_save=="1"){
+                                            s.queueS3pushRequest(Object.assign({},detectorObject))
+                                        }
+                                        s.camera('motion',detectorObject)
+                                    }
+                                    var filterTheNoise = function(trigger){
+                                        if(noiseFilterArray.length > 2){
+                                            var thePreviousTriggerPercent = noiseFilterArray[noiseFilterArray.length - 1]
+                                            if(((trigger.percent - thePreviousTriggerPercent) < 2)||(thePreviousTriggerPercent - trigger.percent) > -2){
+                                                noiseFilterArray.push(trigger.percent);
                                             }
-                                            if(s.group[e.ke].init.aws_s3_save=="1"){
-                                                s.queueS3pushRequest(Object.assign({},detectorObject))
-                                            }
-                                            s.camera('motion',detectorObject)
+                                        }else{
+                                            noiseFilterArray.push(trigger.percent);
+                                        }
+                                        if(noiseFilterArray.length > 10){
+                                            noiseFilterArray = noiseFilterArray.splice(1,10)
+                                        }
+                                        var theNoise = 0;
+                                        noiseFilterArray.forEach(function(v,n){
+                                            theNoise += v;
                                         })
-                                    })
+                                        theNoise = theNoise / noiseFilterArray.length;
+                                        var triggerPercentWithoutNoise = trigger.percent - theNoise;
+//                                        console.log('------',trigger.name)
+//                                        console.log('noiseMadeFromThis',noiseFilterArray)
+//                                        console.log('theNoise',theNoise)
+//                                        console.log('trigger.percent - thePreviousTriggerPercent',(trigger.percent - thePreviousTriggerPercent))
+//                                        console.log('thePreviousTriggerPercent - trigger.percent',(thePreviousTriggerPercent - trigger.percent))
+//                                        console.log('triggerPercentWithoutNoise',triggerPercentWithoutNoise)
+//                                        console.log('thePreviousTriggerPercent',thePreviousTriggerPercent)
+//                                        console.log('trigger.percent',trigger.percent)
+//                                        console.log('sensitivity',regions.notForPam[trigger.name].sensitivity)
+                                        if(triggerPercentWithoutNoise > (regions.notForPam[trigger.name].sensitivity * 0.9)){
+                                            sendTrigger(trigger);
+                                        }
+                                    }
+                                    if(e.details.detector_noise_filter==='1'){
+                                        s.group[e.ke].mon[e.id].pamDiff.on('diff', (data) => {
+                                            data.trigger.forEach(filterTheNoise)
+                                        })
+                                    }else{
+                                        s.group[e.ke].mon[e.id].pamDiff.on('diff', (data) => {
+                                            data.trigger.forEach(sendTrigger)
+                                        })
+                                    }
                                     s.group[e.ke].mon[e.id].spawn.stdio[3].pipe(s.group[e.ke].mon[e.id].p2p).pipe(s.group[e.ke].mon[e.id].pamDiff);
                                 }else{
                                     s.group[e.ke].mon[e.id].spawn.stdio[3].on('data',function(d){
