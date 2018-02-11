@@ -3642,14 +3642,19 @@ $('body')
     switch(e.a){
         case'launch':
             e.preventDefault();
-            e.href=$(this).attr('href'),e.e=$('#video_viewer');
+            e.href=$(this).attr('href'),
+            e.e=$('#video_viewer');
             e.e.find('.modal-title span').html(e.mon.name+' - '+e.file)
             e.e.find('.modal-body').html('<video class="video_video" video="'+e.href+'" autoplay loop controls><source src="'+e.href+'" type="video/'+e.mon.ext+'"></video>')
             e.e.attr('mid',e.mid);
             e.f=e.e.find('.modal-footer');
             e.f.find('.download_link').attr('href',e.href).attr('download',e.file);
             e.f.find('[monitor="download"][host="dropbox"]').attr('href',e.href);
-            e.e.modal('show').attr('ke',e.ke).attr('mid',e.mid).attr('file',e.file);
+            e.e.modal('show')
+                .attr('ke',e.ke)
+                .attr('mid',e.mid)
+                .attr('auth',e.auth)
+                .attr('file',e.file);
             if(e.status==1){
                 $.get(e.href.split('?')[0]+'/status/2',function(d){
                 })
