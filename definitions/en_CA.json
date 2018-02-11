@@ -475,6 +475,14 @@
                   "default": "",
                   "example": "",
                   "possible": ""
+               },
+               {
+                  "name": "detail=TV Channel",
+                  "field": "TV Channel",
+                  "description": "This monitor will have TV Channel features enabled. You will be able to view it in your TV Channel list.",
+                  "default": "",
+                  "example": "",
+                  "possible": ""
                }
             ]
          },

@@ -1947,7 +1947,7 @@ s.camera=function(x,e,cn,tx){
                                         if(noiseFilterArray[trigger.name].length > 2){
                                             var thePreviousTriggerPercent = noiseFilterArray[trigger.name][noiseFilterArray[trigger.name].length - 1];
                                             var triggerDifference = trigger.percent - thePreviousTriggerPercent;
-                                            if(((trigger.percent - thePreviousTriggerPercent) < 4)||(thePreviousTriggerPercent - trigger.percent) > -4){
+                                            if(((trigger.percent - thePreviousTriggerPercent) < 6)||(thePreviousTriggerPercent - trigger.percent) > -6){
                                                 noiseFilterArray[trigger.name].push(trigger.percent);
                                             }
                                         }else{
@@ -1971,7 +1971,7 @@ s.camera=function(x,e,cn,tx){
 //                                        console.log('thePreviousTriggerPercent',thePreviousTriggerPercent)
 //                                        console.log('trigger.percent',trigger.percent)
 //                                        console.log('sensitivity',regions.notForPam[trigger.name].sensitivity)
-                                        if(triggerPercentWithoutNoise > (regions.notForPam[trigger.name].sensitivity * 0.9)){
+                                        if(triggerPercentWithoutNoise > regions.notForPam[trigger.name].sensitivity){
                                             sendTrigger(trigger);
                                         }
                                     }
@@ -4172,6 +4172,91 @@ app.get(['/:auth/embed/:ke/:id','/:auth/embed/:ke/:id/:addon'], function (req,re
             res.end(user.lang['No Monitor Exists with this ID.'])
         }
     },res,req);
+});
+// Get TV Channels json
+app.get(['/:auth/tvChannels/:ke','/:auth/tvChannels/:ke/:id'], function (req,res){
+    req.ret={ok:false};
+    res.setHeader('Content-Type', 'application/json');
+    res.header("Access-Control-Allow-Origin",req.headers.origin);
+    req.fn=function(user){
+    if(user.permissions.get_monitors==="0"){
+        res.end(s.s([]))
+        return
+    }
+        req.sql='SELECT * FROM Monitors WHERE ke=?';req.ar=[req.params.ke];
+        if(!req.params.id){
+            if(user.details.sub&&user.details.monitors&&user.details.allmonitors!=='1'){
+                try{user.details.monitors=JSON.parse(user.details.monitors);}catch(er){}
+                req.or=[];
+                user.details.monitors.forEach(function(v,n){
+                    req.or.push('mid=?');req.ar.push(v)
+                })
+                req.sql+=' AND ('+req.or.join(' OR ')+')'
+            }
+        }else{
+            if(!user.details.sub||user.details.allmonitors!=='0'||user.details.monitors.indexOf(req.params.id)>-1){
+                req.sql+=' and mid=?';req.ar.push(req.params.id)
+            }else{
+                res.end('[]');
+                return;
+            }
+        }
+        s.sqlQuery(req.sql,req.ar,function(err,r){
+            var tvChannelMonitors = [];
+            r.forEach(function(v,n){
+                var buildStreamURL = function(channelRow,type,channelNumber){
+                    var streamURL
+                    if(channelNumber){channelNumber = '/'+channelNumber}else{channelNumber=''}
+                    switch(type){
+                        case'mjpeg':
+                            streamURL='/'+req.params.auth+'/mjpeg/'+v.ke+'/'+v.mid+channelNumber
+                        break;
+                        case'hls':
+                            streamURL='/'+req.params.auth+'/hls/'+v.ke+'/'+v.mid+channelNumber+'/s.m3u8'
+                        break;
+                        case'h264':
+                            streamURL='/'+req.params.auth+'/h264/'+v.ke+'/'+v.mid+channelNumber
+                        break;
+                        case'flv':
+                            streamURL='/'+req.params.auth+'/flv/'+v.ke+'/'+v.mid+channelNumber+'/s.flv'
+                        break;
+                    }
+                    if(streamURL){
+                        if(!channelRow.streamsSortedByType[type]){
+                            channelRow.streamsSortedByType[type]=[]
+                        }
+                        channelRow.streamsSortedByType[type].push(streamURL)
+                        channelRow.streams.push(streamURL)
+                    }
+                    return streamURL
+                }
+                var channelRow = {
+                    group:v.ke,
+                    channel:v.mid,
+                };
+                var details = JSON.parse(r[n].details);
+                if(details.snap==='1'){
+                    channelRow.snapshot = '/'+req.params.auth+'/jpeg/'+v.ke+'/'+v.mid+'/s.jpg'
+                }
+                if(details.stream_channels&&details.stream_channels!==''){
+                    details.stream_channels=JSON.parse(details.stream_channels)
+                    channelRow.streams=[]
+                    channelRow.streamsSortedByType={}
+                    buildStreamURL(channelRow,details.stream_type)
+                    details.stream_channels.forEach(function(b,m){
+                        console.log(m)
+                        buildStreamURL(channelRow,b.stream_type,m.toString())
+                    })
+                }
+                if(details.tv_channel==='1'){
+                    tvChannelMonitors.push(channelRow)
+                }
+            })
+            if(tvChannelMonitors.length===1){tvChannelMonitors=tvChannelMonitors[0];}
+            res.end(s.s(tvChannelMonitors, null, 3));
+        })
+    }
+    s.auth(req.params,req.fn,res,req);
 });
 // Get monitors json
 app.get(['/:auth/monitor/:ke','/:auth/monitor/:ke/:id'], function (req,res){
