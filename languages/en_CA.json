@@ -621,6 +621,8 @@
    "Noise Filter":"Noise Filter",
    "TV Channel":"TV Channel",
    "Channel ID":"Channel ID",
+   "TV Channel ID":"TV Channel ID",
+   "TV Channel Group":"TV Channel Group",
    "Emotion Average":"Emotion Average",
    "Show Regions of Interest":"Show Regions of Interest",
    "Confidence of Detection":"Confidence of Detection",

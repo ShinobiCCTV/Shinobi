@@ -26,7 +26,7 @@
                 <%-lang.IdentityText2%>
             </blockquote>
             <div class="form-group">
-            <label>
+            <label> 
                 <div><span><%-lang.Mode%></span></div>
                 <div><select class="form-control" name="mode" selector="h_m">
                     <option value="stop"><%-lang.Disabled%></option>
@@ -382,10 +382,17 @@
                         </select></div>
                   </label>
               </div>
-              <div class="form-group h_tvc_input h_tvc_1" style="display:none">
-                <label><div><span><%-lang['Channel ID']%></span></div>
-                <div><input class="form-control" detail="tv_channel_id"></div>
-                </label>
+              <div class="h_tvc_input h_tvc_1" style="display:none">
+                  <div class="form-group">
+                    <label><div><span><%-lang['TV Channel ID']%></span></div>
+                    <div><input class="form-control" detail="tv_channel_id"></div>
+                    </label>
+                  </div>
+                  <div class="form-group">
+                    <label><div><span><%-lang['TV Channel Group']%></span></div>
+                    <div><input class="form-control" detail="tv_channel_group_title"></div>
+                    </label>
+                  </div>
               </div>
           </div>
           <div class="h_us_input h_us_advanced" style="display:none">
