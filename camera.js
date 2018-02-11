@@ -4227,8 +4227,10 @@ app.get(['/:auth/tvChannels/:ke','/:auth/tvChannels/:ke/:id','/get.php'], functi
             }
         })
     }
-    if(req.query.type==='m3u8'){
+    var isM3u8 = false;
+    if(req.query.type==='m3u8'||req.query.type==='m3u_plus'){
         //is m3u8
+        isM3u8 = true;
     }else{
         res.setHeader('Content-Type', 'application/json');
     }
@@ -4244,7 +4246,7 @@ app.get(['/:auth/tvChannels/:ke','/:auth/tvChannels/:ke/:id','/get.php'], functi
         if(req.query.id&&!req.params.id){
             req.params.id = req.query.id;
         }
-        req.sql='SELECT * FROM Monitors WHERE ke=?';req.ar=[req.params.ke];
+        req.sql='SELECT * FROM Monitors WHERE mode!=? AND ke=?';req.ar=['stop',req.params.ke];
         if(!req.params.id){
             if(user.details.sub&&user.details.monitors&&user.details.allmonitors!=='1'){
                 try{user.details.monitors=JSON.parse(user.details.monitors);}catch(er){}
@@ -4294,18 +4296,20 @@ app.get(['/:auth/tvChannels/:ke','/:auth/tvChannels/:ke/:id','/get.php'], functi
                 var details = JSON.parse(r[n].details);
                 if(!details.tv_channel_id||details.tv_channel_id==='')details.tv_channel_id = 'temp_'+s.gid(5)
                 var channelRow = {
-                    group:v.ke,
-                    monitor:v.mid,
+                    ke:v.ke,
+                    mid:v.mid,
+                    type:v.type,
+                    groupTitle:details.tv_channel_group_title,
                     channel:details.tv_channel_id,
                 };
                 if(details.snap==='1'){
                     channelRow.snapshot = '/'+req.params.auth+'/jpeg/'+v.ke+'/'+v.mid+'/s.jpg'
                 }
+                channelRow.streams=[]
+                channelRow.streamsSortedByType={}
+                buildStreamURL(channelRow,details.stream_type)
                 if(details.stream_channels&&details.stream_channels!==''){
                     details.stream_channels=JSON.parse(details.stream_channels)
-                    channelRow.streams=[]
-                    channelRow.streamsSortedByType={}
-                    buildStreamURL(channelRow,details.stream_type)
                     details.stream_channels.forEach(function(b,m){
                         buildStreamURL(channelRow,b.stream_type,m.toString())
                     })
@@ -4314,12 +4318,16 @@ app.get(['/:auth/tvChannels/:ke','/:auth/tvChannels/:ke/:id','/get.php'], functi
                     tvChannelMonitors.push(channelRow)
                 }
             })
-            if(req.query.type==='m3u8'){
+            if(isM3u8){
                 var m3u8 = '#EXTM3U'+'\n'
                 tvChannelMonitors.forEach(function(channelRow,n){
                   output.forEach(function(type){
                     if(channelRow.streamsSortedByType[type]){
-                        m3u8 +='#EXTINF:-1,'+channelRow.channel+' ('+type.toUpperCase()+') \n'
+                        if(req.query.type==='m3u_plus'){
+                            m3u8 +='#EXTINF-1 tvg-id="'+channelRow.mid+'" tvg-name="'+channelRow.channel+'" tvg-logo="'+req.protocol+'://'+req.headers.host+channelRow.snapshot+'" group-title="'+channelRow.groupTitle+'",'+channelRow.channel+'\n'
+                        }else{
+                            m3u8 +='#EXTINF:-1,'+channelRow.channel+' ('+type.toUpperCase()+') \n'
+                        }
                         m3u8 += req.protocol+'://'+req.headers.host+channelRow.streamsSortedByType[type][0]+'\n'
                     }
                   })
