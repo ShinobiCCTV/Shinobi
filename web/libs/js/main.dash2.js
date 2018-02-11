@@ -4266,7 +4266,7 @@ $('body')
                         "control_url_zoom_out_stop": "",
                         "control_url_zoom_in": "",
                         "control_url_zoom_in_stop": "",
-                        "tv_channel": "1",
+                        "tv_channel": "0",
                         "groups": "[]",
                         "loglevel": "warning",
                         "sqllog": "0",

@@ -376,14 +376,19 @@
               </div>
               <div class="form-group">
                 <label><div><span><%-lang['TV Channel']%></span></div>
-                        <div><select class="form-control" detail="tv_channel">
-                            <option value="0"><%-lang.No%></option>
-                            <option value="1" selected><%-lang.Yes%></option>
+                        <div><select class="form-control" detail="tv_channel" selector="h_tvc">
+                            <option value="0" selected><%-lang.No%></option>
+                            <option value="1"><%-lang.Yes%></option>
                         </select></div>
                   </label>
               </div>
+              <div class="form-group h_tvc_input h_tvc_1" style="display:none">
+                <label><div><span><%-lang['Channel ID']%></span></div>
+                <div><input class="form-control" detail="tv_channel_id"></div>
+                </label>
+              </div>
           </div>
-          <div class=" h_us_input h_us_advanced" style="display:none">
+          <div class="h_us_input h_us_advanced" style="display:none">
               <div class="form-group-group navy" section id="monSectionStreamTimestamp">
               <h4><%-lang['Stream Timestamp']%></h4>
                   <div class="form-group">

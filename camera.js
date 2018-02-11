@@ -4230,11 +4230,13 @@ app.get(['/:auth/tvChannels/:ke','/:auth/tvChannels/:ke/:id'], function (req,res
                     }
                     return streamURL
                 }
+                var details = JSON.parse(r[n].details);
+                if(!details.tv_channel_id||details.tv_channel_id==='')details.tv_channel_id = 'blank_'+s.gid(5)
                 var channelRow = {
                     group:v.ke,
-                    channel:v.mid,
+                    monitor:v.mid,
+                    channel:details.tv_channel_id,
                 };
-                var details = JSON.parse(r[n].details);
                 if(details.snap==='1'){
                     channelRow.snapshot = '/'+req.params.auth+'/jpeg/'+v.ke+'/'+v.mid+'/s.jpg'
                 }
@@ -4244,7 +4246,6 @@ app.get(['/:auth/tvChannels/:ke','/:auth/tvChannels/:ke/:id'], function (req,res
                     channelRow.streamsSortedByType={}
                     buildStreamURL(channelRow,details.stream_type)
                     details.stream_channels.forEach(function(b,m){
-                        console.log(m)
                         buildStreamURL(channelRow,b.stream_type,m.toString())
                     })
                 }
