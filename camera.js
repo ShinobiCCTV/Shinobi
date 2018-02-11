@@ -1187,7 +1187,7 @@ s.ffmpeg=function(e){
             if(isNaN(channel.sfps)){channel.sfps=1}
         }
         if(channel.stream_fps&&channel.stream_fps!==''){x.stream_fps=' -r '+channel.stream_fps}else{x.stream_fps=''}
-        
+
         //stream - hls vcodec
         if(channel.stream_vcodec&&channel.stream_vcodec!=='no'){
             if(channel.stream_vcodec!==''){x.stream_vcodec=' -c:v '+channel.stream_vcodec}else{x.stream_vcodec=' -c:v libx264'}
@@ -1238,7 +1238,7 @@ s.ffmpeg=function(e){
     //            }
     //        }
         }
-        
+
         if(channel.rotate_stream&&channel.rotate_stream!==""&&channel.rotate_stream!=="no"){
             x.stream_video_filters.push('transpose='+channel.rotate_stream);
         }
@@ -1634,7 +1634,7 @@ s.camera=function(x,e,cn,tx){
                 e.dir=e.dir+e.id+'/';
                 if (!fs.existsSync(e.dir)){
                     fs.mkdirSync(e.dir);
-                }                
+                }
             }else{
                 //MAIN videos dir
                 e.dir=s.dir.videos+e.ke+'/';
@@ -2221,7 +2221,7 @@ s.camera=function(x,e,cn,tx){
                           chunks+=chunk;
                       });
                       data.on('end', () => {
-                          
+
                       });
 
                 }).on('error', function(e) {
@@ -3509,9 +3509,6 @@ s.auth=function(params,cb,res,req){
             //maybe log
         }
     }
-    if(!params.auth||params.auth===''||params.auth===null||params.auth===undefined){
-        return failed()
-    }
     var clearAfterTime=function(){
         //remove temp key from memory
         clearTimeout(s.api[params.auth].timeout)
@@ -3540,35 +3537,55 @@ s.auth=function(params,cb,res,req){
             }
         }else{
             //no key in memory, query db to see if key exists
-            s.sqlQuery('SELECT * FROM API WHERE code=? AND ke=?',[params.auth,params.ke],function(err,r){
-                if(r&&r[0]){
-                    r=r[0];
-                    s.api[params.auth]={ip:r.ip,uid:r.uid,ke:r.ke,permissions:JSON.parse(r.details),details:{}};
-                    s.sqlQuery('SELECT details FROM Users WHERE uid=? AND ke=?',[r.uid,r.ke],function(err,rr){
-                        if(rr&&rr[0]){
-                            rr=rr[0];
-                            try{
-                                s.api[params.auth].mail=rr.mail
-                                s.api[params.auth].details=JSON.parse(rr.details)
-                                s.api[params.auth].lang=s.getLanguageFile(s.api[params.auth].details.lang)
-                            }catch(er){}
-                        }
-                        finish(s.api[params.auth]);
-                    })
-                }else{
-                    s.sqlQuery('SELECT * FROM Users WHERE auth=? AND ke=?',[params.auth,params.ke],function(err,r){
-                        if(r&&r[0]){
-                            r=r[0];
-                            r.ip='0.0.0.0'
-                            s.api[params.auth]=r
-                            clearAfterTime()
-                            finish(r)
-                        }else{
-                            failed();
-                        }
-                    })
-                }
-            })
+            //check if using username and password in plain text or md5
+            if(params.username&&params.username!==''&&params.password&&params.password!==''){
+                s.sqlQuery('SELECT * FROM Users WHERE mail=? AND (pass=? OR pass=?)',[params.username,params.password,s.md5(params.password)],function(err,r){
+                    if(r&&r[0]){
+                        r=r[0];
+                        r.ip='0.0.0.0';
+                        r.auth = s.gid(20);
+                        params.auth = r.auth;
+                        r.details=JSON.parse(r.details);
+                        r.permissions = {};
+                        s.api[r.auth]=r;
+                        clearAfterTime();
+                        finish(r);
+                    }else{
+                        failed();
+                    }
+                })
+            }else{
+                //not using plain login
+                s.sqlQuery('SELECT * FROM API WHERE code=? AND ke=?',[params.auth,params.ke],function(err,r){
+                    if(r&&r[0]){
+                        r=r[0];
+                        s.api[params.auth]={ip:r.ip,uid:r.uid,ke:r.ke,permissions:JSON.parse(r.details),details:{}};
+                        s.sqlQuery('SELECT details FROM Users WHERE uid=? AND ke=?',[r.uid,r.ke],function(err,rr){
+                            if(rr&&rr[0]){
+                                rr=rr[0];
+                                try{
+                                    s.api[params.auth].mail=rr.mail
+                                    s.api[params.auth].details=JSON.parse(rr.details)
+                                    s.api[params.auth].lang=s.getLanguageFile(s.api[params.auth].details.lang)
+                                }catch(er){}
+                            }
+                            finish(s.api[params.auth]);
+                        })
+                    }else{
+                        s.sqlQuery('SELECT * FROM Users WHERE auth=? AND ke=?',[params.auth,params.ke],function(err,r){
+                            if(r&&r[0]){
+                                r=r[0];
+                                r.ip='0.0.0.0'
+                                s.api[params.auth]=r
+                                clearAfterTime()
+                                finish(r)
+                            }else{
+                                failed();
+                            }
+                        })
+                    }
+                })
+            }
         }
     }
 }
@@ -3620,8 +3637,26 @@ app.get('/info', function (req,res){
     res.sendFile(__dirname+'/index.html');
 });
 //main page
-app.get(['/','/:screen'], function (req,res){
-    res.render('index',{lang:lang,config:config,screen:req.params.screen},function(err,html){
+app.get('/', function (req,res){
+    res.render('index',{lang:lang,config:config,screen:'dashboard'},function(err,html){
+        if(err){
+            s.systemLog(err)
+        }
+        res.end(html)
+    })
+});
+//admin page
+app.get('/admin', function (req,res){
+    res.render('index',{lang:lang,config:config,screen:'admin'},function(err,html){
+        if(err){
+            s.systemLog(err)
+        }
+        res.end(html)
+    })
+});
+//super page
+app.get('/super', function (req,res){
+    res.render('index',{lang:lang,config:config,screen:'super'},function(err,html){
         if(err){
             s.systemLog(err)
         }
@@ -3946,9 +3981,9 @@ app.post(['/','/:screen'],function (req,res){
                             //no user
                             req.default()
                         });
-                        
+
                         req.auth.close(function(err) {
-                            
+
                         })
                     }else{
                         req.default()
@@ -4173,16 +4208,42 @@ app.get(['/:auth/embed/:ke/:id','/:auth/embed/:ke/:id/:addon'], function (req,re
         }
     },res,req);
 });
-// Get TV Channels json
-app.get(['/:auth/tvChannels/:ke','/:auth/tvChannels/:ke/:id'], function (req,res){
+// Get TV Channels (Monitor Streams) json
+app.get(['/:auth/tvChannels/:ke','/:auth/tvChannels/:ke/:id','/get.php'], function (req,res){
     req.ret={ok:false};
-    res.setHeader('Content-Type', 'application/json');
+    if(req.query.username&&req.query.password){
+        req.params.username = req.query.username
+        req.params.password = req.query.password
+    }
+    var output = ['h264','hls']
+    if(req.query.output&&req.query.output!==''){
+        output = req.query.output.split(',')
+        output.forEach(function(type,n){
+            if(type==='ts'){
+                output[n]='h264'
+                if(output.indexOf('hls')===-1){
+                    output.push('hls')
+                }
+            }
+        })
+    }
+    if(req.query.type==='m3u8'){
+        //is m3u8
+    }else{
+        res.setHeader('Content-Type', 'application/json');
+    }
     res.header("Access-Control-Allow-Origin",req.headers.origin);
     req.fn=function(user){
-    if(user.permissions.get_monitors==="0"){
-        res.end(s.s([]))
-        return
-    }
+        if(user.permissions.get_monitors==="0"){
+            res.end(s.s([]))
+            return
+        }
+        if(!req.params.ke){
+            req.params.ke = user.ke;
+        }
+        if(req.query.id&&!req.params.id){
+            req.params.id = req.query.id;
+        }
         req.sql='SELECT * FROM Monitors WHERE ke=?';req.ar=[req.params.ke];
         if(!req.params.id){
             if(user.details.sub&&user.details.monitors&&user.details.allmonitors!=='1'){
@@ -4231,7 +4292,7 @@ app.get(['/:auth/tvChannels/:ke','/:auth/tvChannels/:ke/:id'], function (req,res
                     return streamURL
                 }
                 var details = JSON.parse(r[n].details);
-                if(!details.tv_channel_id||details.tv_channel_id==='')details.tv_channel_id = 'blank_'+s.gid(5)
+                if(!details.tv_channel_id||details.tv_channel_id==='')details.tv_channel_id = 'temp_'+s.gid(5)
                 var channelRow = {
                     group:v.ke,
                     monitor:v.mid,
@@ -4253,8 +4314,21 @@ app.get(['/:auth/tvChannels/:ke','/:auth/tvChannels/:ke/:id'], function (req,res
                     tvChannelMonitors.push(channelRow)
                 }
             })
-            if(tvChannelMonitors.length===1){tvChannelMonitors=tvChannelMonitors[0];}
-            res.end(s.s(tvChannelMonitors, null, 3));
+            if(req.query.type==='m3u8'){
+                var m3u8 = '#EXTM3U'+'\n'
+                tvChannelMonitors.forEach(function(channelRow,n){
+                  output.forEach(function(type){
+                    if(channelRow.streamsSortedByType[type]){
+                        m3u8 +='#EXTINF:-1,'+channelRow.channel+' ('+type.toUpperCase()+') \n'
+                        m3u8 += req.protocol+'://'+req.headers.host+channelRow.streamsSortedByType[type][0]+'\n'
+                    }
+                  })
+                })
+                res.end(m3u8)
+            }else{
+                if(tvChannelMonitors.length===1){tvChannelMonitors=tvChannelMonitors[0];}
+                res.end(s.s(tvChannelMonitors, null, 3));
+            }
         })
     }
     s.auth(req.params,req.fn,res,req);
