@@ -131,13 +131,18 @@ s.getDefinitonFile=function(rule){
     }
     return file
 }
-if(config.databaseType === 'sqlite3'&&config.db.filename === undefined){
-    config.db.filename = __dirname+"/shinobi.sqlite"
-}
-s.databaseEngine = knex({
+var databaseOptions = {
   client: config.databaseType,
-  connection: config.db
-})
+  connection: config.db,
+}
+if(databaseOptions.client.indexOf('sqlite')>-1){
+    databaseOptions.client = 'sqlite3';
+    databaseOptions.useNullAsDefault = true;
+}
+if(databaseOptions.client === 'sqlite3' && databaseOptions.connection.filename === undefined){
+    databaseOptions.connection.filename = __dirname+"/shinobi.sqlite"
+}
+s.databaseEngine = knex(databaseOptions)
 s.sqlQuery = function(query,values,onMoveOn,hideLog){
     if(!values){values=[]}
     if(typeof values === 'function'){
@@ -153,27 +158,27 @@ s.sqlQuery = function(query,values,onMoveOn,hideLog){
             }
             if(onMoveOn)
                 if(typeof onMoveOn === 'function'){
-                    if(r){
-                        r = r[0];
-                    }
+                    if(!r)r=[]
                     onMoveOn(err,r)
                 }else{
                     console.log(onMoveOn)
                 }
         })
 }
-s.sqlQuery('ALTER TABLE `Videos` ADD COLUMN `details` TEXT NULL DEFAULT NULL AFTER `status`;',function(err){
-    if(err){
-        s.systemLog("Critical update 1/2 already applied");
-    }
-    s.sqlQuery("CREATE TABLE IF NOT EXISTS `Files` (`ke` varchar(50) NOT NULL,`mid` varchar(50) NOT NULL,`name` tinytext NOT NULL,`size` float NOT NULL DEFAULT '0',`details` text NOT NULL,`status` int(1) NOT NULL DEFAULT '0') ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;",function(err){
+if(databaseOptions.client === 'mysql'){
+    s.sqlQuery('ALTER TABLE `Videos` ADD COLUMN `details` TEXT NULL DEFAULT NULL AFTER `status`;',function(err){
         if(err){
-            s.systemLog("Critical update 2/2 NOT applied, this could be bad");
-        }else{
-            s.systemLog("Critical update 2/2 already applied");
+            s.systemLog("Critical update 1/2 already applied");
         }
+        s.sqlQuery("CREATE TABLE IF NOT EXISTS `Files` (`ke` varchar(50) NOT NULL,`mid` varchar(50) NOT NULL,`name` tinytext NOT NULL,`size` float NOT NULL DEFAULT '0',`details` text NOT NULL,`status` int(1) NOT NULL DEFAULT '0') ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;",function(err){
+            if(err){
+                s.systemLog("Critical update 2/2 NOT applied, this could be bad");
+            }else{
+                s.systemLog("Critical update 2/2 already applied");
+            }
+        },true);
     },true);
-},true);
+}
 //kill any ffmpeg running
 s.ffmpegKill=function(){
     var cmd=''
