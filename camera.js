@@ -308,24 +308,33 @@ s.fromLong=function(ipl) {
       (ipl >> 8 & 255) + '.' +
       (ipl & 255) );
 };
-s.createPamDiffRegionArray = function(regions){
-    //{name: 'region1', difference: 9, percent: 10, polygon: [{x: 0, y: 0}, {x: 0, y:360}, {x: 160, y: 360}, {x: 160, y: 0}]}
-    var pamDiffCompliantArray = [],json
+s.createPamDiffRegionArray = function(regions,globalSensitivity,fullFrame){
+    var pamDiffCompliantArray = [],
+        arrayForOtherStuff = [],
+        json
     try{
         json = JSON.parse(regions)
     }catch(err){
         json = regions
     }
+    if(fullFrame){
+        json[fullFrame.name]=fullFrame;
+    }
     Object.values(json).forEach(function(region){
-        var polygon = [];
+        region.polygon = [];
         region.points.forEach(function(points){
-            polygon.push({x:parseFloat(points[0]),y:parseFloat(points[1])})
+            region.polygon.push({x:parseFloat(points[0]),y:parseFloat(points[1])})
         })
-        region.sensitivity = parseInt(region.sensitivity)
-        pamDiffCompliantArray.push({name: region.name, difference: 9, percent: region.sensitivity, polygon:polygon})
+        if(region.sensitivity===''){
+            region.sensitivity = globalSensitivity
+        }else{
+            region.sensitivity = parseInt(region.sensitivity)
+        }
+        pamDiffCompliantArray.push({name: region.name, difference: 9, percent: region.sensitivity, polygon:region.polygon})
+        arrayForOtherStuff[region.name] = region;
     })
     if(pamDiffCompliantArray.length===0){pamDiffCompliantArray = null}
-    return pamDiffCompliantArray;
+    return {forPam:pamDiffCompliantArray,notForPam:arrayForOtherStuff};
 }
 s.getRequest = function(url,callback){
     return http.get(url, function(res){
@@ -1178,7 +1187,7 @@ s.ffmpeg=function(e){
             if(isNaN(channel.sfps)){channel.sfps=1}
         }
         if(channel.stream_fps&&channel.stream_fps!==''){x.stream_fps=' -r '+channel.stream_fps}else{x.stream_fps=''}
-        
+
         //stream - hls vcodec
         if(channel.stream_vcodec&&channel.stream_vcodec!=='no'){
             if(channel.stream_vcodec!==''){x.stream_vcodec=' -c:v '+channel.stream_vcodec}else{x.stream_vcodec=' -c:v libx264'}
@@ -1229,7 +1238,7 @@ s.ffmpeg=function(e){
     //            }
     //        }
         }
-        
+
         if(channel.rotate_stream&&channel.rotate_stream!==""&&channel.rotate_stream!=="no"){
             x.stream_video_filters.push('transpose='+channel.rotate_stream);
         }
@@ -1625,7 +1634,7 @@ s.camera=function(x,e,cn,tx){
                 e.dir=e.dir+e.id+'/';
                 if (!fs.existsSync(e.dir)){
                     fs.mkdirSync(e.dir);
-                }                
+                }
             }else{
                 //MAIN videos dir
                 e.dir=s.dir.videos+e.ke+'/';
@@ -1678,7 +1687,7 @@ s.camera=function(x,e,cn,tx){
                         }
                     }
                     clearInterval(s.group[e.ke].mon[e.id].detector_notrigger_timeout)
-                    s.group[e.ke].mon[e.id].detector_notrigger_timeout=setInterval(s.group[e.ke].mon[e.id].detector_notrigger_timeout_function,e.detector_notrigger_timeout)
+                    s.group[e.ke].mon[e.id].detector_notrigger_timeout=setInterval(s.group[e.ke].mon[e.id].detector_notrigger_timeout_function,s.group[e.ke].mon[e.id].detector_notrigger_timeout)
                 })
             }
             //cutoff time and recording check interval
@@ -1878,8 +1887,10 @@ s.camera=function(x,e,cn,tx){
                                 s.ocvTx({f:'init_monitor',id:e.id,ke:e.ke})
                                 //frames from motion detect
                                 if(e.details.detector_pam==='1'){
-                                    var regions = s.createPamDiffRegionArray(s.group[e.ke].mon_conf[e.id].details.cords);
-                                    var width,height
+                                    var width,
+                                        height,
+                                        globalSensitivity,
+                                        fullFrame = false
                                     if(s.group[e.ke].mon_conf[e.id].details.detector_scale_x===''||s.group[e.ke].mon_conf[e.id].details.detector_scale_y===''){
                                         width = s.group[e.ke].mon_conf[e.id].details.detector_scale_x;
                                         height = s.group[e.ke].mon_conf[e.id].details.detector_scale_y;
@@ -1887,35 +1898,92 @@ s.camera=function(x,e,cn,tx){
                                         width = e.width
                                         height = e.height
                                     }
-                                    s.group[e.ke].mon[e.id].pamDiff = new PamDiff({grayscale: 'luminosity', regions : regions});
-                                    s.group[e.ke].mon[e.id].p2p = new P2P();
-                                    s.group[e.ke].mon[e.id].pamDiff.on('diff', (data) => {
-                                        if(!data){
-                                            console.log('no data')
-                                            return
-                                        }
-                                        data.trigger.forEach(function(trigger){
-                                            var detectorObject = {
-                                                f:'trigger',
-                                                id:e.id,
-                                                ke:e.ke,
-                                                name:trigger.name,
-                                                details:{
-                                                    plug:'built-in',
-                                                    name:trigger.name,
-                                                    reason:'motion',
-                                                    confidence:trigger.percent,
-                                                },
-                                                plates:[],
-                                                imgHeight:height,
-                                                imgWidth:width
-                                            }
-                                            if(s.group[e.ke].init.aws_s3_save=="1"){
-                                                s.queueS3pushRequest(Object.assign({},detectorObject))
-                                            }
-                                            s.camera('motion',detectorObject)
-                                        })
+                                    if(e.details.detector_sensitivity===''){
+                                        globalSensitivity = 10
+                                    }else{
+                                        globalSensitivity = parseInt(e.details.detector_sensitivity)
+                                    }
+                                    if(e.details.detector_frame==='1'){
+                                        fullFrame={
+                                            name:'FULL_FRAME',
+                                            sensitivity:globalSensitivity,
+                                            points:[
+                                                [0,0],
+                                                [0,height],
+                                                [width,height],
+                                                [width,0]
+                                            ]
+                                        };
+                                    }
+                                    var regions = s.createPamDiffRegionArray(s.group[e.ke].mon_conf[e.id].details.cords,globalSensitivity,fullFrame);
+                                    var noiseFilterArray = {};
+                                    Object.keys(regions.notForPam).forEach(function(name){
+                                        noiseFilterArray[name]=[];
                                     })
+                                    s.group[e.ke].mon[e.id].pamDiff = new PamDiff({grayscale: 'luminosity', regions : regions.forPam});
+                                    s.group[e.ke].mon[e.id].p2p = new P2P();
+                                    var sendTrigger = function(trigger){
+                                        var detectorObject = {
+                                            f:'trigger',
+                                            id:e.id,
+                                            ke:e.ke,
+                                            name:trigger.name,
+                                            details:{
+                                                plug:'built-in',
+                                                name:trigger.name,
+                                                reason:'motion',
+                                                confidence:trigger.percent,
+                                            },
+                                            plates:[],
+                                            imgHeight:height,
+                                            imgWidth:width
+                                        }
+                                        if(s.group[e.ke].init.aws_s3_save=="1"){
+                                            s.queueS3pushRequest(Object.assign({},detectorObject))
+                                        }
+                                        s.camera('motion',detectorObject)
+                                    }
+                                    var filterTheNoise = function(trigger){
+                                        if(noiseFilterArray[trigger.name].length > 2){
+                                            var thePreviousTriggerPercent = noiseFilterArray[trigger.name][noiseFilterArray[trigger.name].length - 1];
+                                            var triggerDifference = trigger.percent - thePreviousTriggerPercent;
+                                            if(((trigger.percent - thePreviousTriggerPercent) < 6)||(thePreviousTriggerPercent - trigger.percent) > -6){
+                                                noiseFilterArray[trigger.name].push(trigger.percent);
+                                            }
+                                        }else{
+                                            noiseFilterArray[trigger.name].push(trigger.percent);
+                                        }
+                                        if(noiseFilterArray[trigger.name].length > 10){
+                                            noiseFilterArray[trigger.name] = noiseFilterArray[trigger.name].splice(1,10)
+                                        }
+                                        var theNoise = 0;
+                                        noiseFilterArray[trigger.name].forEach(function(v,n){
+                                            theNoise += v;
+                                        })
+                                        theNoise = theNoise / noiseFilterArray[trigger.name].length;
+                                        var triggerPercentWithoutNoise = trigger.percent - theNoise;
+//                                        console.log('------',trigger.name)
+//                                        console.log('noiseMadeFromThis',noiseFilterArray[trigger.name])
+//                                        console.log('theNoise',theNoise)
+//                                        console.log('trigger.percent - thePreviousTriggerPercent',(trigger.percent - thePreviousTriggerPercent))
+//                                        console.log('thePreviousTriggerPercent - trigger.percent',(thePreviousTriggerPercent - trigger.percent))
+//                                        console.log('triggerPercentWithoutNoise',triggerPercentWithoutNoise)
+//                                        console.log('thePreviousTriggerPercent',thePreviousTriggerPercent)
+//                                        console.log('trigger.percent',trigger.percent)
+//                                        console.log('sensitivity',regions.notForPam[trigger.name].sensitivity)
+                                        if(triggerPercentWithoutNoise > regions.notForPam[trigger.name].sensitivity){
+                                            sendTrigger(trigger);
+                                        }
+                                    }
+                                    if(e.details.detector_noise_filter==='1'){
+                                        s.group[e.ke].mon[e.id].pamDiff.on('diff', (data) => {
+                                            data.trigger.forEach(filterTheNoise)
+                                        })
+                                    }else{
+                                        s.group[e.ke].mon[e.id].pamDiff.on('diff', (data) => {
+                                            data.trigger.forEach(sendTrigger)
+                                        })
+                                    }
                                     s.group[e.ke].mon[e.id].spawn.stdio[3].pipe(s.group[e.ke].mon[e.id].p2p).pipe(s.group[e.ke].mon[e.id].pamDiff);
                                 }else{
                                     s.group[e.ke].mon[e.id].spawn.stdio[3].on('data',function(d){
@@ -2119,51 +2187,55 @@ s.camera=function(x,e,cn,tx){
             if(s.group[d.ke].mon[d.id].motion_lock){
                 return
             }
+            var detector_lock_timeout
             if(!d.mon.details.detector_lock_timeout||d.mon.details.detector_lock_timeout===''){
-                d.mon.details.detector_lock_timeout=2000
+                detector_lock_timeout = 2000
             }
-            d.mon.details.detector_lock_timeout=parseFloat(d.mon.details.detector_lock_timeout);
+            detector_lock_timeout = parseFloat(d.mon.details.detector_lock_timeout);
             if(!s.group[d.ke].mon[d.id].detector_lock_timeout){
                 s.group[d.ke].mon[d.id].detector_lock_timeout=setTimeout(function(){
                     clearTimeout(s.group[d.ke].mon[d.id].detector_lock_timeout)
                     delete(s.group[d.ke].mon[d.id].detector_lock_timeout)
-                },d.mon.details.detector_lock_timeout)
+                },detector_lock_timeout)
             }else{
                 return
             }
             d.cx={f:'detector_trigger',id:d.id,ke:d.ke,details:d.details};
             s.tx(d.cx,'DETECTOR_'+d.ke+d.id);
             if(d.mon.details.detector_notrigger=='1'){
+                var detector_notrigger_timeout
                 if(!d.mon.details.detector_notrigger_timeout||d.mon.details.detector_notrigger_timeout===''){
-                    d.mon.details.detector_notrigger_timeout=10
+                    detector_notrigger_timeout = 10
                 }
-                d.mon.detector_notrigger_timeout=parseFloat(d.mon.details.detector_notrigger_timeout)*1000*60;
+                detector_notrigger_timeout = parseFloat(d.mon.details.detector_notrigger_timeout)*1000*60;
+                s.group[e.ke].mon[e.id].detector_notrigger_timeout = detector_notrigger_timeout;
                 clearInterval(s.group[d.ke].mon[d.id].detector_notrigger_timeout)
-                s.group[d.ke].mon[d.id].detector_notrigger_timeout=setInterval(s.group[d.ke].mon[d.id].detector_notrigger_timeout_function,d.mon.detector_notrigger_timeout)
+                s.group[d.ke].mon[d.id].detector_notrigger_timeout = setInterval(s.group[d.ke].mon[d.id].detector_notrigger_timeout_function,detector_notrigger_timeout)
             }
             if(d.mon.details.detector_webhook=='1'){
-                d.mon.details.detector_webhook_url=d.mon.details.detector_webhook_url
+                var detector_webhook_url = d.mon.details.detector_webhook_url
                     .replace(/{{TIME}}/g,moment(new Date).format())
                     .replace(/{{MONITOR_ID}}/g,d.id)
                     .replace(/{{GROUP_KEY}}/g,d.ke);
-                http.get(d.mon.details.detector_webhook_url, function(data) {
+                http.get(detector_webhook_url, function(data) {
                       data.setEncoding('utf8');
                       var chunks='';
                       data.on('data', (chunk) => {
                           chunks+=chunk;
                       });
                       data.on('end', () => {
-                          
+
                       });
 
                 }).on('error', function(e) {
 
                 }).end();
             }
+            var detector_timeout
             if(!d.mon.details.detector_timeout||d.mon.details.detector_timeout===''){
-                d.mon.details.detector_timeout=10
+                detector_timeout = 10
             }else{
-                d.mon.details.detector_timeout=parseFloat(d.mon.details.detector_timeout)
+                detector_timeout = parseFloat(d.mon.details.detector_timeout)
             }
             if(d.mon.mode=='start'&&d.mon.details.detector_trigger=='1'&&d.mon.details.detector_record_method==='sip'){
                 //s.group[d.ke].mon[d.id].eventBasedRecording.timeout
@@ -2179,7 +2251,7 @@ s.camera=function(x,e,cn,tx){
 //                    s.group[d.ke].mon[d.id].eventBasedRecording.process.stdin.write('q');
 //                    s.group[d.ke].mon[d.id].eventBasedRecording.process.kill('SIGTERM');
 //                    s.group[d.ke].mon[d.id].closeVideo()
-                },d.mon.details.detector_timeout * 950 * 60)
+                },detector_timeout * 950 * 60)
                 if(!s.group[d.ke].mon[d.id].eventBasedRecording.process){
                     if(!d.auth){
                         d.auth=s.gid();
@@ -2190,8 +2262,8 @@ s.camera=function(x,e,cn,tx){
                     s.group[d.ke].mon[d.id].eventBasedRecording.allowEnd = false;
                     var runRecord = function(){
                         s.log(d,'Spawned Recorder')
-                        //-t 00:'+moment(new Date(d.mon.details.detector_timeout * 1000 * 60)).format('mm:ss')+'
-                        s.group[d.ke].mon[d.id].eventBasedRecording.process = spawn(config.ffmpegDir,s.splitForFFPMEG(('-loglevel warning -analyzeduration 1000000 -probesize 1000000 -re -i http://'+config.ip+':'+config.port+'/'+d.auth+'/hls/'+d.ke+'/'+d.id+'/detectorStream.m3u8 -t 00:'+moment(new Date(d.mon.details.detector_timeout * 1000 * 60)).format('mm:ss')+' -c:v copy -an -strftime 1 "'+s.dir.videos+d.ke+'/'+d.id+'/'+s.moment()+'.mp4"').replace(/\s+/g,' ').trim()))
+                        //-t 00:'+moment(new Date(detector_timeout * 1000 * 60)).format('mm:ss')+'
+                        s.group[d.ke].mon[d.id].eventBasedRecording.process = spawn(config.ffmpegDir,s.splitForFFPMEG(('-loglevel warning -analyzeduration 1000000 -probesize 1000000 -re -i http://'+config.ip+':'+config.port+'/'+d.auth+'/hls/'+d.ke+'/'+d.id+'/detectorStream.m3u8 -t 00:'+moment(new Date(detector_timeout * 1000 * 60)).format('mm:ss')+' -c:v copy -an -strftime 1 "'+s.dir.videos+d.ke+'/'+d.id+'/'+s.moment()+'.mp4"').replace(/\s+/g,' ').trim()))
                         var ffmpegError='';
                         var error
                         s.group[d.ke].mon[d.id].eventBasedRecording.process.stderr.on('data',function(d){
@@ -2221,7 +2293,7 @@ s.camera=function(x,e,cn,tx){
                         s.group[d.ke].users[d.auth]={system:1,details:{},lang:lang}
                     }
                     d.urlQuery=[]
-                    d.url='http://'+config.ip+':'+config.port+'/'+d.auth+'/monitor/'+d.ke+'/'+d.id+'/record/'+d.mon.details.detector_timeout+'/min';
+                    d.url='http://'+config.ip+':'+config.port+'/'+d.auth+'/monitor/'+d.ke+'/'+d.id+'/record/'+detector_timeout+'/min';
                     if(d.mon.details.watchdog_reset!=='0'){
                         d.urlQuery.push('reset=1')
                     }
@@ -2253,17 +2325,18 @@ s.camera=function(x,e,cn,tx){
             if(config.mail&&!s.group[d.ke].mon[d.id].detector_mail&&d.mon.details.detector_mail==='1'){
                 s.sqlQuery('SELECT mail FROM Users WHERE ke=? AND details NOT LIKE ?',[d.ke,'%"sub"%'],function(err,r){
                     r=r[0];
+                    var detector_mail_timeout
                     if(!d.mon.details.detector_mail_timeout||d.mon.details.detector_mail_timeout===''){
-                        d.mon.details.detector_mail_timeout=1000*60*10;
+                        detector_mail_timeout = 1000*60*10;
                     }else{
-                        d.mon.details.detector_mail_timeout=parseFloat(d.mon.details.detector_mail_timeout)*1000*60;
+                        detector_mail_timeout = parseFloat(d.mon.details.detector_mail_timeout)*1000*60;
                     }
                     //lock mailer so you don't get emailed on EVERY trigger event.
                     s.group[d.ke].mon[d.id].detector_mail=setTimeout(function(){
                         //unlock so you can mail again.
                         clearTimeout(s.group[d.ke].mon[d.id].detector_mail);
                         delete(s.group[d.ke].mon[d.id].detector_mail);
-                    },d.mon.details.detector_mail_timeout);
+                    },detector_mail_timeout);
                     d.frame_filename='Motion_'+(d.mon.name.replace(/[^\w\s]/gi, ''))+'_'+d.id+'_'+d.ke+'_'+s.moment()+'.jpg';
                     fs.readFile(s.dir.streams+'/'+d.ke+'/'+d.id+'/s.jpg',function(err, frame){
                         d.mailOptions = {
@@ -2300,25 +2373,26 @@ s.camera=function(x,e,cn,tx){
                 s.sqlQuery('INSERT INTO Events (ke,mid,details) VALUES (?,?,?)',[d.ke,d.id,JSON.stringify(d.details)])
             }
             if(d.mon.details.detector_command_enable==='1'&&!s.group[d.ke].mon[d.id].detector_command){
+                var detector_command_timeout
                 if(!d.mon.details.detector_command_timeout||d.mon.details.detector_command_timeout===''){
-                    d.mon.details.detector_command_timeout=1000*60*10;
+                    detector_command_timeout = 1000*60*10;
                 }else{
-                    d.mon.details.detector_command_timeout=parseFloat(d.mon.details.detector_command_timeout)*1000*60;
+                    detector_command_timeout = parseFloat(d.mon.details.detector_command_timeout)*1000*60;
                 }
                 s.group[d.ke].mon[d.id].detector_command=setTimeout(function(){
                     clearTimeout(s.group[d.ke].mon[d.id].detector_command);
                     delete(s.group[d.ke].mon[d.id].detector_command);
 
-                },d.mon.details.detector_command_timeout);
-                d.mon.details.detector_command=d.mon.details.detector_command
+                },detector_command_timeout);
+                var detector_command = d.mon.details.detector_command
                     .replace(/{{TIME}}/g,moment(new Date).format())
                     .replace(/{{MONITOR_ID}}/g,d.id)
                     .replace(/{{GROUP_KEY}}/g,d.ke)
                 if(d.details.confidence){
-                    d.mon.details.detector_command=d.mon.details.detector_command
+                    detector_command = detector_command
                     .replace(/{{CONFIDENCE}}/g,d.details.confidence)
                 }
-                exec(d.mon.details.detector_command,{detached: true})
+                exec(detector_command,{detached: true})
             }
         break;
     }
@@ -3441,9 +3515,6 @@ s.auth=function(params,cb,res,req){
             //maybe log
         }
     }
-    if(!params.auth||params.auth===''||params.auth===null||params.auth===undefined){
-        return failed()
-    }
     var clearAfterTime=function(){
         //remove temp key from memory
         clearTimeout(s.api[params.auth].timeout)
@@ -3472,35 +3543,55 @@ s.auth=function(params,cb,res,req){
             }
         }else{
             //no key in memory, query db to see if key exists
-            s.sqlQuery('SELECT * FROM API WHERE code=? AND ke=?',[params.auth,params.ke],function(err,r){
-                if(r&&r[0]){
-                    r=r[0];
-                    s.api[params.auth]={ip:r.ip,uid:r.uid,ke:r.ke,permissions:JSON.parse(r.details),details:{}};
-                    s.sqlQuery('SELECT details FROM Users WHERE uid=? AND ke=?',[r.uid,r.ke],function(err,rr){
-                        if(rr&&rr[0]){
-                            rr=rr[0];
-                            try{
-                                s.api[params.auth].mail=rr.mail
-                                s.api[params.auth].details=JSON.parse(rr.details)
-                                s.api[params.auth].lang=s.getLanguageFile(s.api[params.auth].details.lang)
-                            }catch(er){}
-                        }
-                        finish(s.api[params.auth]);
-                    })
-                }else{
-                    s.sqlQuery('SELECT * FROM Users WHERE auth=? AND ke=?',[params.auth,params.ke],function(err,r){
-                        if(r&&r[0]){
-                            r=r[0];
-                            r.ip='0.0.0.0'
-                            s.api[params.auth]=r
-                            clearAfterTime()
-                            finish(r)
-                        }else{
-                            failed();
-                        }
-                    })
-                }
-            })
+            //check if using username and password in plain text or md5
+            if(params.username&&params.username!==''&&params.password&&params.password!==''){
+                s.sqlQuery('SELECT * FROM Users WHERE mail=? AND (pass=? OR pass=?)',[params.username,params.password,s.md5(params.password)],function(err,r){
+                    if(r&&r[0]){
+                        r=r[0];
+                        r.ip='0.0.0.0';
+                        r.auth = s.gid(20);
+                        params.auth = r.auth;
+                        r.details=JSON.parse(r.details);
+                        r.permissions = {};
+                        s.api[r.auth]=r;
+                        clearAfterTime();
+                        finish(r);
+                    }else{
+                        failed();
+                    }
+                })
+            }else{
+                //not using plain login
+                s.sqlQuery('SELECT * FROM API WHERE code=? AND ke=?',[params.auth,params.ke],function(err,r){
+                    if(r&&r[0]){
+                        r=r[0];
+                        s.api[params.auth]={ip:r.ip,uid:r.uid,ke:r.ke,permissions:JSON.parse(r.details),details:{}};
+                        s.sqlQuery('SELECT details FROM Users WHERE uid=? AND ke=?',[r.uid,r.ke],function(err,rr){
+                            if(rr&&rr[0]){
+                                rr=rr[0];
+                                try{
+                                    s.api[params.auth].mail=rr.mail
+                                    s.api[params.auth].details=JSON.parse(rr.details)
+                                    s.api[params.auth].lang=s.getLanguageFile(s.api[params.auth].details.lang)
+                                }catch(er){}
+                            }
+                            finish(s.api[params.auth]);
+                        })
+                    }else{
+                        s.sqlQuery('SELECT * FROM Users WHERE auth=? AND ke=?',[params.auth,params.ke],function(err,r){
+                            if(r&&r[0]){
+                                r=r[0];
+                                r.ip='0.0.0.0'
+                                s.api[params.auth]=r
+                                clearAfterTime()
+                                finish(r)
+                            }else{
+                                failed();
+                            }
+                        })
+                    }
+                })
+            }
         }
     }
 }
@@ -3552,8 +3643,26 @@ app.get('/info', function (req,res){
     res.sendFile(__dirname+'/index.html');
 });
 //main page
-app.get(['/','/:screen'], function (req,res){
-    res.render('index',{lang:lang,config:config,screen:req.params.screen},function(err,html){
+app.get('/', function (req,res){
+    res.render('index',{lang:lang,config:config,screen:'dashboard'},function(err,html){
+        if(err){
+            s.systemLog(err)
+        }
+        res.end(html)
+    })
+});
+//admin page
+app.get('/admin', function (req,res){
+    res.render('index',{lang:lang,config:config,screen:'admin'},function(err,html){
+        if(err){
+            s.systemLog(err)
+        }
+        res.end(html)
+    })
+});
+//super page
+app.get('/super', function (req,res){
+    res.render('index',{lang:lang,config:config,screen:'super'},function(err,html){
         if(err){
             s.systemLog(err)
         }
@@ -3878,9 +3987,9 @@ app.post(['/','/:screen'],function (req,res){
                             //no user
                             req.default()
                         });
-                        
+
                         req.auth.close(function(err) {
-                            
+
                         })
                     }else{
                         req.default()
@@ -4104,6 +4213,139 @@ app.get(['/:auth/embed/:ke/:id','/:auth/embed/:ke/:id/:addon'], function (req,re
             res.end(user.lang['No Monitor Exists with this ID.'])
         }
     },res,req);
+});
+// Get TV Channels (Monitor Streams) json
+app.get(['/:auth/tvChannels/:ke','/:auth/tvChannels/:ke/:id','/get.php'], function (req,res){
+    req.ret={ok:false};
+    if(req.query.username&&req.query.password){
+        req.params.username = req.query.username
+        req.params.password = req.query.password
+    }
+    var output = ['h264','hls']
+    if(req.query.output&&req.query.output!==''){
+        output = req.query.output.split(',')
+        output.forEach(function(type,n){
+            if(type==='ts'){
+                output[n]='h264'
+                if(output.indexOf('hls')===-1){
+                    output.push('hls')
+                }
+            }
+        })
+    }
+    var isM3u8 = false;
+    if(req.query.type==='m3u8'||req.query.type==='m3u_plus'){
+        //is m3u8
+        isM3u8 = true;
+    }else{
+        res.setHeader('Content-Type', 'application/json');
+    }
+    res.header("Access-Control-Allow-Origin",req.headers.origin);
+    req.fn=function(user){
+        if(user.permissions.get_monitors==="0"){
+            res.end(s.s([]))
+            return
+        }
+        if(!req.params.ke){
+            req.params.ke = user.ke;
+        }
+        if(req.query.id&&!req.params.id){
+            req.params.id = req.query.id;
+        }
+        req.sql='SELECT * FROM Monitors WHERE mode!=? AND ke=?';req.ar=['stop',req.params.ke];
+        if(!req.params.id){
+            if(user.details.sub&&user.details.monitors&&user.details.allmonitors!=='1'){
+                try{user.details.monitors=JSON.parse(user.details.monitors);}catch(er){}
+                req.or=[];
+                user.details.monitors.forEach(function(v,n){
+                    req.or.push('mid=?');req.ar.push(v)
+                })
+                req.sql+=' AND ('+req.or.join(' OR ')+')'
+            }
+        }else{
+            if(!user.details.sub||user.details.allmonitors!=='0'||user.details.monitors.indexOf(req.params.id)>-1){
+                req.sql+=' and mid=?';req.ar.push(req.params.id)
+            }else{
+                res.end('[]');
+                return;
+            }
+        }
+        s.sqlQuery(req.sql,req.ar,function(err,r){
+            var tvChannelMonitors = [];
+            r.forEach(function(v,n){
+                var buildStreamURL = function(channelRow,type,channelNumber){
+                    var streamURL
+                    if(channelNumber){channelNumber = '/'+channelNumber}else{channelNumber=''}
+                    switch(type){
+                        case'mjpeg':
+                            streamURL='/'+req.params.auth+'/mjpeg/'+v.ke+'/'+v.mid+channelNumber
+                        break;
+                        case'hls':
+                            streamURL='/'+req.params.auth+'/hls/'+v.ke+'/'+v.mid+channelNumber+'/s.m3u8'
+                        break;
+                        case'h264':
+                            streamURL='/'+req.params.auth+'/h264/'+v.ke+'/'+v.mid+channelNumber
+                        break;
+                        case'flv':
+                            streamURL='/'+req.params.auth+'/flv/'+v.ke+'/'+v.mid+channelNumber+'/s.flv'
+                        break;
+                    }
+                    if(streamURL){
+                        if(!channelRow.streamsSortedByType[type]){
+                            channelRow.streamsSortedByType[type]=[]
+                        }
+                        channelRow.streamsSortedByType[type].push(streamURL)
+                        channelRow.streams.push(streamURL)
+                    }
+                    return streamURL
+                }
+                var details = JSON.parse(r[n].details);
+                if(!details.tv_channel_id||details.tv_channel_id==='')details.tv_channel_id = 'temp_'+s.gid(5)
+                var channelRow = {
+                    ke:v.ke,
+                    mid:v.mid,
+                    type:v.type,
+                    groupTitle:details.tv_channel_group_title,
+                    channel:details.tv_channel_id,
+                };
+                if(details.snap==='1'){
+                    channelRow.snapshot = '/'+req.params.auth+'/jpeg/'+v.ke+'/'+v.mid+'/s.jpg'
+                }
+                channelRow.streams=[]
+                channelRow.streamsSortedByType={}
+                buildStreamURL(channelRow,details.stream_type)
+                if(details.stream_channels&&details.stream_channels!==''){
+                    details.stream_channels=JSON.parse(details.stream_channels)
+                    details.stream_channels.forEach(function(b,m){
+                        buildStreamURL(channelRow,b.stream_type,m.toString())
+                    })
+                }
+                if(details.tv_channel==='1'){
+                    tvChannelMonitors.push(channelRow)
+                }
+            })
+            if(isM3u8){
+                var m3u8 = '#EXTM3U'+'\n'
+                tvChannelMonitors.forEach(function(channelRow,n){
+                  output.forEach(function(type){
+                    if(channelRow.streamsSortedByType[type]){
+                        if(req.query.type==='m3u_plus'){
+                            m3u8 +='#EXTINF-1 tvg-id="'+channelRow.mid+'" tvg-name="'+channelRow.channel+'" tvg-logo="'+req.protocol+'://'+req.headers.host+channelRow.snapshot+'" group-title="'+channelRow.groupTitle+'",'+channelRow.channel+'\n'
+                        }else{
+                            m3u8 +='#EXTINF:-1,'+channelRow.channel+' ('+type.toUpperCase()+') \n'
+                        }
+                        m3u8 += req.protocol+'://'+req.headers.host+channelRow.streamsSortedByType[type][0]+'\n'
+                    }
+                  })
+                })
+                res.end(m3u8)
+            }else{
+                if(tvChannelMonitors.length===1){tvChannelMonitors=tvChannelMonitors[0];}
+                res.end(s.s(tvChannelMonitors, null, 3));
+            }
+        })
+    }
+    s.auth(req.params,req.fn,res,req);
 });
 // Get monitors json
 app.get(['/:auth/monitor/:ke','/:auth/monitor/:ke/:id'], function (req,res){
