@@ -626,8 +626,14 @@ s.init=function(x,e,k,fn){
                 //lock this function
                 s.group[e.ke].sizeChanging=true
                 //validate current values
-                if(!s.group[e.ke].usedSpace){s.group[e.ke].usedSpace=0}else{s.group[e.ke].usedSpace=parseFloat(s.group[e.ke].usedSpace)}
-                if(s.group[e.ke].usedSpace<0){s.group[e.ke].usedSpace=0}
+                if(!s.group[e.ke].usedSpace){
+                    s.group[e.ke].usedSpace=0
+                }else{
+                    s.group[e.ke].usedSpace=parseFloat(s.group[e.ke].usedSpace)
+                }
+                if(s.group[e.ke].usedSpace<0||isNaN(s.group[e.ke].usedSpace)){
+                    s.group[e.ke].usedSpace=0
+                }
                 //set queue processor
                 var checkQueue=function(){
                     //get first in queue
@@ -3253,8 +3259,10 @@ var tx;
                                                 if(!d.form.ke||d.form.ke===''){
                                                     d.form.ke=s.gid()
                                                 }
+                                                //write user to db
                                                 s.sqlQuery('INSERT INTO Users (ke,uid,mail,pass,details) VALUES (?,?,?,?,?)',[d.form.ke,d.form.uid,d.form.mail,s.md5(d.form.pass),d.form.details])
                                                 s.tx({f:'add_account',details:d.form.details,ke:d.form.ke,uid:d.form.uid,mail:d.form.mail},'$');
+                                                //init user
                                                 s.init('group',d.form)
                                             }
                                         })
@@ -5199,6 +5207,10 @@ s.beat=function(){
     io.sockets.emit('ping',{beat:1});
 }
 s.beat();
+s.processReady = function(){
+    s.systemLog(lang.startUpText5)
+    process.send('ready')
+}
 setTimeout(function(){
     //get current disk used for each isolated account (admin user) on startup
     s.sqlQuery('SELECT * FROM Users WHERE details NOT LIKE ?',['%"sub"%'],function(err,r){
@@ -5252,14 +5264,15 @@ setTimeout(function(){
                                             s.camera(v.mode,r.ar);
                                         });
                                     }
-                                    s.systemLog(lang.startUpText5)
-                                    process.send('ready')
+                                    s.processReady()
                                 });
                             },3000)
                         })
                     }
                 })
             })
+        }else{
+            s.processReady()
         }
     })
 },1500)
