@@ -131,6 +131,9 @@ s.getDefinitonFile=function(rule){
     }
     return file
 }
+if(config.databaseType === 'sqlite3'&&config.db.filename === undefined){
+    config.db.filename = __dirname+"/shinobi.sqlite"
+}
 s.databaseEngine = knex({
   client: config.databaseType,
   connection: config.db
@@ -2702,7 +2705,7 @@ var tx;
                         return;
                     }
                     if(d.key===config.updateKey){
-                        exec('chmod +x '+__dirname+'/UPDATE.sh&&'+__dirname+'/./UPDATE.sh',{detached: true})
+                        exec('chmod +x '+__dirname+'/UPDATE.sh&&'+__dirname+'/UPDATE.sh',{detached: true})
                     }else{
                         tx({error:lang.updateKeyText2});
                     }
@@ -3203,7 +3206,7 @@ var tx;
                             case'update':
                                 s.ffmpegKill()
                                 s.systemLog('Shinobi ordered to update',{by:cn.mail,ip:cn.ip,distro:d.distro})
-                                exec('chmod +x '+__dirname+'/UPDATE.sh&&'+__dirname+'/./UPDATE.sh '+d.distro,{detached: true})
+                                exec('chmod +x '+__dirname+'/UPDATE.sh&&'+__dirname+'/UPDATE.sh '+d.distro,{detached: true})
                             break;
                             case'restart':
                                 d.check=function(x){return d.target.indexOf(x)>-1}
@@ -3680,7 +3683,7 @@ app.get('/:auth/update/:key', function (req,res){
         }
         if(req.params.key===config.updateKey){
             req.ret.ok=true;
-            exec('chmod +x '+__dirname+'/UPDATE.sh&&'+__dirname+'/./UPDATE.sh',{detached: true})
+            exec('chmod +x '+__dirname+'/UPDATE.sh&&'+__dirname+'/UPDATE.sh',{detached: true})
         }else{
             req.ret.msg=user.lang.updateKeyText2;
         }
