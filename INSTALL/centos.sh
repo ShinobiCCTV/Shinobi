@@ -85,7 +85,8 @@ if [ "$sqliteormariadb" = "M" ] || [ "$sqliteormariadb" = "m" ]; then
         fi
     fi
 else
-    sudo yum install -y sqlite sqlite-devel
+    sudo yum install -y sqlite sqlite-devel -y
+    node ./tools/modifyConfiguration.js databaseType=sqlite3
     if [ ! -e "./shinobi.sqlite" ]; then
         echo "Creating shinobi.sqlite for SQLite3..."
         sudo cp sql/shinobi.sample.sqlite shinobi.sqlite

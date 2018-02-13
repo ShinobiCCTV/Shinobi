@@ -107,7 +107,8 @@ if [ "$sqliteormariadb" = "M" ] || [ "$sqliteormariadb" = "m" ]; then
         fi
     fi
 else
-    sudo apt-get install sqlite3 libsqlite3-dev
+    sudo apt-get install sqlite3 libsqlite3-dev -y
+    node ./tools/modifyConfiguration.js databaseType=sqlite3
     if [ ! -e "./shinobi.sqlite" ]; then
         echo "Creating shinobi.sqlite for SQLite3..."
         sudo cp sql/shinobi.sample.sqlite shinobi.sqlite
