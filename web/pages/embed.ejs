@@ -164,7 +164,7 @@ $(document).ready(function(){
                     }
                     break;
                     case'mjpeg':
-                        $('#SHINOBI_'+d.ke+'_'+d.id+' .stream-element').attr('src','<%=data.url%>/<%=data.auth%>/mjpeg/'+d.ke+'/'+d.id+'/full')
+                        $('#SHINOBI_'+d.ke+'_'+d.id+' .stream-element').attr('src','<%=data.url%>/<%=data.auth%>/mjpeg/'+d.ke+'/'+d.id+'?full=true')
                     break;
                 }
             }
