@@ -158,7 +158,14 @@ s.sqlQuery = function(query,values,onMoveOn,hideLog){
             }
             if(onMoveOn)
                 if(typeof onMoveOn === 'function'){
-                    if(!r)r=[]
+                    switch(databaseOptions.client){
+                        case'sqlite3':
+                            if(!r)r=[]
+                        break;
+                        default:
+                            if(r)r=r[0]
+                        break;
+                    }
                     onMoveOn(err,r)
                 }else{
                     console.log(onMoveOn)
@@ -3249,10 +3256,12 @@ var tx;
                                 if(d.form.mail!==''&&d.form.pass!==''){
                                     if(d.form.pass===d.form.password_again){
                                         s.sqlQuery('SELECT * FROM Users WHERE mail=?',[d.form.mail],function(err,r) {
-                                            if(r&&r[0]){//found one exist
+                                            if(r&&r[0]){
+                                                //found address already exists
                                                 d.msg='Email address is in use.';
                                                 s.tx({f:'error',ff:'account_register',msg:d.msg},cn.id)
-                                            }else{//create new
+                                            }else{
+                                                //create new
                                                 //user id
                                                 d.form.uid=s.gid();
                                                 //check to see if custom key set
