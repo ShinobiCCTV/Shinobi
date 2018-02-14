@@ -2917,13 +2917,14 @@ var tx;
                                 d.base=d.m.details.control_base_url;
                             }
                             if(!d.m.details.control_url_stop_timeout||d.m.details.control_url_stop_timeout===''){d.m.details.control_url_stop_timeout=1000}
+                            if(!d.m.details.control_url_method||d.m.details.control_url_method===''){d.m.details.control_url_method="GET"}
                             d.setURL=function(url){
                                 d.URLobject=URL.parse(url)
                                 if(!d.URLobject.port){d.URLobject.port=80}
                                 d.options = {
                                     host: d.URLobject.hostname,
                                     port: d.URLobject.port,
-                                    method: "GET",
+                                    method: d.m.details.control_url_method,
                                     path: d.URLobject.pathname,
                                 };
                                 if(d.URLobject.query){
@@ -2937,7 +2938,7 @@ var tx;
                                 }
                             }
                             d.setURL(d.base+d.m.details['control_url_'+d.direction])
-                            http.get(d.options, function(first) {
+                            http.request(d.options, function(first) {
                                 var body = '';
                                 first.on('data', function(chunk) {
                                     body+=chunk
@@ -2948,7 +2949,7 @@ var tx;
                                         s.log(d,{type:'Control Triggered Started',msg:body});
                                         d.setURL(d.base+d.m.details['control_url_'+d.direction+'_stop'])
                                         setTimeout(function(){
-                                            http.get(d.options, function(data) {
+                                            http.request(d.options, function(data) {
                                                 var body=''
                                                   data.on('data', function(chunk){
                                                       body+=chunk
