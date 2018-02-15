@@ -190,7 +190,8 @@ if(databaseOptions.client === 'mysql'){
 }
 //kill any ffmpeg running
 s.ffmpegKill=function(){
-    var cmd=''
+    //TODO this is bad, get rid of it
+    var cmd='';
     if(s.isWin===true){
         cmd="Taskkill /IM ffmpeg.exe /F"
     }else{
@@ -203,20 +204,22 @@ process.on('SIGINT',s.ffmpegKill.bind(null, {exit:true}));
 //key for child servers
 s.child_nodes={};
 s.child_key='3123asdasdf1dtj1hjk23sdfaasd12asdasddfdbtnkkfgvesra3asdsd3123afdsfqw345';
-s.checkRelativePath=function(x){
+s.getAbsolutePath=function(x){
     if(x.charAt(0)!=='/'){
         x=__dirname+'/'+x
     }
     return x
-}
+};
 s.checkCorrectPathEnding=function(x){
-    var length=x.length
+    var length=x.length;
     if(x.charAt(length-1)!=='/'){
         x=x+'/'
     }
     return x.replace('__DIR__',__dirname)
-}
-s.md5=function(x){return crypto.createHash('md5').update(x).digest("hex");}
+};
+s.md5=function(x){
+    return crypto.createHash('md5').update(x).digest("hex");
+};
 //send data to detector plugin
 s.ocvTx=function(data){
     if(!s.ocv){return}
@@ -272,10 +275,19 @@ s.gid=function(x){
         t += p.charAt(Math.floor(Math.random() * p.length));
     return t;
 };
-s.nid=function(x){
-    if(!x){x=6};var t = "";var p = "0123456789";
-    for( var i=0; i < x; i++ )
-        t += p.charAt(Math.floor(Math.random() * p.length));
+s.secondFactorCode=function(x){
+    if(!x){
+        x=6;
+    }
+    var t = "";
+    // There's probably a better way to do this but I couldn't find one. This is an easy way to ensure unbiased output.
+    while (x > 0) {
+        var i = crypto.randomBytes(1).readUInt8(0);
+        if (i < 250) {
+            t += i % 10;
+            --x;
+        }
+    }
     return t;
 };
 s.moment_withOffset=function(e,x){
@@ -430,8 +442,8 @@ s.systemLog=function(q,w,e){
 }
 //SSL options
 if(config.ssl&&config.ssl.key&&config.ssl.cert){
-    config.ssl.key=fs.readFileSync(s.checkRelativePath(config.ssl.key),'utf8')
-    config.ssl.cert=fs.readFileSync(s.checkRelativePath(config.ssl.cert),'utf8')
+    config.ssl.key=fs.readFileSync(s.getAbsolutePath(config.ssl.key),'utf8')
+    config.ssl.cert=fs.readFileSync(s.getAbsolutePath(config.ssl.cert),'utf8')
     if(config.ssl.port===undefined){
         config.ssl.port=443
     }
@@ -440,7 +452,7 @@ if(config.ssl&&config.ssl.key&&config.ssl.cert){
     }
     if(config.ssl.ca&&config.ssl.ca instanceof Array){
         config.ssl.ca.forEach(function(v,n){
-            config.ssl.ca[n]=fs.readFileSync(s.checkRelativePath(v),'utf8')
+            config.ssl.ca[n]=fs.readFileSync(s.getAbsolutePath(v),'utf8')
         })
     }
     var serverHTTPS = https.createServer(config.ssl,app);
@@ -3204,8 +3216,8 @@ var tx;
     })
     // admin page socket functions
     cn.on('super',function(d){
-        if(!cn.init&&d.f=='init'){
-            d.ok=s.superAuth({mail:d.mail,pass:d.pass},function(data){
+        if(!cn.init && d.f === 'init'){
+            d.ok=s.superAuth({mail:d.mail,pass:d.pass,directHashComparison:true},function(data){
                 cn.uid=d.mail
                 cn.join('$');
                 cn.ip=cn.request.connection.remoteAddress
@@ -3631,30 +3643,30 @@ s.auth=function(params,cb,res,req){
 }
 //super user authentication handler
 s.superAuth=function(x,callback){
-    req={};
-    req.super=require(location.super);
-    req.super.forEach(function(v,n){
-        //TODO replace with bcrypt, will require some deeper refactoring since the hash is actually being sent to the client and used to authenticate over websocket...
-        if(x.md5===true){
-            x.pass=s.md5(x.pass);
-        }
-        if(x.mail.toLowerCase()===v.mail.toLowerCase()&&x.pass===v.pass){
-            req.found=1;
-            if(x.users===true){
-                s.sqlQuery('SELECT * FROM Users WHERE details NOT LIKE ?',['%"sub"%'],function(err,r) {
-                    callback({$user:v,users:r,config:config,lang:lang})
-                })
-            }else{
-                callback({$user:v,config:config,lang:lang})
+    var superConf = require(location.super);
+    for (var userConf of superConf) {
+        if (x.mail.toLowerCase() === userConf.mail.toLowerCase()) {
+            var valid = false;
+            if (x.directHashComparison && x.pass === userConf.pass) { // TODO this is terrible and needs to be removed
+                valid = true;
+            } else if (bcrypt.compareSync(x.pass, userConf.pass)) { //TODO make async
+                valid = true;
+            }
+            if (valid) {
+                if (x.users === true) {
+                    // Why the hell is a list of users being returned from an auth function???
+                    s.sqlQuery('SELECT * FROM Users WHERE details NOT LIKE ?', ['%"sub"%'], function (err, r) {
+                        callback({$user: userConf, users: r, config: config, lang: lang})
+                    })
+                } else {
+                    callback({$user: userConf, config: config, lang: lang})
+                }
+                return true;
             }
         }
-    })
-    if(req.found!==1){
-        return false;
-    }else{
-        return true;
     }
-}
+    return false;
+};
 ////Pages
 app.enable('trust proxy');
 app.use('/libs',express.static(__dirname + '/web/libs'));
@@ -3866,68 +3878,74 @@ app.post(['/','/:screen'],function (req,res){
             s.sqlQuery('SELECT * FROM Users WHERE mail=?',[req.body.mail],function(err,r) {
                 req.resp={ok:false};
                 if(!err&&r&&r[0]&&bcrypt.compareSync(req.body.pass,r[0].pass)){
-                    r=r[0];r.auth=s.md5(s.gid());
-                    s.sqlQuery("UPDATE Users SET auth=? WHERE ke=? AND uid=?",[r.auth,r.ke,r.uid])
-                    req.resp={ok:true,auth_token:r.auth,ke:r.ke,uid:r.uid,mail:r.mail,details:r.details};
-                    r.details=JSON.parse(r.details);
-                    r.lang=s.getLanguageFile(r.details.lang)
-                    req.factorAuth=function(cb){
-                        if(r.details.factorAuth==="1"){
-                            if(!r.details.acceptedMachines||!(r.details.acceptedMachines instanceof Object)){
-                                r.details.acceptedMachines={}
-                            }
-                            if(!r.details.acceptedMachines[req.body.machineID]){
-                                req.complete=function(){
-                                    s.factorAuth[r.ke][r.uid].info=req.resp;
-                                    clearTimeout(s.factorAuth[r.ke][r.uid].expireAuth)
-                                    s.factorAuth[r.ke][r.uid].expireAuth=setTimeout(function(){
-                                        s.deleteFactorAuth(r)
-                                    },1000*60*15)
-                                    req.renderFunction("factor",{$user:req.resp,lang:r.lang})
+                    r=r[0];
+                    crypto.randomBytes(16, function(err, buf){
+                        if (err) {
+                            throw err;
+                        }
+                        r.auth = buf.toString('hex');//base64 encoding breaks main.dash2.js 'video_build_success' due to '=' padding
+                        s.sqlQuery("UPDATE Users SET auth=? WHERE ke=? AND uid=?",[r.auth,r.ke,r.uid]);
+                        req.resp={ok:true,auth_token:r.auth,ke:r.ke,uid:r.uid,mail:r.mail,details:r.details};
+                        r.details=JSON.parse(r.details);
+                        r.lang=s.getLanguageFile(r.details.lang);
+                        req.factorAuth=function(cb){
+                            if(r.details.factorAuth==="1"){
+                                if(!r.details.acceptedMachines||!(r.details.acceptedMachines instanceof Object)){
+                                    r.details.acceptedMachines={}
                                 }
-                                if(!s.factorAuth[r.ke]){s.factorAuth[r.ke]={}}
-                                if(!s.factorAuth[r.ke][r.uid]){
-                                    s.factorAuth[r.ke][r.uid]={key:s.nid(),user:r}
-                                    r.mailOptions = {
-                                        from: '"ShinobiCCTV" <no-reply@shinobi.video>',
-                                        to: r.mail,
-                                        subject: r.lang['2-Factor Authentication'],
-                                        html: r.lang['Enter this code to proceed']+' <b>'+s.factorAuth[r.ke][r.uid].key+'</b>. '+r.lang.FactorAuthText1,
+                                if(!r.details.acceptedMachines[req.body.machineID]){
+                                    req.complete=function(){
+                                        s.factorAuth[r.ke][r.uid].info=req.resp;
+                                        clearTimeout(s.factorAuth[r.ke][r.uid].expireAuth);
+                                        s.factorAuth[r.ke][r.uid].expireAuth=setTimeout(function(){
+                                            s.deleteFactorAuth(r)
+                                        },1000*60*15);
+                                        req.renderFunction("factor",{$user:req.resp,lang:r.lang})
                                     };
-                                    nodemailer.sendMail(r.mailOptions, (error, info) => {
-                                        if (error) {
-                                            s.systemLog(r.lang.MailError,error)
-                                            req.fn(r)
-                                            return
-                                        }
-                                        req.complete()
+                                    if(!s.factorAuth[r.ke]){s.factorAuth[r.ke]={}}
+                                    if(!s.factorAuth[r.ke][r.uid]){
+                                        s.factorAuth[r.ke][r.uid]={key:s.secondFactorCode(),user:r};
+                                        r.mailOptions = {
+                                            from: '"ShinobiCCTV" <no-reply@shinobi.video>',//TODO allow changing to configured domain
+                                            to: r.mail,
+                                            subject: r.lang['2-Factor Authentication'],
+                                            html: r.lang['Enter this code to proceed']+' <b>'+s.factorAuth[r.ke][r.uid].key+'</b>. '+r.lang.FactorAuthText1,
+                                        };
+                                        nodemailer.sendMail(r.mailOptions, (error, info) => {
+                                            if (error) {
+                                                s.systemLog(r.lang.MailError,error)
+                                                req.fn(r)
+                                                return
+                                            }
+                                            req.complete()
                                     });
+                                    }else{
+                                        req.complete()
+                                    }
                                 }else{
-                                    req.complete()
+                                    req.fn(r)
                                 }
                             }else{
-                               req.fn(r)
+                                req.fn(r)
                             }
+                        };
+                        if(r.details.sub){
+                            s.sqlQuery('SELECT details FROM Users WHERE ke=? AND details NOT LIKE ?',[r.ke,'%"sub"%'],function(err,rr) {
+                                rr=rr[0];
+                                rr.details=JSON.parse(rr.details);
+                                r.details.mon_groups=rr.details.mon_groups;
+                                req.resp.details=JSON.stringify(r.details);
+                                req.factorAuth()
+                            })
                         }else{
-                           req.fn(r)
-                        }
-                    }
-                    if(r.details.sub){
-                        s.sqlQuery('SELECT details FROM Users WHERE ke=? AND details NOT LIKE ?',[r.ke,'%"sub"%'],function(err,rr) {
-                            rr=rr[0];
-                            rr.details=JSON.parse(rr.details);
-                            r.details.mon_groups=rr.details.mon_groups;
-                            req.resp.details=JSON.stringify(r.details);
                             req.factorAuth()
-                        })
-                    }else{
-                        req.factorAuth()
-                    }
+                        }
+                    });
                 }else{
                     req.failed(req.body.function)
                 }
             })
-        }
+        };
         if(LdapAuth&&req.body.function==='ldap'&&req.body.key!==''){
             s.sqlQuery('SELECT * FROM Users WHERE  ke=? AND details NOT LIKE ?',[req.body.key,'%"sub"%'],function(err,r) {
                 if(r&&r[0]){
@@ -4009,7 +4027,7 @@ app.post(['/','/:screen'],function (req,res){
                                         //new ldap login
                                         s.log({ke:req.body.key,mid:'$USER'},{type:r.lang['LDAP User is New'],msg:{info:r.lang['Creating New Account'],user:user}})
                                         req.resp.lang=r.lang
-                                        s.sqlQuery('INSERT INTO Users (ke,uid,auth,mail,pass,details) VALUES (?,?,?,?,?,?)',user.post)
+                                        s.sqlQuery('INSERT INTO Users (ke,uid,auth,mail,pass,details) VALUES (?,?,?,?,?,?)',user.post)//Why are you storing the ldap password??
                                     }
                                     req.resp.details=JSON.stringify(req.resp.details)
                                     req.resp.auth_token=req.resp.auth
@@ -4039,7 +4057,7 @@ app.post(['/','/:screen'],function (req,res){
                     res.end(lang.superAdminText)
                     return
                 }
-                req.ok=s.superAuth({mail:req.body.mail,pass:req.body.pass,users:true,md5:true},function(data){
+                req.ok=s.superAuth({mail:req.body.mail,pass:req.body.pass,users:true},function(data){
                     s.sqlQuery('SELECT * FROM Logs WHERE ke=? ORDER BY `time` DESC LIMIT 30',['$'],function(err,r) {
                         if(!r){
                             r=[]
@@ -4050,7 +4068,7 @@ app.post(['/','/:screen'],function (req,res){
                             req.renderFunction("super",data);
                         })
                     })
-                })
+                });
                 if(req.ok===false){
                     req.failed(req.body.function)
                 }
