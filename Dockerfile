@@ -8,7 +8,9 @@ RUN apk add --update --no-cache ffmpeg python pkgconfig cairo-dev make g++ jpeg-
 # Install NodeJS dependencies
 COPY package.json /opt/shinobi
 RUN npm install && \
-    npm install canvas
+    npm install canvas && \
+# https://github.com/kelektiv/node.bcrypt.js/issues/528
+    npm rebuild bcrypt --build-from-source
 
 # Copy code
 COPY . /opt/shinobi

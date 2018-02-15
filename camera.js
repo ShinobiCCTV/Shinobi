@@ -34,6 +34,8 @@ var exec = require('child_process').exec;
 var spawn = require('child_process').spawn;
 var socketIOclient = require('socket.io-client');
 var crypto = require('crypto');
+var bcrypt = require('bcrypt');
+const BCRYPT_COST = 12;//TODO make configurable
 var webdav = require("webdav");
 var jsonfile = require("jsonfile");
 var connectionTester = require('connection-tester');
@@ -263,6 +265,7 @@ s.randomNumber=function(x){
     if(!x){x=10};
     return Math.floor((Math.random() * x) + 1);
 };
+//TODO replace with a CSPRNG (and probably rename)
 s.gid=function(x){
     if(!x){x=10};var t = "";var p = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
     for( var i=0; i < x; i++ )
@@ -2832,7 +2835,11 @@ var tx;
                                     d.form.details=JSON.stringify(d.form.details)
                                     ///
                                     d.set=[],d.ar=[];
-                                    if(d.form.pass&&d.form.pass!==''){d.form.pass=s.md5(d.form.pass);}else{delete(d.form.pass)};
+                                    if(d.form.pass&&d.form.pass!==''){
+                                        d.form.pass=bcrypt.hashSync(d.form.pass,BCRYPT_COST);//TODO change usages of hashSync to hash
+                                    }else{
+                                        delete(d.form.pass)
+                                    }
                                     delete(d.form.password_again);
                                     d.for=Object.keys(d.form);
                                     d.for.forEach(function(v){
@@ -3270,7 +3277,7 @@ var tx;
                                                     d.form.ke=s.gid()
                                                 }
                                                 //write user to db
-                                                s.sqlQuery('INSERT INTO Users (ke,uid,mail,pass,details) VALUES (?,?,?,?,?)',[d.form.ke,d.form.uid,d.form.mail,s.md5(d.form.pass),d.form.details])
+                                                s.sqlQuery('INSERT INTO Users (ke,uid,mail,pass,details) VALUES (?,?,?,?,?)',[d.form.ke,d.form.uid,d.form.mail,bcrypt.hashSync(d.form.pass,BCRYPT_COST),d.form.details])
                                                 s.tx({f:'add_account',details:d.form.details,ke:d.form.ke,uid:d.form.uid,mail:d.form.mail},'$');
                                                 //init user
                                                 s.init('group',d.form)
@@ -3289,7 +3296,7 @@ var tx;
                             case'edit':
                                 if(d.form.pass&&d.form.pass!==''){
                                    if(d.form.pass===d.form.password_again){
-                                       d.form.pass=s.md5(d.form.pass);
+                                       d.form.pass=bcrypt.hashSync(d.form.pass,BCRYPT_COST);
                                    }else{
                                        s.tx({f:'error',ff:'account_edit',msg:lang["Passwords Don't Match"]},cn.id)
                                        return
@@ -3569,10 +3576,11 @@ s.auth=function(params,cb,res,req){
             }
         }else{
             //no key in memory, query db to see if key exists
-            //check if using username and password in plain text or md5
+            //check if using username and password
             if(params.username&&params.username!==''&&params.password&&params.password!==''){
-                s.sqlQuery('SELECT * FROM Users WHERE mail=? AND (pass=? OR pass=?)',[params.username,params.password,s.md5(params.password)],function(err,r){
-                    if(r&&r[0]){
+                s.sqlQuery('SELECT * FROM Users WHERE mail=?',[params.username],function(err,r){
+                    console.log(r);
+                    if(r&&r[0]&&bcrypt.compareSync(params.password,r.pass)){
                         r=r[0];
                         r.ip='0.0.0.0';
                         r.auth = s.gid(20);
@@ -3626,6 +3634,7 @@ s.superAuth=function(x,callback){
     req={};
     req.super=require(location.super);
     req.super.forEach(function(v,n){
+        //TODO replace with bcrypt, will require some deeper refactoring since the hash is actually being sent to the client and used to authenticate over websocket...
         if(x.md5===true){
             x.pass=s.md5(x.pass);
         }
@@ -3741,7 +3750,7 @@ app.post('/:auth/register/:ke/:uid',function (req,res){
                                 req.resp.msg='New Account Created';req.resp.ok=true;
                                 req.gid=s.gid();
                                 req.body.details='{"sub":"1","allmonitors":"1"}';
-                                s.sqlQuery('INSERT INTO Users (ke,uid,mail,pass,details) VALUES (?,?,?,?,?)',[req.params.ke,req.gid,req.body.mail,s.md5(req.body.pass),req.body.details])
+                                s.sqlQuery('INSERT INTO Users (ke,uid,mail,pass,details) VALUES (?,?,?,?,?)',[req.params.ke,req.gid,req.body.mail,bcrypt.hashSync(req.body.pass, BCRYPT_COST),req.body.details])
                                 s.tx({f:'add_sub_account',details:req.body.details,ke:req.params.ke,uid:req.gid,mail:req.body.mail},'ADM_'+req.params.ke);
                             }
                             res.end(s.s(req.resp,null,3));
@@ -3854,9 +3863,9 @@ app.post(['/','/:screen'],function (req,res){
     }
     if(req.body.mail&&req.body.pass){
         req.default=function(){
-            s.sqlQuery('SELECT * FROM Users WHERE mail=? AND pass=?',[req.body.mail,s.md5(req.body.pass)],function(err,r) {
+            s.sqlQuery('SELECT * FROM Users WHERE mail=?',[req.body.mail],function(err,r) {
                 req.resp={ok:false};
-                if(!err&&r&&r[0]){
+                if(!err&&r&&r[0]&&bcrypt.compareSync(req.body.pass,r[0].pass)){
                     r=r[0];r.auth=s.md5(s.gid());
                     s.sqlQuery("UPDATE Users SET auth=? WHERE ke=? AND uid=?",[r.auth,r.ke,r.uid])
                     req.resp={ok:true,auth_token:r.auth,ke:r.ke,uid:r.uid,mail:r.mail,details:r.details};
@@ -3974,7 +3983,7 @@ app.post(['/','/:screen'],function (req,res){
                                     uid:user.uid,
                                     auth:s.md5(s.gid()),
                                     mail:user.mail,
-                                    pass:s.md5(req.body.pass),
+                                    pass:s.md5(req.body.pass),//Where is this being sent and why?
                                     details:JSON.stringify({
                                         sub:'1',
                                         ldap:'1',
