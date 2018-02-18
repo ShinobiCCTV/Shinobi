@@ -3,7 +3,7 @@ process.on('uncaughtException', function (err) {
 });
 var fs = require('fs');
 var path = require('path');
-var mysql = require('mysql');
+var knex = require('knex');
 var moment = require('moment');
 var exec = require('child_process').exec;
 var spawn = require('child_process').spawn;
@@ -44,12 +44,30 @@ if(databaseOptions.client === 'sqlite3' && databaseOptions.connection.filename =
 s.databaseEngine = knex(databaseOptions)
 s.sqlQuery = function(query,values,onMoveOn,hideLog){
     if(!values){values=[]}
+    var valuesNotFunction = true;
     if(typeof values === 'function'){
         var onMoveOn = values;
         var values = [];
+        valuesNotFunction = false;
     }
     if(!onMoveOn){onMoveOn=function(){}}
-    return s.databaseEngine.raw(query,values)
+    if(values&&valuesNotFunction){
+        var splitQuery = query.split('?')
+        var newQuery = ''
+        splitQuery.forEach(function(v,n){
+            newQuery += v
+            if(values[n]){
+                if(isNaN(values[n])){
+                    newQuery += "'"+values[n]+"'"
+                }else{
+                    newQuery += values[n]
+                }
+            }
+        })
+    }else{
+        newQuery = query
+    }
+    return s.databaseEngine.raw(newQuery)
         .asCallback(function(err,r){
             if(err&&config.databaseLogs){
                 s.systemLog('s.sqlQuery QUERY',query)
@@ -138,7 +156,7 @@ s.checkFilterRules=function(v,callback){
             "where":[{
                 "p1":"end",
                 "p2":"<",
-                "p3":"NOW() - INTERVAL "+(v.maxVideoDays[v.mid]*24)+" HOUR",
+                "p3":"NOW() - INTERVAL "+(v.d.days*24)+" HOUR",
                 "p3_type":"function",
             }]
         };
@@ -221,7 +239,7 @@ s.deleteRowsWithNoVideo=function(v,callback){
     ){
         s.alreadyDeletedRowsWithNoVideosOnStart[v.ke]=true;
         es={};
-        s.sqlQuery('SELECT * FROM Videos WHERE ke = ? AND status != 0 AND details NOT LIKE \'%"archived":"1"%\' AND time < (NOW() - INTERVAL 10 MINUTE)',[v.ke],function(err,evs){
+        s.sqlQuery('SELECT * FROM Videos WHERE ke=? AND status!=0 AND details NOT LIKE \'%"archived":"1"%\' AND time < (NOW() - INTERVAL 10 MINUTE)',[v.ke],function(err,evs){
             if(evs&&evs[0]){
                 es.del=[];es.ar=[v.ke];
                 evs.forEach(function(ev){
@@ -378,16 +396,34 @@ s.processUser = function(number,rows){
         //size
         if(!v.d.size||v.d.size==''){v.d.size=10000}else{v.d.size=parseFloat(v.d.size)};
         //days to keep videos
-        v.maxVideoDays={}
         if(!v.d.days||v.d.days==''){v.d.days=5}else{v.d.days=parseFloat(v.d.days)};
         s.sqlQuery('SELECT * FROM Monitors WHERE ke=?', [v.ke], function(err,rr) {
             rr.forEach(function(b,m){
                 b.details=JSON.parse(b.details);
                 if(b.details.max_keep_days&&b.details.max_keep_days!==''){
-                    v.maxVideoDays[b.mid]=parseFloat(b.details.max_keep_days)
-                }else{
-                    v.maxVideoDays[b.mid]=v.d.days
-                };
+                    v.d.filters['deleteOldByCron'+b.mid]={
+                        "id":'deleteOldByCron'+b.mid,
+                        "name":'deleteOldByCron'+b.mid,
+                        "sort_by":"time",
+                        "sort_by_direction":"ASC",
+                        "limit":"",
+                        "enabled":"1",
+                        "archive":"0",
+                        "email":"0",
+                        "delete":"1",
+                        "execute":"",
+                        "where":[{
+                            "p1":"ke",
+                            "p2":"=",
+                            "p3":b.mid
+                        },{
+                            "p1":"end",
+                            "p2":"<",
+                            "p3":"NOW() - INTERVAL "+(parseFloat(b.details.max_keep_days)*24)+" HOUR",
+                            "p3_type":"function",
+                        }]
+                    };
+                }
             })
             s.deleteOldLogs(v,function(){
                 s.deleteOldFileBins(v,function(){
