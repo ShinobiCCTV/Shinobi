@@ -1165,7 +1165,7 @@ s.ffmpeg=function(e){
             if(e.details.stream_vcodec!=='copy'){
                 if(x.cust_stream.indexOf('-s ')===-1){x.cust_stream+=' -s '+x.ratio}
                 x.cust_stream+=x.stream_fps
-                if(x.stream_quality)x.stream_quality=' -crf '+x.stream_quality;
+                if(x.stream_quality&&x.stream_quality!=='')x.stream_quality=' -crf '+x.stream_quality;
                 x.cust_stream+=x.stream_quality
                 x.cust_stream+=x.preset_stream
             }
@@ -1173,18 +1173,18 @@ s.ffmpeg=function(e){
         break;
         case'hls':
             if(e.details.stream_vcodec!=='h264_vaapi'){
-                if(x.stream_quality)x.stream_quality=' -crf '+x.stream_quality;
+                if(x.stream_quality&&x.stream_quality!=='')x.stream_quality=' -crf '+x.stream_quality;
                 if(x.cust_stream.indexOf('-tune')===-1){x.cust_stream+=' -tune zerolatency'}
                 if(x.cust_stream.indexOf('-g ')===-1){x.cust_stream+=' -g 1'}
             }
             x.pipe=x.preset_stream+x.stream_quality+x.stream_acodec+x.stream_vcodec+x.stream_fps+' -f hls -s '+x.ratio+x.stream_video_filters+x.cust_stream+' -hls_time '+x.hls_time+' -hls_list_size '+x.hls_list_size+' -start_number 0 -hls_allow_cache 0 -hls_flags +delete_segments+omit_endlist "'+e.sdir+'s.m3u8"';
         break;
         case'mjpeg':
-            if(x.stream_quality)x.stream_quality=' -q:v '+x.stream_quality;
+            if(x.stream_quality&&x.stream_quality!=='')x.stream_quality=' -q:v '+x.stream_quality;
             x.pipe=' -c:v mjpeg -f mpjpeg -boundary_tag shinobi'+x.cust_stream+x.stream_video_filters+x.stream_quality+x.stream_fps+' -s '+x.ratio+' pipe:1';
         break;
         case'b64':case'':case undefined:case null://base64
-            if(x.stream_quality)x.stream_quality=' -q:v '+x.stream_quality;
+            if(x.stream_quality&&x.stream_quality!=='')x.stream_quality=' -q:v '+x.stream_quality;
             x.pipe=' -c:v mjpeg -f image2pipe'+x.cust_stream+x.stream_video_filters+x.stream_quality+x.stream_fps+' -s '+x.ratio+' pipe:1';
         break;
         default:
@@ -1203,9 +1203,15 @@ s.ffmpeg=function(e){
         }
         x.stream_video_filters=[]
         //stream - frames per second
-        if(!channel.sfps||channel.sfps===''){
-            channel.sfps=parseFloat(channel.sfps);
-            if(isNaN(channel.sfps)){channel.sfps=1}
+        if(!channel.stream_fps||channel.stream_fps===''){
+            switch(channel.stream_type){
+                case'rtmp':
+                    channel.stream_fps=30
+                break;
+                default:
+                    channel.stream_fps=5
+                break;
+            }
         }
         if(channel.stream_fps&&channel.stream_fps!==''){x.stream_fps=' -r '+channel.stream_fps}else{x.stream_fps=''}
 
@@ -1280,11 +1286,36 @@ s.ffmpeg=function(e){
             x.stream_map=""
 ////
         switch(channel.stream_type){
+            case'rtmp':
+                if(channel.stream_vcodec!=='copy'){
+                    x.rtmp_server_url=s.checkCorrectPathEnding(channel.rtmp_server_url);
+                    if(channel.stream_vcodec==='libx264'){
+                        channel.stream_vcodec = 'h264'
+                    }
+                    x.cust_stream+=x.stream_fps
+                    if(x.stream_quality&&x.stream_quality!=='')x.stream_quality=' -crf '+x.stream_quality;
+                    x.cust_stream+=x.stream_quality
+                    x.cust_stream+=x.preset_stream
+                    if(channel.stream_v_br&&channel.stream_v_br!==''){x.cust_stream+='-b:v '+channel.stream_v_br}
+                }
+                x.cust_stream+=' -vcodec '+channel.stream_vcodec
+                if(channel.stream_acodec!=='copy'){
+                    if(!channel.stream_acodec||channel.stream_acodec===''||channel.stream_acodec==='no'){
+                        channel.stream_acodec = 'aac'
+                    }
+                    if(!channel.stream_a_br||channel.stream_a_br===''){channel.stream_a_br='128k'}
+                    x.cust_stream+=' -ab '+channel.stream_a_br
+                }
+                if(channel.stream_acodec!==''){
+                    x.cust_stream+=' -acodec '+channel.stream_acodec
+                }
+                x.pipe=x.stream_map+' -f flv'+x.stream_video_filters+x.cust_stream+' "'+x.rtmp_server_url+channel.rtmp_stream_key+'"';
+            break;
             case'h264':
                 if(channel.stream_vcodec!=='copy'){
                     if(x.cust_stream.indexOf('-s ')===-1){x.cust_stream+=' -s '+x.ratio}
                     x.cust_stream+=x.stream_fps
-                    if(x.stream_quality)x.stream_quality=' -crf '+x.stream_quality;
+                    if(x.stream_quality&&x.stream_quality!=='')x.stream_quality=' -crf '+x.stream_quality;
                     x.cust_stream+=x.stream_quality
                     x.cust_stream+=x.preset_stream
                 }
@@ -1294,7 +1325,7 @@ s.ffmpeg=function(e){
                 if(channel.stream_vcodec!=='copy'){
                     if(x.cust_stream.indexOf('-s ')===-1){x.cust_stream+=' -s '+x.ratio}
                     x.cust_stream+=x.stream_fps
-                    if(x.stream_quality)x.stream_quality=' -crf '+x.stream_quality;
+                    if(x.stream_quality&&x.stream_quality!=='')x.stream_quality=' -crf '+x.stream_quality;
                     x.cust_stream+=x.stream_quality
                     x.cust_stream+=x.preset_stream
                 }
@@ -1302,14 +1333,14 @@ s.ffmpeg=function(e){
             break;
             case'hls':
                 if(channel.stream_vcodec!=='h264_vaapi'){
-                    if(x.stream_quality)x.stream_quality=' -crf '+x.stream_quality;
+                    if(x.stream_quality&&x.stream_quality!=='')x.stream_quality=' -crf '+x.stream_quality;
                     if(x.cust_stream.indexOf('-tune')===-1){x.cust_stream+=' -tune zerolatency'}
                     if(x.cust_stream.indexOf('-g ')===-1){x.cust_stream+=' -g 1'}
                 }
                 x.pipe=x.stream_map+x.preset_stream+x.stream_quality+x.stream_acodec+x.stream_vcodec+x.stream_fps+' -f hls -s '+x.ratio+x.stream_video_filters+x.cust_stream+' -hls_time '+x.hls_time+' -hls_list_size '+x.hls_list_size+' -start_number 0 -hls_allow_cache 0 -hls_flags +delete_segments+omit_endlist "'+x.channel_sdir+'s.m3u8"';
             break;
             case'mjpeg':
-                if(x.stream_quality)x.stream_quality=' -q:v '+x.stream_quality;
+                if(x.stream_quality&&x.stream_quality!=='')x.stream_quality=' -q:v '+x.stream_quality;
                 x.pipe=x.stream_map+' -c:v mjpeg -f mpjpeg -boundary_tag shinobi'+x.cust_stream+x.stream_video_filters+x.stream_quality+x.stream_fps+' -s '+x.ratio+' pipe:'+number;
             break;
             default:
@@ -1341,26 +1372,6 @@ s.ffmpeg=function(e){
         if(e.details.snap_scale_x&&e.details.snap_scale_x!==''&&e.details.snap_scale_y&&e.details.snap_scale_y!==''){x.sratio=' -s '+e.details.snap_scale_x+'x'+e.details.snap_scale_y}else{x.sratio=''}
         if(e.details.cust_snap&&e.details.cust_snap!==''){x.cust_snap=' '+e.details.cust_snap;}else{x.cust_snap=''}
         x.pipe+=' -update 1 -r '+e.details.snap_fps+x.cust_snap+x.sratio+x.snap_vf+' "'+e.sdir+'s.jpg" -y';
-    }
-    //RTMP Stream
-    // -vcodec h264 -ab 128k -acodec aac -f flv "rtmp://live-api.facebook.com:80/rtmp/10156262777844319?ds=1&a=ATjmD_W006Fz9yH2"
-    if(e.details.rtmp==='1'&&e.details.rtmp_stream_key&&e.details.rtmp_stream_key!==''&&e.details.rtmp_server_url&&e.details.rtmp_server_url!==''){
-        if(!e.details.rtmp_fps||e.details.rtmp_fps===''){e.details.rtmp_fps=30}
-        x.rtmp_server_url=s.checkCorrectPathEnding(e.details.rtmp_server_url);
-        if(!e.details.rtmp_bitrate_video||e.details.rtmp_bitrate_video===''){e.details.rtmp_bitrate_video=30}
-        if(!e.details.rtmp_bitrate_audio||e.details.rtmp_bitrate_audio===''){e.details.rtmp_bitrate_audio='128k'}
-        if(e.details.rtmp_vf&&e.details.rtmp_vf!==''){x.rtmp_vf=' -vf '+e.details.rtmp_vf}else{x.rtmp_vf=''}
-        if(e.details.rtmp_scale_x&&e.details.rtmp_scale_x!==''&&e.details.rtmp_scale_y&&e.details.rtmp_scale_y!==''){x.rtmp_ratio=' -s '+e.details.rtmp_scale_x+'x'+e.details.rtmp_scale_y}else{x.rtmp_ratio=''}
-        if(e.details.cust_rtmp&&e.details.cust_rtmp!==''){x.cust_rtmp=' '+e.details.cust_rtmp;}else{x.cust_rtmp=''}
-        x.rtmp_acodec
-        if(!e.details.rtmp_vcodec||e.details.rtmp_vcodec===''||e.details.rtmp_vcodec==='no'){
-            e.details.rtmp_vcodec = 'h264'
-        }
-        x.rtmp_acodec = ''
-        if(!e.details.rtmp_acodec||e.details.rtmp_acodec===''||e.details.rtmp_acodec==='auto'){
-            e.details.rtmp_acodec = 'aac'
-        }
-        x.pipe+=' -r '+e.details.rtmp_fps+' -ab '+e.details.rtmp_bitrate_audio+x.cust_rtmp+x.rtmp_ratio+' -acodec '+e.details.rtmp_acodec+' -vcodec '+e.details.rtmp_vcodec+x.rtmp_vf+' -f flv "'+x.rtmp_server_url+e.details.rtmp_stream_key+'"';
     }
     //Raw H.264 stream over HTTP (RTSP simulation)
     if(e.details.detector_trigger=='1'&&e.details.detector_record_method==='sip'){
