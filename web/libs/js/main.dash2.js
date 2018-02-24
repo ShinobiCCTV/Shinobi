@@ -4164,6 +4164,8 @@ $('body')
                         "stream_scale_y": "",
                         "rotate_stream": "no",
                         "svf": "",
+                        "facebooklive_vcodec": "h264",
+                        "facebooklive_acodec": "aac",
                         "stream_timestamp": "0",
                         "stream_timestamp_font": "",
                         "stream_timestamp_font_size": "",

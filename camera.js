@@ -1342,6 +1342,26 @@ s.ffmpeg=function(e){
         if(e.details.cust_snap&&e.details.cust_snap!==''){x.cust_snap=' '+e.details.cust_snap;}else{x.cust_snap=''}
         x.pipe+=' -update 1 -r '+e.details.snap_fps+x.cust_snap+x.sratio+x.snap_vf+' "'+e.sdir+'s.jpg" -y';
     }
+    //Facebook Stream
+    // -vcodec h264 -ab 128k -acodec aac -f flv "rtmp://live-api.facebook.com:80/rtmp/10156262777844319?ds=1&a=ATjmD_W006Fz9yH2"
+    if(e.details.facebooklive==='1'&&e.details.facebooklive_stream_key&&e.details.facebooklive_stream_key!==''){
+        if(!e.details.facebooklive_fps||e.details.facebooklive_fps===''){e.details.facebooklive_fps=30}
+        if(!e.details.facebooklive_server_url||e.details.facebooklive_server_url===''){e.details.facebooklive_server_url='rtmp://live-api.facebook.com:80/rtmp/'}
+        if(!e.details.facebooklive_bitrate_video||e.details.facebooklive_bitrate_video===''){e.details.facebooklive_bitrate_video=30}
+        if(!e.details.facebooklive_bitrate_audio||e.details.facebooklive_bitrate_audio===''){e.details.facebooklive_bitrate_audio='128k'}
+        if(e.details.facebooklive_vf&&e.details.facebooklive_vf!==''){x.facebooklive_vf=' -vf '+e.details.facebooklive_vf}else{x.facebooklive_vf=''}
+        if(e.details.facebooklive_scale_x&&e.details.facebooklive_scale_x!==''&&e.details.facebooklive_scale_y&&e.details.facebooklive_scale_y!==''){x.facebooklive_ratio=' -s '+e.details.facebooklive_scale_x+'x'+e.details.facebooklive_scale_y}else{x.facebooklive_ratio=''}
+        if(e.details.cust_facebooklive&&e.details.cust_facebooklive!==''){x.cust_facebooklive=' '+e.details.cust_facebooklive;}else{x.cust_facebooklive=''}
+        x.facebooklive_acodec
+        if(!e.details.facebooklive_vcodec||e.details.facebooklive_vcodec===''||e.details.facebooklive_vcodec==='no'){
+            e.details.facebooklive_vcodec = 'h264'
+        }
+        x.facebooklive_acodec = ''
+        if(!e.details.facebooklive_acodec||e.details.facebooklive_acodec===''||e.details.facebooklive_acodec==='auto'){
+            e.details.facebooklive_acodec = 'aac'
+        }
+        x.pipe+=' -r '+e.details.facebooklive_fps+' -ab '+e.details.facebooklive_bitrate_audio+x.cust_facebooklive+x.facebooklive_ratio+' -acodec '+e.details.facebooklive_acodec+' -vcodec '+e.details.facebooklive_vcodec+x.facebooklive_vf+' -f flv "'+e.details.facebooklive_server_url+e.details.facebooklive_stream_key+'"';
+    }
     //Raw H.264 stream over HTTP (RTSP simulation)
     if(e.details.detector_trigger=='1'&&e.details.detector_record_method==='sip'){
         x.detector_buffer_filters=[]
