@@ -565,10 +565,10 @@
 <!--     END of JPEG     -->
 <!--     START of JPEG     -->
           <div class="form-group-group purple" section id="monSectionFacebookLive">
-          <h4><%-lang['Facebok Live Stream']%></h4>
+          <h4><%-lang['RTMP Stream']%></h4>
               <div class="form-group">
                 <label><div><span><%-lang['Enabled']%></span></div>
-                    <div><select class="form-control" detail="facebooklive" selector="h_facebooklive">
+                    <div><select class="form-control" detail="rtmp" selector="h_rtmp">
                         <option value="0" selected><%-lang.No%></option>
                         <option value="1"><%-lang.Yes%></option>
                     </select></div>
@@ -576,18 +576,18 @@
               </div>
               <div class="form-group">
                 <label><div><span><%-lang['Server URL']%></span></div>
-                <div><input class="form-control" detail="facebooklive_server_url" placeholder="rtmp://live-api.facebook.com:80/rtmp/"></div>
+                <div><input class="form-control" detail="rtmp_server_url" placeholder="Example : rtmp://live-api.facebook.com:80/rtmp/"></div>
                 </label>
               </div>
               <div class="form-group">
                 <label><div><span><%-lang['Stream Key']%></span></div>
-                <div><input class="form-control" detail="facebooklive_stream_key" placeholder="Example : 1111111111?ds=1&a=xxxxxxxxxx"></div>
+                <div><input class="form-control" detail="rtmp_stream_key" placeholder="Example : 1111111111?ds=1&a=xxxxxxxxxx"></div>
                 </label>
               </div>
-              <div class="h_facebooklive_input h_facebooklive_1" style="display:none">
+              <div class="h_rtmp_input h_rtmp_1" style="display:none">
                   <div class="form-group">
                     <label><div><span><%-lang['Video Codec']%></span></div>
-                        <div><select class="form-control" detail="facebooklive_vcodec">
+                        <div><select class="form-control" detail="rtmp_vcodec">
                             <option value="no"><%-lang['Auto']%></option>
                             <option value="h264" selected><%-lang['libx264']%></option>
                             <option value="libx265"><%-lang['libx265']%></option>
@@ -606,7 +606,7 @@
                   </div>
                   <div class="form-group">
                     <label><div><span><%-lang['Audio Codec']%></span></div>
-                        <div><select class="form-control" detail="facebooklive_acodec">
+                        <div><select class="form-control" detail="rtmp_acodec">
                             <option value="no"><%-lang['No Audio']%></option>
                             <option value=""><%-lang['Auto']%></option>
                             <option value="aac" selected><%-lang['aac']%></option>
@@ -616,32 +616,32 @@
                   </div>
                   <div class="form-group">
                     <label><div><span><%-lang['Frame Rate']%></span></div>
-                    <div><input class="form-control" detail="facebooklive_fps" placeholder="30"></div>
+                    <div><input class="form-control" detail="rtmp_fps" placeholder="30"></div>
                     </label>
                   </div>
                   <div class="form-group">
                     <label><div><span><%-lang['Video Bit Rate']%></span></div>
-                    <div><input class="form-control" detail="facebooklive_bitrate_video" placeholder=""></div>
+                    <div><input class="form-control" detail="rtmp_bitrate_video" placeholder=""></div>
                     </label>
                   </div>
                   <div class="form-group">
                     <label><div><span><%-lang['Audio Bit Rate']%></span></div>
-                    <div><input class="form-control" detail="facebooklive_bitrate_audio" placeholder="128k"></div>
+                    <div><input class="form-control" detail="rtmp_bitrate_audio" placeholder="128k"></div>
                     </label>
                   </div>
                   <div class="form-group">
                     <label><div><span><%-lang['Image Width']%></span></div>
-                    <div><input class="form-control" detail="facebooklive_scale_x" placeholder=""></div>
+                    <div><input class="form-control" detail="rtmp_scale_x" placeholder=""></div>
                     </label>
                   </div>
                   <div class="form-group">
                     <label><div><span><%-lang['Image Height']%></span></div>
-                    <div><input class="form-control" detail="facebooklive_scale_y" placeholder=""></div>
+                    <div><input class="form-control" detail="rtmp_scale_y" placeholder=""></div>
                     </label>
                   </div>
                   <div class="form-group">
                     <label><div><span><%-lang['Video Filter']%></span></div>
-                    <div><input class="form-control" detail="facebooklive_vf"></div>
+                    <div><input class="form-control" detail="rtmp_vf"></div>
                     </label>
                   </div>
               </div>
@@ -871,9 +871,9 @@
                 <div><input class="form-control" detail="cust_snap"></div>
                 </label>
               </div>
-              <div class="form-group h_facebooklive_input h_facebooklive_1" style="display:none">
-                <label><div><span><%-lang['Facebok Live Stream Flags']%></span></div>
-                <div><input class="form-control" detail="cust_facebooklive"></div>
+              <div class="form-group h_rtmp_input h_rtmp_1" style="display:none">
+                <label><div><span><%-lang['RTMP Stream Flags']%></span></div>
+                <div><input class="form-control" detail="cust_rtmp"></div>
                 </label>
               </div>
               <div class="form-group h_rawh264_input h_rawh264_1" style="display:none">
