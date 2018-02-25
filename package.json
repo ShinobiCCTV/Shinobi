@@ -22,6 +22,7 @@
     "circular-json": "0.3.1",
     "connection-tester": "^0.1.1",
     "crypto": "^0.0.3",
+    "mp4frag": "^0.0.15",
     "ejs": "^2.5.5",
     "express": "^4.14.0",
     "jsonfile": "^3.0.1",
