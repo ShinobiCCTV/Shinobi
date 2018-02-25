@@ -40,6 +40,7 @@ var connectionTester = require('connection-tester');
 var events = require('events');
 var Cam = require('onvif').Cam;
 var knex = require('knex');
+var Mp4Frag = require('mp4frag');
 const P2P = require('pipe2pam');
 const PamDiff = require('pam-diff');
 var location = {}
@@ -527,7 +528,9 @@ s.init=function(x,e,k,fn){
             if(!s.group[e.ke].mon[e.mid]){s.group[e.ke].mon[e.mid]={}}
             if(!s.group[e.ke].mon[e.mid].streamIn){s.group[e.ke].mon[e.mid].streamIn={}};
             if(!s.group[e.ke].mon[e.mid].emitterChannel){s.group[e.ke].mon[e.mid].emitterChannel={}};
-            if(!s.group[e.ke].mon[e.mid].firstFLVchunk){s.group[e.ke].mon[e.mid].firstFLVchunk={}};
+            if(!s.group[e.ke].mon[e.mid].mp4frag){s.group[e.ke].mon[e.mid].mp4frag={}};
+            if(!s.group[e.ke].mon[e.mid].firstStreamChunk){s.group[e.ke].mon[e.mid].firstStreamChunk={}};
+            if(!s.group[e.ke].mon[e.mid].contentWriter){s.group[e.ke].mon[e.mid].contentWriter={}};
             if(!s.group[e.ke].mon[e.mid].eventBasedRecording){s.group[e.ke].mon[e.mid].eventBasedRecording={}};
             if(!s.group[e.ke].mon[e.mid].watch){s.group[e.ke].mon[e.mid].watch={}};
             if(!s.group[e.ke].mon[e.mid].fixingVideos){s.group[e.ke].mon[e.mid].fixingVideos={}};
@@ -1161,6 +1164,17 @@ s.ffmpeg=function(e){
     }
     //stream - pipe build
     switch(e.details.stream_type){
+        case'mp4':
+            x.cust_stream+=' -movflags +frag_keyframe+empty_moov+default_base_moof -metadata title="Poseidon Stream" -reset_timestamps 1'
+            if(e.details.stream_vcodec!=='copy'){
+                if(x.cust_stream.indexOf('-s ')===-1){x.cust_stream+=' -s '+x.ratio}
+                x.cust_stream+=x.stream_fps
+                if(x.stream_quality&&x.stream_quality!=='')x.stream_quality=' -crf '+x.stream_quality;
+                x.cust_stream+=x.stream_quality
+                x.cust_stream+=x.preset_stream
+            }
+            x.pipe=' -f mp4'+x.stream_acodec+x.stream_vcodec+x.stream_video_filters+x.cust_stream+' pipe:1';
+        break;
         case'flv':
             if(e.details.stream_vcodec!=='copy'){
                 if(x.cust_stream.indexOf('-s ')===-1){x.cust_stream+=' -s '+x.ratio}
@@ -2049,9 +2063,13 @@ s.camera=function(x,e,cn,tx){
                             //frames to stream
                                ++e.frames;
                            switch(e.details.stream_type){
+                               case'mp4':
+                                   s.group[e.ke].mon[e.id].mp4frag['MAIN'] = new Mp4Frag();
+                                   s.group[e.ke].mon[e.id].spawn.stdio[1].pipe(s.group[e.ke].mon[e.id].mp4frag['MAIN'])
+                               break;
                                case'flv':
                                    e.frame_to_stream=function(d){
-                                       if(!s.group[e.ke].mon[e.id].firstFLVchunk['MAIN'])s.group[e.ke].mon[e.id].firstFLVchunk['MAIN'] = d;
+                                       if(!s.group[e.ke].mon[e.id].firstStreamChunk['MAIN'])s.group[e.ke].mon[e.id].firstStreamChunk['MAIN'] = d;
                                        e.frame_to_stream=function(d){
                                            e.resetStreamCheck()
                                            s.group[e.ke].mon[e.id].emitter.emit('data',d);
@@ -2100,7 +2118,7 @@ s.camera=function(x,e,cn,tx){
                                        break;
                                        case'flv':
                                            frame_to_stream=function(d){
-                                               if(!s.group[e.ke].mon[e.id].firstFLVchunk[number+config.pipeAddition])s.group[e.ke].mon[e.id].firstFLVchunk[number+config.pipeAddition] = d;
+                                               if(!s.group[e.ke].mon[e.id].firstStreamChunk[number+config.pipeAddition])s.group[e.ke].mon[e.id].firstStreamChunk[number+config.pipeAddition] = d;
                                                frame_to_stream=function(d){
                                                    s.group[e.ke].mon[e.id].emitterChannel[number+config.pipeAddition].emit('data',d);
                                                }
@@ -2600,14 +2618,128 @@ var tx;
             if(!Emitter){
                 cn.disconnect();return;
             }
+            if(!d.channel)d.channel = 'MAIN';
             cn.ke=d.ke,
             cn.uid=d.uid,
             cn.auth=d.auth;
             cn.channel=d.channel;
-            cn.flvStream=d.id;
-            tx({time:toUTC(),buffer:s.group[d.ke].mon[d.id].firstFLVchunk[chunkChannel]})
-            Emitter.on('data',s.group[d.ke].mon[d.id].contentWriter=function(buffer){
+            cn.removeListenerOnDisconnect=true;
+            cn.socketVideoStream=d.id;
+            tx({time:toUTC(),buffer:s.group[d.ke].mon[d.id].firstStreamChunk[chunkChannel]})
+            Emitter.on('data',s.group[d.ke].mon[d.id].contentWriter[chunkChannel]=function(buffer){
                 tx({time:toUTC(),buffer:buffer})
+            })
+         }
+        s.sqlQuery('SELECT ke,uid,auth,mail,details FROM Users WHERE ke=? AND auth=? AND uid=?',[d.ke,d.auth,d.uid],function(err,r) {
+            if(r&&r[0]){
+                d.success(r)
+            }else{
+                s.sqlQuery('SELECT * FROM API WHERE ke=? AND code=? AND uid=?',[d.ke,d.auth,d.uid],function(err,r) {
+                    if(r&&r[0]){
+                        r=r[0]
+                        r.details=JSON.parse(r.details)
+                        if(r.details.auth_socket==='1'){
+                            s.sqlQuery('SELECT ke,uid,auth,mail,details FROM Users WHERE ke=? AND uid=?',[r.ke,r.uid],function(err,r) {
+                                if(r&&r[0]){
+                                    d.success(r)
+                                }else{
+                                    d.failed('User not found')
+                                }
+                            })
+                        }else{
+                            d.failed('Permissions for this key do not allow authentication with Websocket')
+                        }
+                    }else{
+                        d.failed('Not an API key')
+                    }
+                })
+            }
+        })
+    })
+    //unique MP4 socket stream
+    cn.on('MP4',function(d){
+        if(!s.group[d.ke]||!s.group[d.ke].mon||!s.group[d.ke].mon[d.id]){
+            cn.disconnect();return;
+        }
+        cn.ip=cn.request.connection.remoteAddress;
+        var toUTC = function(){
+            return new Date().toISOString();
+        }
+        var tx=function(z){cn.emit('data',z);}
+        d.failed=function(msg){
+            tx({f:'stop_reconnect',msg:msg,token_used:d.auth,ke:d.ke});
+            cn.disconnect();
+        }
+        d.success=function(r){
+            r=r[0];
+            var Emitter,chunkChannel
+            if(!d.channel){
+                Emitter = s.group[d.ke].mon[d.id].emitter
+                chunkChannel = 'MAIN'
+            }else{
+                Emitter = s.group[d.ke].mon[d.id].emitterChannel[parseInt(d.channel)+config.pipeAddition]
+                chunkChannel = parseInt(d.channel)+config.pipeAddition
+            }
+            if(!Emitter){
+                cn.disconnect();return;
+            }
+            if(!d.channel)d.channel = 'MAIN';
+            cn.ke=d.ke,
+            cn.uid=d.uid,
+            cn.auth=d.auth;
+            cn.channel=d.channel;
+            cn.socketVideoStream=d.id;
+            var mp4frag = s.group[d.ke].mon[d.id].mp4frag[d.channel];
+            var onInitialized = () => {
+                cn.emit('mime', mp4frag.mime);
+                mp4frag.removeListener('initialized', onInitialized);
+            };
+
+            //event listener
+            var onSegment = function(data){
+                cn.emit('segment', data);
+            };
+            cn.on('MP4Command',function(msg){
+                switch (msg) {
+                    case 'mime' ://client is requesting mime
+                        var mime = mp4frag.mime;
+                        if (mime) {
+                            cn.emit('mime', mime);
+                        } else {
+                            mp4frag.on('initialized', onInitialized);
+                        }
+                    break;
+                    case 'initialization' ://client is requesting initialization segment
+                        cn.emit('initialization', mp4frag.initialization);
+                    break;
+                    case 'segment' ://client is requesting a SINGLE segment
+                        var segment = mp4frag.segment;
+                        if (segment) {
+                            cn.emit('segment', segment);
+                        } else {
+                            mp4frag.once('segment', onSegment);
+                        }
+                    break;
+                    case 'segments' ://client is requesting ALL segments
+                        //send current segment first to start video asap
+                        var segment = mp4frag.segment;
+                        if (segment) {
+                            cn.emit('segment', segment);
+                        }
+                        //add listener for segments being dispatched by mp4frag
+                        mp4frag.on('segment', onSegment);
+                    break;
+                    case 'pause' :
+                        mp4frag.removeListener('segment', onSegment);
+                    break;
+                    case 'resume' :
+                        mp4frag.on('segment', onSegment);
+                    break;
+                    case 'stop' ://client requesting to stop receiving segments
+                        mp4frag.removeListener('segment', onSegment);
+                        mp4frag.removeListener('initialized', onInitialized);
+                    break;
+                }
             })
         }
         s.sqlQuery('SELECT ke,uid,auth,mail,details FROM Users WHERE ke=? AND auth=? AND uid=?',[d.ke,d.auth,d.uid],function(err,r) {
@@ -3511,8 +3643,10 @@ var tx;
         }
     })
     cn.on('disconnect', function () {
-        if(cn.flvStream){
-            s.group[cn.ke].mon[cn.flvStream].emitter.removeListener('data',s.group[cn.ke].mon[cn.flvStream].contentWriter)
+        if(cn.removeListenerOnDisconnect){
+            s.group[cn.ke].mon[cn.socketVideoStream].emitter.removeListener('data',s.group[cn.ke].mon[cn.socketVideoStream].contentWriter[cn.channel])
+        }
+        if(cn.socketVideoStream){
             return
         }
         if(cn.ke){
@@ -4183,14 +4317,14 @@ app.get(['/:auth/flv/:ke/:id/s.flv','/:auth/flv/:ke/:id/:channel/s.flv'], functi
             Emitter = s.group[req.params.ke].mon[req.params.id].emitterChannel[parseInt(req.params.channel)+config.pipeAddition]
             chunkChannel = parseInt(req.params.channel)+config.pipeAddition
         }
-        if(s.group[req.params.ke].mon[req.params.id].firstFLVchunk[chunkChannel]){
+        if(s.group[req.params.ke].mon[req.params.id].firstStreamChunk[chunkChannel]){
             //variable name of contentWriter
             var contentWriter
             //set headers
             res.setHeader('Content-Type', 'video/x-flv');
             res.setHeader('Access-Control-Allow-Origin','*');
             //write first frame on stream
-            res.write(s.group[req.params.ke].mon[req.params.id].firstFLVchunk[chunkChannel])
+            res.write(s.group[req.params.ke].mon[req.params.id].firstStreamChunk[chunkChannel])
             //write new frames as they happen
             Emitter.on('data',contentWriter=function(buffer){
                 res.write(buffer)
@@ -4346,6 +4480,9 @@ app.get(['/:auth/tvChannels/:ke','/:auth/tvChannels/:ke/:id','/get.php'], functi
                         case'flv':
                             streamURL='/'+req.params.auth+'/flv/'+v.ke+'/'+v.mid+channelNumber+'/s.flv'
                         break;
+                        case'mp4':
+                            streamURL='/'+req.params.auth+'/mp4/'+v.ke+'/'+v.mid+channelNumber+'/s.mp4'
+                        break;
                     }
                     if(streamURL){
                         if(!channelRow.streamsSortedByType[type]){
@@ -4459,6 +4596,9 @@ app.get(['/:auth/monitor/:ke','/:auth/monitor/:ke/:id'], function (req,res){
                             break;
                             case'flv':
                                 streamURL='/'+req.params.auth+'/flv/'+v.ke+'/'+v.mid+'/'+m+'/s.flv'
+                            break;
+                            case'mp4':
+                                streamURL='/'+req.params.auth+'/mp4/'+v.ke+'/'+v.mid+'/'+m+'/s.mp4'
                             break;
                         }
                         r[n].channels.push(streamURL)
@@ -5105,6 +5245,35 @@ app.all(['/streamIn/:ke/:id','/streamIn/:ke/:id/:feed'], function (req, res) {
         res.end('Local connection is only allowed.')
     }
 })
+//MP4 Stream
+app.get(['/:auth/mp4/:ke/:id/:channel/s.mp4','/:auth/mp4/:ke/:id/s.mp4'], function (req, res) {
+    res.header("Access-Control-Allow-Origin",req.headers.origin);
+    s.auth(req.params,function(user){
+        var Channel = 'MAIN'
+        if(req.params.channel){
+            Channel = parseInt(req.params.channel)+config.pipeAddition
+        }
+        var mp4frag = s.group[req.params.ke].mon[req.params.id].mp4frag[Channel];
+        if(!mp4frag){
+            res.status(503);
+            res.end('MP4 Stream is not enabled');
+        }else{
+            var init = mp4frag.initialization;
+            if (!init) {
+                //browser may have requested init segment before it was ready
+                res.status(503);
+                res.end('resource not ready');
+            } else {
+                res.status(200);
+                res.write(init);
+                mp4frag.pipe(res);
+                res.on('close', () => {
+                    mp4frag.unpipe(res);
+                });
+            }
+        }
+    });
+});
 //simulate RTSP over HTTP
 app.get(['/:auth/h264/:ke/:id/:channel','/:auth/h264/:ke/:id'], function (req, res) {
     res.header("Access-Control-Allow-Origin",req.headers.origin);

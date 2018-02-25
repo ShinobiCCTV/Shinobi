@@ -109,7 +109,7 @@ switch($user.details.lang){
             break;
             case'streamMotionDetectOn':
                 switch(JSON.parse(d.mon.details).stream_type){
-                    case'hls':case'flv':
+                    case'hls':case'flv':case'mp4':
                         //pass
                     break;
                     default:
@@ -260,6 +260,9 @@ switch($user.details.lang){
                     break;
                     case'flv':
                         streamURL=$.ccio.init('location',user)+user.auth_token+'/flv/'+d.ke+'/'+d.mid+'/s.flv'
+                    break;
+                    case'mp4':
+                        streamURL=$.ccio.init('location',user)+user.auth_token+'/mp4/'+d.ke+'/'+d.mid+'/s.mp4'
                     break;
                     case'b64':
                         streamURL='Websocket'
@@ -587,7 +590,7 @@ switch($user.details.lang){
                         case'b64':
                             d.p.resize()
                         break;
-                        case'hls':case'flv':
+                        case'hls':case'flv':case'mp4':
                             if(d.p.find('video')[0].paused){
                                 if(d.d.signal_check_log==1){
                                     d.log={type:'Stream Check',msg:'<%-cleanLang(lang.clientStreamFailedattemptingReconnect)%>'}
@@ -684,7 +687,7 @@ switch($user.details.lang){
                 cb(url,image_data,width,height);
             }
             switch(JSON.parse(e.mon.details).stream_type){
-                case'hls':case'flv':
+                case'hls':case'flv':case'mp4':
                     $.ccio.snapshotVideo($('[mid='+e.mon.mid+'].monitor_item video')[0],function(base64,video_data,width,height){
                         extend(video_data,width,height)
                     })
@@ -942,7 +945,7 @@ switch($user.details.lang){
                     tmp+='<img class="stream-element">';
                 }else{
                     switch(k.d.stream_type){
-                        case'hls':case'flv':
+                        case'hls':case'flv':case'mp4':
                             tmp+='<video class="stream-element" autoplay></video>';
                         break;
                         case'mjpeg':
@@ -1510,9 +1513,48 @@ $.ccio.globalWebsocket=function(d,user){
             if($.ccio.op().jpeg_on===true){
                 $.ccio.init('jpegMode',$.ccio.mon[d.ke+d.id+user.auth_token]);
             }else{
+                var url = $.ccio.init('location',user);
+                var prefix = 'ws'
+                if(location.protocol==='https:'){
+                    prefix = 'wss'
+                }
+                if(url=='/'){
+                    url = prefix+'://'+location.host
+                }else{
+                    url = prefix+'://'+url.split('://')[1]
+                }
                 switch(d.d.stream_type){
                     case'jpeg':
                         $.ccio.init('jpegMode',$.ccio.mon[d.ke+d.id+user.auth_token]);
+                    break;
+                    case'mp4':
+                        var stream = d.e.find('.stream-element');
+                        if(d.d.stream_flv_type==='ws'){
+                            if($.ccio.mon[d.ke+d.id+user.auth_token].Poseidon){
+                                $.ccio.mon[d.ke+d.id+user.auth_token].Poseidon.destroy()
+                            }
+                            try{
+                                $.ccio.mon[d.ke+d.id+user.auth_token].Poseidon = new Poseidon({
+                                    video: stream[0],
+                                    auth_token:user.auth_token,
+                                    ke:d.ke,
+                                    uid:user.uid,
+                                    id:d.id,
+                                    url: url
+                                });
+                                $.ccio.mon[d.ke+d.id+user.auth_token].Poseidon.start();
+                            }catch(err){
+                                setTimeout(function(){
+                                    $.ccio.cx({f:'monitor',ff:'watch_on',id:d.id},user)
+                                },3000)
+                                console.log(err)
+                            }
+                        }else{
+                            stream.attr('src',$.ccio.init('location',user)+user.auth_token+'/mp4/'+d.ke+'/'+d.id+'/s.mp4')
+                            setTimeout(function(){
+                                $.ccio.init('signal-check',{id:d.id,ke:d.ke})
+                            },3000)
+                        }
                     break;
                     case'flv':
                         if (flvjs.isSupported()) {
@@ -1525,16 +1567,6 @@ $.ccio.globalWebsocket=function(d,user){
                                     d.d.stream_flv_maxLatency = parseInt(d.d.stream_flv_maxLatency)
                                 }else{
                                     d.d.stream_flv_maxLatency = 20000;
-                                }
-                                var url = $.ccio.init('location',user);
-                                var prefix = 'ws'
-                                if(location.protocol==='https:'){
-                                    prefix = 'wss'
-                                }
-                                if(url=='/'){
-                                    url = prefix+'://'+location.host
-                                }else{
-                                    url = prefix+'://'+url.split('://')[1]
                                 }
                                 options = {
                                     type: 'flv',
