@@ -11,19 +11,8 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 var Poseidon = function () {
     function Poseidon(options, callback) {
         var _this = this;
-        //check for host
-        if (!options.host) {
-            options.host = location.origin;
-        }
-        //check for protocol, if not found add `http://`
-        if (options.host.indexOf('://') === -1) {
-            options.host = 'http://' + options.host;
-        }
-        if (!options.port) {
-            options.port = 80;
-        }
         this._namespace = options.ke+options.id;
-        console.log(options)
+        console.log('Poseidon Start: ' + options.id);
         var _monitor = {
             url: options.url,
             auth: options.auth_token,
