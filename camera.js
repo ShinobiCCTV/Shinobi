@@ -2802,7 +2802,7 @@ var tx;
                 s.tx({f:'user_status_change',ke:d.ke,uid:cn.uid,status:1,user:s.group[d.ke].users[d.auth]},'GRP_'+d.ke)
                 s.init('diskUsedEmit',d)
                 s.init('apps',d)
-                s.sqlQuery('SELECT * FROM API WHERE ke=? && uid=?',[d.ke,d.uid],function(err,rrr) {
+                s.sqlQuery('SELECT * FROM API WHERE ke=? AND uid=?',[d.ke,d.uid],function(err,rrr) {
                     tx({
                         f:'init_success',
                         users:s.group[d.ke].vid,
@@ -3494,7 +3494,7 @@ var tx;
     // admin page socket functions
     cn.on('a',function(d){
         if(!cn.init&&d.f=='init'){
-            s.sqlQuery('SELECT * FROM Users WHERE auth=? && uid=?',[d.auth,d.uid],function(err,r){
+            s.sqlQuery('SELECT * FROM Users WHERE auth=? AND uid=?',[d.auth,d.uid],function(err,r){
                 if(r&&r[0]){
                     r=r[0];
                     if(!s.group[d.ke]){s.group[d.ke]={users:{}}}
@@ -3523,14 +3523,14 @@ var tx;
                                         d.condition.push(v+'=?')
                                         d.value.push(d.form[v])
                                     })
-                                    d.value=d.value.concat([cn.ke,d.$uid])
+                                    d.value=d.value.concat([d.ke,d.$uid])
                                     s.sqlQuery("UPDATE Users SET "+d.condition.join(',')+" WHERE ke=? AND uid=?",d.value)
-                                    s.tx({f:'edit_sub_account',ke:cn.ke,uid:d.$uid,mail:d.mail,form:d.form},'ADM_'+d.ke);
+                                    s.tx({f:'edit_sub_account',ke:d.ke,uid:d.$uid,mail:d.mail,form:d.form},'ADM_'+d.ke);
                                 break;
                                 case'delete':
-                                    s.sqlQuery('DELETE FROM Users WHERE uid=? AND ke=? AND mail=?',[d.$uid,cn.ke,d.mail])
-                                    s.sqlQuery('DELETE FROM API WHERE uid=? AND ke=?',[d.$uid,cn.ke])
-                                    s.tx({f:'delete_sub_account',ke:cn.ke,uid:d.$uid,mail:d.mail},'ADM_'+d.ke);
+                                    s.sqlQuery('DELETE FROM Users WHERE uid=? AND ke=? AND mail=?',[d.$uid,d.ke,d.mail])
+                                    s.sqlQuery('DELETE FROM API WHERE uid=? AND ke=?',[d.$uid,d.ke])
+                                    s.tx({f:'delete_sub_account',ke:d.ke,uid:d.$uid,mail:d.mail},'ADM_'+d.ke);
                                 break;
                             }
                         break;
