@@ -5,6 +5,14 @@ echo "========================================================="
 echo "To answer yes type the letter (y) in lowercase and press ENTER."
 echo "Default is no (N). Skip any components you already have or don't need."
 echo "============="
+if [ ! -e "./conf.json" ]; then
+    cp conf.sample.json conf.json
+fi
+if [ ! -e "./super.json" ]; then
+    echo "Default Superuser : admin@shinobi.video"
+    echo "Default Password : admin"
+    cp super.sample.json super.json
+fi
 echo "Shinobi - Run yum update"
 sudo yum update -y
 echo "Shinobi - Get dependencies"
@@ -27,9 +35,20 @@ echo "============="
 echo "Shinobi - Do you want to use MariaDB or SQLite3?"
 echo "SQLite3 is better for small installs"
 echo "MariaDB (MySQL) is better for large installs"
-echo "(S)QLite3 or (M)ariaDB? SQLite3 is the default."
+echo "(S)QLite3 or (M)ariaDB?"
+echo "Press [ENTER] for default (MariaDB)"
 read sqliteormariadb
-if [ "$sqliteormariadb" = "M" ] || [ "$sqliteormariadb" = "m" ]; then
+if [ "$sqliteormariadb" = "S" ] || [ "$sqliteormariadb" = "s" ]; then
+    sudo npm install jsonfile
+    sudo yum install -y sqlite sqlite-devel -y
+    node ./tools/modifyConfiguration.js databaseType=sqlite3
+    if [ ! -e "./shinobi.sqlite" ]; then
+        echo "Creating shinobi.sqlite for SQLite3..."
+        sudo cp sql/shinobi.sample.sqlite shinobi.sqlite
+    else
+        echo "shinobi.sqlite already exists. Continuing..."
+    fi
+else
     echo "============="
     echo "Shinobi - Do you want to Install MariaDB?"
     echo "(y)es or (N)o"
@@ -84,16 +103,6 @@ if [ "$sqliteormariadb" = "M" ] || [ "$sqliteormariadb" = "m" ]; then
             echo "** To change these settings login to either to the Superuser panel or login to the dashboard as the user that was just created and open the Settings window. **"
         fi
     fi
-else
-    sudo npm install jsonfile
-    sudo yum install -y sqlite sqlite-devel -y
-    node ./tools/modifyConfiguration.js databaseType=sqlite3
-    if [ ! -e "./shinobi.sqlite" ]; then
-        echo "Creating shinobi.sqlite for SQLite3..."
-        sudo cp sql/shinobi.sample.sqlite shinobi.sqlite
-    else
-        echo "shinobi.sqlite already exists. Continuing..."
-    fi
 fi
 echo "============="
 echo "Shinobi - Install NPM Libraries"
@@ -101,14 +110,6 @@ sudo npm install
 echo "============="
 echo "Shinobi - Install PM2"
 sudo npm install pm2 -g
-if [ ! -e "./conf.json" ]; then
-    cp conf.sample.json conf.json
-fi
-if [ ! -e "./super.json" ]; then
-    echo "Default Superuser : admin@shinobi.video"
-    echo "Default Password : admin"
-    cp super.sample.json super.json
-fi
 echo "Shinobi - Finished"
 sudo chmod -R 755 .
 touch INSTALL/installed.txt
