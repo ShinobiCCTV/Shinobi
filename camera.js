@@ -78,6 +78,7 @@ if(config.mail){
 }
 //config defaults
 if(config.cpuUsageMarker===undefined){config.cpuUsageMarker='%Cpu'}
+if(config.customCpuCommand===undefined){config.customCpuCommand=null}
 if(config.autoDropCache===undefined){config.autoDropCache=true}
 if(config.doSnapshot===undefined){config.doSnapshot=true}
 if(config.restart===undefined){config.restart={}}
@@ -5364,14 +5365,21 @@ s.cpuUsage=function(e){
             k.cmd='LANG=C top -b -n 2 | grep "^'+config.cpuUsageMarker+'" | awk \'{print $2}\' | tail -n1';
         break;
     }
-    if(k.cmd){
+    if(config.customCpuCommand){
+      exec(config.customCpuCommand,{encoding:'utf8',detached: true},function(err,d){
+          if(s.isWin===true) {
+              d = d.replace(/(\r\n|\n|\r)/gm, "").replace(/%/g, "")
+          }
+          e(d)
+      });
+    } else if(k.cmd){
          exec(k.cmd,{encoding:'utf8',detached: true},function(err,d){
              if(s.isWin===true){
                  d=d.replace(/(\r\n|\n|\r)/gm,"").replace(/%/g,"")
              }
              e(d)
          });
-    }else{
+    } else{
         e(0)
     }
 }
