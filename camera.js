@@ -4414,7 +4414,7 @@ app.get(['/:auth/tvChannels/:ke','/:auth/tvChannels/:ke/:id','/get.php'], functi
         req.params.username = req.query.username
         req.params.password = req.query.password
     }
-    var output = ['h264','hls']
+    var output = ['h264','hls','mp4']
     if(req.query.output&&req.query.output!==''){
         output = req.query.output.split(',')
         output.forEach(function(type,n){
@@ -4483,7 +4483,7 @@ app.get(['/:auth/tvChannels/:ke','/:auth/tvChannels/:ke/:id','/get.php'], functi
                             streamURL='/'+req.params.auth+'/flv/'+v.ke+'/'+v.mid+channelNumber+'/s.flv'
                         break;
                         case'mp4':
-                            streamURL='/'+req.params.auth+'/mp4/'+v.ke+'/'+v.mid+channelNumber+'/s.mp4'
+                            streamURL='/'+req.params.auth+'/mp4/'+v.ke+'/'+v.mid+channelNumber+'/s.ts'
                         break;
                     }
                     if(streamURL){
@@ -5248,7 +5248,7 @@ app.all(['/streamIn/:ke/:id','/streamIn/:ke/:id/:feed'], function (req, res) {
     }
 })
 //MP4 Stream
-app.get(['/:auth/mp4/:ke/:id/:channel/s.mp4','/:auth/mp4/:ke/:id/s.mp4'], function (req, res) {
+app.get(['/:auth/mp4/:ke/:id/:channel/s.mp4','/:auth/mp4/:ke/:id/s.mp4','/:auth/mp4/:ke/:id/:channel/s.ts','/:auth/mp4/:ke/:id/s.ts'], function (req, res) {
     res.header("Access-Control-Allow-Origin",req.headers.origin);
     s.auth(req.params,function(user){
         var Channel = 'MAIN'
