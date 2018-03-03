@@ -1141,6 +1141,11 @@ switch($user.details.lang){
                 tmp+='              </div>'
                 tmp+='          </div>'
                 tmp+='              <div class="form-group">'
+                tmp+='                <label><div><span><%-lang["Rate"]%></span></div>'
+                tmp+='                <div><input class="form-control" channel-detail="stream_fps" placeholder=""></div>'
+                tmp+='                </label>'
+                tmp+='              </div>'
+                tmp+='              <div class="form-group">'
                 tmp+='                <label><div><span><%-lang["Width"]%></span></div>'
                 tmp+='                <div><input class="form-control" type="number" min="1" channel-detail="stream_scale_x" placeholder="Example : 640"></div>'
                 tmp+='                </label>'
@@ -4197,7 +4202,7 @@ $('body')
                         "hwaccel": "0",
                         "hwaccel_vcodec": "",
                         "hwaccel_device": "",
-                        "stream_type": "hls",
+                        "stream_type": "mp4",
                         "stream_mjpeg_clients": "",
                         "stream_vcodec": "copy",
                         "stream_acodec": "no",

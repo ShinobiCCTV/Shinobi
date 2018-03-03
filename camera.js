@@ -1218,14 +1218,16 @@ s.ffmpeg=function(e){
         }
         x.stream_video_filters=[]
         //stream - frames per second
-        if(!channel.stream_fps||channel.stream_fps===''){
-            switch(channel.stream_type){
-                case'rtmp':
-                    channel.stream_fps=30
-                break;
-                default:
-                    channel.stream_fps=5
-                break;
+        if(channel.stream_vcodec!=='copy'&&channel.stream_vcodec!=='no'){
+            if(!channel.stream_fps||channel.stream_fps===''){
+                switch(channel.stream_type){
+                    case'rtmp':
+                        channel.stream_fps=30
+                    break;
+                    default:
+//                        channel.stream_fps=5
+                    break;
+                }
             }
         }
         if(channel.stream_fps&&channel.stream_fps!==''){x.stream_fps=' -r '+channel.stream_fps}else{x.stream_fps=''}
@@ -1328,7 +1330,7 @@ s.ffmpeg=function(e){
             break;
             case'h264':
                 if(channel.stream_vcodec!=='copy'){
-                    if(x.cust_stream.indexOf('-s ')===-1){x.cust_stream+=' -s '+x.ratio}
+                    if(x.cust_stream.indexOf('-s ')===-1&&x.ratio){x.cust_stream+=' -s '+x.ratio}
                     x.cust_stream+=x.stream_fps
                     if(x.stream_quality&&x.stream_quality!=='')x.stream_quality=' -crf '+x.stream_quality;
                     x.cust_stream+=x.stream_quality
@@ -1338,7 +1340,7 @@ s.ffmpeg=function(e){
             break;
             case'flv':
                 if(channel.stream_vcodec!=='copy'){
-                    if(x.cust_stream.indexOf('-s ')===-1){x.cust_stream+=' -s '+x.ratio}
+                    if(x.cust_stream.indexOf('-s ')===-1&&x.ratio){x.cust_stream+=' -s '+x.ratio}
                     x.cust_stream+=x.stream_fps
                     if(x.stream_quality&&x.stream_quality!=='')x.stream_quality=' -crf '+x.stream_quality;
                     x.cust_stream+=x.stream_quality
