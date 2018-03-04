@@ -938,10 +938,12 @@ s.ffmpeg=function(e){
     var createFFmpegMap = function(arrayOfMaps){
         //e.details.input_map_choices.stream
         var string = '';
-        arrayOfMaps.forEach(function(v){
-            if(v.map==='')v.map='0'
-            string += ' -map '+v.map
-        })
+        if(arrayOfMaps && arrayOfMaps instanceof Array && arrayOfMaps.length>0){
+            arrayOfMaps.forEach(function(v){
+                if(v.map==='')v.map='0'
+                string += ' -map '+v.map
+            })
+        }
         return string;
     }
     var createInputMap = function(number,input){
@@ -972,7 +974,10 @@ s.ffmpeg=function(e){
             x.cust_input+=' -reconnect 1';
         }
         if((input.type==='h264'||input.type==='mp4')&&input.fulladdress.indexOf('rtsp://')>-1&&input.rtsp_transport!==''&&input.rtsp_transport!=='no'){
-            x.cust_input+=' -rtsp_transport '+input.rtsp_transport;
+            x.cust_input += ' -rtsp_transport '+input.rtsp_transport;
+        }
+        if((input.type==='mp4'||input.type==='mjpeg')&&x.cust_input.indexOf('-re')===-1){
+            x.cust_input += ' -re'
         }
         //hardware acceleration
         if(input.accelerator&&input.accelerator==='1'){
@@ -1085,7 +1090,12 @@ s.ffmpeg=function(e){
             x.stream_video_filters.push(channel.svf)
         }
         if(x.stream_video_filters.length>0){
-            x.stream_video_filters=' -vf '+x.stream_video_filters.join(',')
+            var string = x.stream_video_filters.join(',').trim()
+            if(string===''){
+                x.stream_video_filters=''
+            }else{
+                x.stream_video_filters=' -vf '+string
+            }
         }else{
             x.stream_video_filters=''
         }
@@ -1107,8 +1117,8 @@ s.ffmpeg=function(e){
                 x.pipe+=' -f mp4'+x.stream_acodec+x.stream_vcodec+x.cust_stream+' pipe:'+number;
             break;
             case'rtmp':
+                x.rtmp_server_url=s.checkCorrectPathEnding(channel.rtmp_server_url);
                 if(channel.stream_vcodec!=='copy'){
-                    x.rtmp_server_url=s.checkCorrectPathEnding(channel.rtmp_server_url);
                     if(channel.stream_vcodec==='libx264'){
                         channel.stream_vcodec = 'h264'
                     }
@@ -1116,9 +1126,11 @@ s.ffmpeg=function(e){
                     if(x.stream_quality&&x.stream_quality!=='')x.stream_quality=' -crf '+x.stream_quality;
                     x.cust_stream+=x.stream_quality
                     x.cust_stream+=x.preset_stream
-                    if(channel.stream_v_br&&channel.stream_v_br!==''){x.cust_stream+='-b:v '+channel.stream_v_br}
+                    if(channel.stream_v_br&&channel.stream_v_br!==''){x.cust_stream+=' -b:v '+channel.stream_v_br}
                 }
-                x.cust_stream+=' -vcodec '+channel.stream_vcodec
+                if(channel.stream_vcodec!=='no'&&channel.stream_vcodec!==''){
+                    x.cust_stream+=' -vcodec '+channel.stream_vcodec
+                }
                 if(channel.stream_acodec!=='copy'){
                     if(!channel.stream_acodec||channel.stream_acodec===''||channel.stream_acodec==='no'){
                         channel.stream_acodec = 'aac'
@@ -1561,6 +1573,9 @@ s.ffmpeg=function(e){
     //create executeable FFMPEG command
     x.ffmpegCommandString = x.loglevel;
     //add main input
+    if((e.type==='mp4'||e.type==='mjpeg')&&x.cust_input.indexOf('-re')===-1){
+        x.cust_input += ' -re'
+    }
     switch(e.type){
         case'dashcam':
             x.ffmpegCommandString += ' -i -';
