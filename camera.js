@@ -950,6 +950,7 @@ s.ffmpeg=function(e){
         var x = {}
         x.cust_input = ''
         x.hwaccel = ''
+        if(input.cust_input&&input.cust_input!==''){x.cust_input+=' '+input.cust_input;}
         //input - analyze duration
         if(input.aduration&&input.aduration!==''){x.cust_input+=' -analyzeduration '+input.aduration};
         //input - probe size
@@ -993,7 +994,6 @@ s.ffmpeg=function(e){
             }
         }
         //custom - input flags
-        if(input.cust_input&&input.cust_input!==''){x.cust_input+=' '+input.cust_input;}
         return x.hwaccel+x.cust_input+' -i "'+input.fulladdress+'"';
     }
     //create sub stream channel
