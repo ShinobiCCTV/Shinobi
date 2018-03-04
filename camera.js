@@ -1110,6 +1110,18 @@ s.ffmpeg=function(e){
             x.pipe += createFFmpegMap(e.details.input_map_choices['stream_channel-'+(number-config.pipeAddition)])
         }
         switch(channel.stream_type){
+            case'mp4':
+                x.cust_stream+=' -movflags +frag_keyframe+empty_moov+default_base_moof -metadata title="Poseidon Stream" -reset_timestamps 1'
+                if(channel.stream_vcodec!=='copy'){
+                    if(x.cust_stream.indexOf('-s ')===-1){x.cust_stream+=' -s '+x.ratio}
+                    x.cust_stream+=x.stream_fps
+                    if(x.stream_quality&&x.stream_quality!=='')x.stream_quality=' -crf '+x.stream_quality;
+                    x.cust_stream+=x.stream_quality
+                    x.cust_stream+=x.preset_stream
+                    x.cust_stream+=x.stream_video_filters
+                }
+                x.pipe+=' -f mp4'+x.stream_acodec+x.stream_vcodec+x.cust_stream+' pipe:'+number;
+            break;
             case'rtmp':
                 if(channel.stream_vcodec!=='copy'){
                     x.rtmp_server_url=s.checkCorrectPathEnding(channel.rtmp_server_url);
@@ -2217,33 +2229,38 @@ s.camera=function(x,e,cn,tx){
                             }
                             if(e.details.stream_channels&&e.details.stream_channels!==''){
                                 var createStreamEmitter = function(channel,number){
-                                    if(!s.group[e.ke].mon[e.id].emitterChannel[number+config.pipeAddition]){
-                                        s.group[e.ke].mon[e.id].emitterChannel[number+config.pipeAddition] = new events.EventEmitter().setMaxListeners(0);
+                                    var pipeNumber = number+config.pipeAddition;
+                                    if(!s.group[e.ke].mon[e.id].emitterChannel[pipeNumber]){
+                                        s.group[e.ke].mon[e.id].emitterChannel[pipeNumber] = new events.EventEmitter().setMaxListeners(0);
                                     }
                                    var frame_to_stream
                                    switch(channel.stream_type){
+                                       case'mp4':
+                                           s.group[e.ke].mon[e.id].mp4frag[pipeNumber] = new Mp4Frag();
+                                           s.group[e.ke].mon[e.id].spawn.stdio[pipeNumber].pipe(s.group[e.ke].mon[e.id].mp4frag[pipeNumber])
+                                       break;
                                        case'mjpeg':
                                            frame_to_stream=function(d){
-                                               s.group[e.ke].mon[e.id].emitterChannel[number+config.pipeAddition].emit('data',d);
+                                               s.group[e.ke].mon[e.id].emitterChannel[pipeNumber].emit('data',d);
                                            }
                                        break;
                                        case'flv':
                                            frame_to_stream=function(d){
-                                               if(!s.group[e.ke].mon[e.id].firstStreamChunk[number+config.pipeAddition])s.group[e.ke].mon[e.id].firstStreamChunk[number+config.pipeAddition] = d;
+                                               if(!s.group[e.ke].mon[e.id].firstStreamChunk[pipeNumber])s.group[e.ke].mon[e.id].firstStreamChunk[pipeNumber] = d;
                                                frame_to_stream=function(d){
-                                                   s.group[e.ke].mon[e.id].emitterChannel[number+config.pipeAddition].emit('data',d);
+                                                   s.group[e.ke].mon[e.id].emitterChannel[pipeNumber].emit('data',d);
                                                }
                                                frame_to_stream(d)
                                            }
                                        break;
                                        case'h264':
                                            frame_to_stream=function(d){
-                                               s.group[e.ke].mon[e.id].emitterChannel[number+config.pipeAddition].emit('data',d);
+                                               s.group[e.ke].mon[e.id].emitterChannel[pipeNumber].emit('data',d);
                                            }
                                        break;
                                    }
                                     if(frame_to_stream){
-                                        s.group[e.ke].mon[e.id].spawn.stdio[number+config.pipeAddition].on('data',frame_to_stream);
+                                        s.group[e.ke].mon[e.id].spawn.stdio[pipeNumber].on('data',frame_to_stream);
                                     }
                                 }
                                 e.details.stream_channels.forEach(createStreamEmitter)
