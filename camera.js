@@ -957,6 +957,19 @@ s.ffmpeg=function(e){
         //input - stream loop (good for static files/lists)
         if(input.stream_loop==='1'){x.cust_input+=' -stream_loop -1'};
         //input - is h264 has rtsp in address and transport method is chosen
+        if(input.type==='mjpeg'){
+            if(x.cust_input.indexOf('-f ')===-1){
+                x.cust_input+=' -f mjpeg'
+            }
+            //input - frames per second
+            if(x.cust_input.indexOf('-r ')===-1&&!input.sfps||input.sfps===''){
+                input.sfps=parseFloat(input.sfps);
+                if(isNaN(input.sfps)){input.sfps=1}
+                input.sfps
+                x.cust_input+=' -r '+input.sfps
+            }
+            x.cust_input+=' -reconnect 1';
+        }
         if((input.type==='h264'||input.type==='mp4')&&input.fulladdress.indexOf('rtsp://')>-1&&input.rtsp_transport!==''&&input.rtsp_transport!=='no'){
             x.cust_input+=' -rtsp_transport '+input.rtsp_transport;
         }
@@ -981,36 +994,7 @@ s.ffmpeg=function(e){
         }
         //custom - input flags
         if(input.cust_input&&input.cust_input!==''){x.cust_input+=' '+input.cust_input;}
-        x.inputMap=''
-        // create input string for ffmpeg - `x.inputMap`
-        switch(input.type){
-//            case'dashcam':
-//                x.inputMap=' -i -';
-//            break;
-//            case'socket':case'jpeg':case'pipe':
-//                x.inputMap=' -pattern_type glob -f image2pipe'+x.framerate+' -vcodec mjpeg'+x.cust_input+' -i -';
-//            break;
-            case'mjpeg':
-                if(x.cust_input.indexOf('-f ')===-1){
-                    x.cust_input+=' -f mjpeg'
-                }
-                //input - frames per second
-                if(x.cust_input.indexOf('-r ')===-1&&!input.sfps||input.sfps===''){
-                    input.sfps=parseFloat(input.sfps);
-                    if(isNaN(input.sfps)){input.sfps=1}
-                    input.sfps
-                    x.cust_input+=' -r '+input.sfps
-                }
-                x.inputMap=' -reconnect 1'+x.cust_input+' -i '+input.fulladdress;
-            break;
-            case'h264':case'hls':case'mp4':
-                x.inputMap=x.cust_input+x.hwaccel+' -i '+input.fulladdress;
-            break;
-            case'raw':case'local':
-                x.inputMap=x.cust_input+' -i '+input.fulladdress;
-            break;
-        }
-        return x.inputMap;
+        return x.hwaccel+x.cust_input+' -i "'+input.fulladdress+'"';
     }
     //create sub stream channel
     var createStreamChannel = function(number,channel){
@@ -1585,13 +1569,13 @@ s.ffmpeg=function(e){
             x.ffmpegCommandString += ' -pattern_type glob -f image2pipe'+x.framerate+' -vcodec mjpeg'+x.cust_input+' -i -';
         break;
         case'mjpeg':
-            x.ffmpegCommandString += ' -reconnect 1 -r '+e.details.sfps+' -f mjpeg'+x.cust_input+' -i '+e.url+'';
+            x.ffmpegCommandString += ' -reconnect 1 -r '+e.details.sfps+' -f mjpeg'+x.cust_input+' -i "'+e.url+'"';
         break;
         case'h264':case'hls':case'mp4':
-            x.ffmpegCommandString += x.cust_input+x.hwaccel+' -i '+e.url;
+            x.ffmpegCommandString += x.cust_input+x.hwaccel+' -i "'+e.url+'"';
         break;
         case'local':
-            x.ffmpegCommandString += x.cust_input+' -i '+e.path;
+            x.ffmpegCommandString += x.cust_input+' -i "'+e.path+'"';
         break;
     }
     //add extra input maps
