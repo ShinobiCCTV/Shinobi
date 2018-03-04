@@ -1585,9 +1585,6 @@ s.ffmpeg=function(e){
             x.ffmpegCommandString += ' -pattern_type glob -f image2pipe'+x.framerate+' -vcodec mjpeg'+x.cust_input+' -i -';
         break;
         case'mjpeg':
-            if(e.mode=='record'){
-                x.record_string+=x.vcodec+x.record_video_filters+x.framerate+x.record_dimensions+x.segment;
-            }
             x.ffmpegCommandString += ' -reconnect 1 -r '+e.details.sfps+' -f mjpeg'+x.cust_input+' -i '+e.url+'';
         break;
         case'h264':case'hls':case'mp4':
