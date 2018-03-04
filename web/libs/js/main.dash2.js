@@ -1027,9 +1027,220 @@ switch($user.details.lang){
                 tmp+='<div class="form-group"><label><div><span><%-lang['Group Key']%></span></div><div><input class="form-control" link="ke" value="'+d.ke+'"></div></label></div>'
                 tmp+='<div class="form-group"><label><div><span><%-lang['API Key']%></span></div><div><input class="form-control" link="api" value="'+d.api+'"></div></label></div>'
                 tmp+='<div class="form-group"><label><div><span><%-lang.Secure%> (HTTPS/WSS)</span></div><div><select class="form-control" link="secure"><option value="1"><%-lang.Yes%></option><option selected value="0"><%-lang.No%></option></select></div></label></div>'
+                tmp+='</div>';
+            break;
+            case 'form-group'://Input Map Selector
+                var fields = []
+                if(d.fields){
+                    if(d.fields instanceof Object){
+                        fields = [d]
+                    }else{
+                        fields = d
+                    }
+                }
+                $.each(fields,function(n,v){
+                    var value,hidden
+                    if(!v.attribute)v.attribute='';
+                    if(!v.placeholder)v.placeholder='';
+                    if(!v.class)v.class='';
+                    if(!v.inputType)v.inputType='value';
+                    if(v.hidden){hidden='style="display:none"'}else{hidden=''};
+                    if(v.value){value='value=""'}else{value=''};
+                    tmp+='     <div class="form-group '+v.class+'" '+hidden+'>'
+                    tmp+='        <label><div><span>'+v.label+'</span></div>'
+                    tmp+='            <div>'
+                    switch(v.type){
+                        case'text':
+                        tmp+='<input class="form-control" '+v.inputType+'="'+v.name+'" placeholder="'+v.placeholder+'" "'+value+'" '+v.attribute+'>'
+                        break;
+                        case'selector':
+                        tmp+='<select class="form-control" '+v.inputType+'="'+v.name+'" placeholder="'+v.placeholder+'" '+v.attribute+'>'
+                        $.each(v.choices,function(m,b){
+                            tmp+='<option value="'+b.value+'">'+b.label+'</option>'
+                        })
+                        tmp+='</select>'
+                        break;
+                    }
+                    tmp+='            </div>'
+                    tmp+='        </label>'
+                    tmp+='      </div>'
+                })
+            break;
+            case 'input-map-selector'://Input Map Selector
+                if(!d.map){d.map=''}
+                tmp+='     <div class="form-group map-row">'
+                tmp+='        <label><div><span><%-cleanLang(lang['Map'])%></span></div>'
+                tmp+='            <div>'
+                tmp+='            <div class="input-group input-group-sm">'
+                tmp+='<input class="form-control" map-input="map" value="'+d.map+'" placeholder="0">'
+                tmp+='              <div class="input-group-btn">'
+                tmp+='                  <a class="btn btn-danger delete_map_row">&nbsp;<i class="fa fa-trash-o"></i>&nbsp;</a>'
+                tmp+='              </div>'
+                tmp+='            </div>'
+                tmp+='            </div>'
+                tmp+='        </label>'
+                tmp+='      </div>'
+            break;
+            case 'input-map'://Input Map Options
+                var tempID = $.ccio.gid();
+                if(!d.channel){
+                    var numberOfChannelsDrawn = $('#monSectionInputMaps .input-map').length
+                    d.channel=numberOfChannelsDrawn+1
+                }
+                var fields = [
+//                    {
+//                        name:'',
+//                        class:'',
+//                        placeholder:'',
+//                        default:'',
+//                        attribute:'',
+//                        type:'text',
+//                    },
+                    {
+                        name:'type',
+                        label:'<%-cleanLang(lang['Input Type'])%>',
+                        default:'h264',
+                        attribute:'selector="h_i_'+tempID+'"',
+                        type:'selector',
+                        choices:[
+                            {label:'<%-cleanLang(lang['H.264 / H.265 / H.265+'])%>',value:'h264'},
+                            {label:'<%-cleanLang(lang['JPEG'])%>',value:'jpeg'},
+                            {label:'<%-cleanLang(lang['MJPEG'])%>',value:'mjpeg'},
+                            {label:'<%-cleanLang(lang['HLS (.m3u8)'])%>',value:'hls'},
+                            {label:'<%-cleanLang(lang['MPEG-4 (.mp4 / .ts)'])%>',value:'mp4'},
+                            {label:'<%-cleanLang(lang['Local'])%>',value:'local'},
+                            {label:'<%-cleanLang(lang['Raw'])%>',value:'raw'},
+                        ]
+                    },
+                    {
+                        name:'fulladdress',
+                        label:'<%-cleanLang(lang['Full URL Path'])%>',
+                        placeholder:'Example : rtsp://admin:password@123.123.123.123/stream/1',
+                        type:'text',
+                    },
+                    {
+                        name:'aduration',
+                        label:'<%-cleanLang(lang['Analyzation Duration'])%>',
+                        placeholder:'Example : 1000000',
+                        type:'text',
+                    },
+                    {
+                        name:'probesize',
+                        label:'<%-cleanLang(lang['Probe Size'])%>',
+                        placeholder:'Example : 1000000',
+                        type:'text',
+                    },
+                    {
+                        name:'stream_loop',
+                        label:'<%-cleanLang(lang['Loop Stream'])%>',
+                        class:'h_i_'+tempID+'_input h_i_'+tempID+'_mp4 h_i_'+tempID+'_raw',
+                        hidden:true,
+                        default:'0',
+                        type:'selector',
+                        choices:[
+                            {label:'No',value:'0'},
+                            {label:'Yes',value:'1'}
+                        ]
+                    },
+                    {
+                        name:'rtsp_transport',
+                        label:'<%-cleanLang(lang['RTSP Transport'])%>',
+                        class:'h_i_'+tempID+'_input h_i_'+tempID+'_h264',
+                        default:'0',
+                        type:'selector',
+                        choices:[
+                            {label:'Auto',value:''},
+                            {label:'TCP',value:'tcp'},
+                            {label:'UDP',value:'udp'}
+                        ]
+                    },
+                    {
+                        name:'accelerator',
+                        label:'<%-cleanLang(lang['Accelerator'])%>',
+                        attribute:'selector="h_accel_'+tempID+'"',
+                        default:'0',
+                        type:'selector',
+                        choices:[
+                            {label:'No',value:'0'},
+                            {label:'Yes',value:'1'},
+                        ]
+                    },
+                    {
+                        name:'hwaccel',
+                        label:'<%-cleanLang(lang['hwaccel'])%>',
+                        class:'h_accel_'+tempID+'_input h_accel_'+tempID+'_1',
+                        hidden:true,
+                        default:'',
+                        type:'selector',
+                        choices:[
+                            {label:'<%-cleanLang(lang['Auto'])%>',value:''},
+                            {label:'<%-cleanLang(lang['cuvid'])%>',value:'cuvid'},
+                            {label:'<%-cleanLang(lang['vaapi'])%>',value:'vaapi'},
+                            {label:'<%-cleanLang(lang['qsv'])%>',value:'qsv'},
+                            {label:'<%-cleanLang(lang['vdpau'])%>',value:'vdpau'},
+                            {label:'<%-cleanLang(lang['dxva2'])%>',value:'dxva2'},
+                            {label:'<%-cleanLang(lang['vdpau'])%>',value:'vdpau'},
+                            {label:'<%-cleanLang(lang['videotoolbox'])%>',value:'videotoolbox'},
+                        ]
+                    },
+                    {
+                        name:'hwaccel_vcodec',
+                        label:'<%-cleanLang(lang['hwaccel_vcodec'])%>',
+                        class:'h_accel_'+tempID+'_input h_accel_'+tempID+'_1',
+                        hidden:true,
+                        default:'auto',
+                        type:'selector',
+                        choices:[
+                            {label:'<%-cleanLang(lang['Auto'])%>',value:'auto'},
+                            {label:'<%-cleanLang(lang['h264_cuvid'])%>',value:'h264_cuvid',group:'NVIDIA'},
+                            {label:'<%-cleanLang(lang['hevc_cuvid'])%>',value:'hevc_cuvid',group:'NVIDIA'},
+                            {label:'<%-cleanLang(lang['mjpeg_cuvid'])%>',value:'mjpeg_cuvid',group:'NVIDIA'},
+                            {label:'<%-cleanLang(lang['mpeg4_cuvid'])%>',value:'mpeg4_cuvid',group:'NVIDIA'},
+                            {label:'<%-cleanLang(lang['h264_qsv'])%>',value:'h264_qsv',group:'QuickSync Video'},
+                            {label:'<%-cleanLang(lang['hevc_qsv'])%>',value:'hevc_qsv',group:'QuickSync Video'},
+                            {label:'<%-cleanLang(lang['mpeg2_qsv'])%>',value:'mpeg2_qsv',group:'QuickSync Video'},
+                        ]
+                    },
+                    {
+                        name:'hwaccel_device',
+                        label:'<%-cleanLang(lang['hwaccel_device'])%>',
+                        class:'h_accel_'+tempID+'_input h_accel_'+tempID+'_1',
+                        hidden:true,
+                        placeholder:'Example : /dev/dri/video0',
+                        type:'text',
+                    },
+                ];
+                tmp+='<div class="form-group-group forestgreen input-map" section id="monSectionMap'+tempID+'">'
+                tmp+='  <h4><%-lang["Input"]%> <b><%-lang["Map"]%> : <span class="place">'+d.channel+'</span></b>'
+                tmp+='  <div class="pull-right"><a class="btn btn-danger btn-xs delete"><i class="fa fa-trash-o"></i></a></div>'
+                tmp+='  </h4>'
+                $.each(fields,function(n,v){
+                    if(!v.attribute)v.attribute='';
+                    if(!v.placeholder)v.placeholder='';
+                    if(!v.class)v.class='';
+                    if(v.hidden){v.hidden='style="display:none"'}else{v.hidden=''};
+                    tmp+='     <div class="form-group '+v.class+'" '+v.hidden+'>'
+                    tmp+='        <label><div><span>'+v.label+'</span></div>'
+                    tmp+='            <div>'
+                    switch(v.type){
+                        case'text':
+                        tmp+='<input class="form-control" map-detail="'+v.name+'" placeholder="'+v.placeholder+'" '+v.attribute+'>'
+                        break;
+                        case'selector':
+                        tmp+='<select class="form-control" map-detail="'+v.name+'" placeholder="'+v.placeholder+'" '+v.attribute+'>'
+                            $.each(v.choices,function(m,b){
+                                tmp+='<option value="'+b.value+'">'+b.label+'</option>'
+                            })
+                        tmp+='</select>'
+                        break;
+                    }
+                    tmp+='            </div>'
+                    tmp+='        </label>'
+                    tmp+='      </div>'
+                })
                 tmp+='</div>'
             break;
-            case 'stream-channel'://Link Shinobi - 1 set
+            case 'stream-channel'://Stream Channel
                 var tempID = $.ccio.gid();
                 if(!d.channel){
                     var numberOfChannelsDrawn = $('#monSectionStreamChannels .stream-channel').length
@@ -1044,6 +1255,14 @@ switch($user.details.lang){
 //                tmp+='            <div><input class="form-control" channel-detail="stream_map" placeholder="0"></div>'
 //                tmp+='        </label>'
 //                tmp+='      </div>'
+                tmp+='<div class="form-group-group forestgreen" input-mapping="stream_channel-'+d.channel+'">'
+                tmp+='    <h4><%-cleanLang(lang['Input Feed'])%>'
+                tmp+='        <div class="pull-right">'
+                tmp+='            <a class="btn btn-success btn-xs add_map_row"><i class="fa fa-plus-square-o"></i></a>'
+                tmp+='        </div>'
+                tmp+='    </h4>'
+                tmp+='    <div class="choices"></div>'
+                tmp+='</div>'
                 tmp+='     <div class="form-group">'
                 tmp+='        <label><div><span><%-lang["Stream Type"]%></span></div>'
                 tmp+='            <div><select class="form-control" channel-detail="stream_type" selector="h_st_channel_'+tempID+'" triggerChange="#monSectionChannel'+tempID+' [channel-detail=stream_vcodec]">'
@@ -1230,6 +1449,12 @@ switch($user.details.lang){
                 $('#filters_where .row:last [where="p1"]').val(d.p1)
                 $('#filters_where .row:last [where="p2"]').val(d.p2)
                 $('#filters_where .row:last [where="p3"]').val(d.p3)
+            break;
+            case'input-map':
+                var mapsList = $.aM.maps
+                mapsList.append(tmp)
+                mapsList.find('.input-map').last().find('[map-detail="aduration"]').change()
+                return tempID;
             break;
             case'stream-channel':
                 var channeList = $.aM.channels
@@ -2498,6 +2723,7 @@ $.multimon.e.on('shown.bs.modal',function() {
 $.aM={e:$('#add_monitor')};
 $.aM.f=$.aM.e.find('form')
 $.aM.channels=$('#monSectionStreamChannels')
+$.aM.maps=$('#monSectionInputMaps')
 $.aM.e.find('.follow-list ul').affix();
 $.each(<%-JSON.stringify(define["Monitor Settings"].blocks)%>,function(n,v){
     $.each(v.info,function(m,b){
@@ -2539,12 +2765,35 @@ $.aM.import=function(e){
     $('#monEditBufferPreview').attr('src','/'+$user.auth_token+'/hls/'+e.values.ke+'/'+e.values.mid+'/detectorStream.m3u8')
     $.aM.e.find('.edit_id').text(e.values.mid);
     $.aM.e.attr('mid',e.values.mid).attr('ke',e.values.ke).attr('auth',e.auth)
-    $.aM.channels.empty()
     $.each(e.values,function(n,v){
         $.aM.e.find('[name="'+n+'"]').val(v).change()
     })
     e.ss=JSON.parse(e.values.details);
+    //get maps
+    $.aM.maps.empty()
+    if(e.ss.input_maps&&e.ss.input_maps!==''){
+        var input_maps
+        try{
+            input_maps = JSON.parse(e.ss.input_maps)
+        }catch(er){
+            input_maps = e.ss.input_maps;
+        }
+        var mapContainers = $('[input-mapping]')
+        if(input_maps.length>0){
+            mapContainers.show()
+            $.each(input_maps,function(n,v){
+                var tempID = $.ccio.tm('input-map')
+                var parent = $('#monSectionMap'+tempID)
+                $.each(v,function(m,b){
+                    parent.find('[map-detail="'+m+'"]').val(b).change()
+                })
+            })
+        }else{
+            mapContainers.hide()
+        }
+    }
     //get channels
+    $.aM.channels.empty()
     if(e.ss.stream_channels&&e.ss.stream_channels!==''){
         var stream_channels
         try{
@@ -2554,10 +2803,25 @@ $.aM.import=function(e){
         }
         $.each(stream_channels,function(n,v){
             var tempID = $.ccio.tm('stream-channel')
-            console.log(tempID)
             var parent = $('#monSectionChannel'+tempID)
             $.each(v,function(m,b){
                 parent.find('[channel-detail="'+m+'"]').val(b)
+            })
+        })
+    }
+    //get map choices for outputs
+    $('[input-mapping] .choices').empty()
+    if(e.ss.input_map_choices&&e.ss.input_map_choices!==''){
+        var input_map_choices
+        try{
+            input_map_choices = JSON.parse(e.ss.input_map_choices)
+        }catch(er){
+            input_map_choices = e.ss.input_map_choices;
+        }
+        $.each(input_map_choices,function(n,v){
+            $.each(v,function(m,b){
+                var parent = $('[input-mapping="'+n+'"] .choices')
+                $.ccio.tm('input-map-selector',b,parent)
             })
         })
     }
@@ -2691,24 +2955,72 @@ $.aM.f.submit(function(e){
     $.aM.e.modal('hide')
     return false;
 });
-$.aM.channelPlacementInit = function(){
-    $('.stream-channel').each(function(n,v){
+//////////////////
+//Input Map (Feed)
+$.aM.mapPlacementInit = function(){
+    $('.input-map').each(function(n,v){
         var _this = $(this)
-        _this.attr('stream-channel',n)
-        _this.find('.place').text(n)
+        _this.find('.place').text(n+1)
     })
 }
-$.aM.channels.on('click','.delete',function(){
-    $(this).parents('.stream-channel').remove()
-    var inputs = $('[channel-detail]')
+$.aM.mapSave = function(){
+    var e={};
+    var mapContainers = $('[input-mapping]');
+    var stringForSave={}
+    mapContainers.each(function(q,t){
+        var mapRowElement = $(t).find('.map-row');
+        var mapRow = []
+        mapRowElement.each(function(n,v){
+            var map={}
+            $.each($(v).find('[map-input]'),function(m,b){
+                map[$(b).attr('map-input')]=$(b).val()
+            });
+            mapRow.push(map)
+        });
+        stringForSave[$(t).attr('input-mapping')] = mapRow;
+    });
+    $.aM.e.find('[detail="input_map_choices"]').val(JSON.stringify(stringForSave)).change();
+}
+$.aM.maps.on('click','.delete',function(){
+    $(this).parents('.input-map').remove()
+    var inputs = $('[map-detail]')
+    var mapContainers = $('[input-mapping]');
     if(inputs.length===0){
-        $.aM.e.find('[detail="stream_channels"]').val('[]').change()
+        $.aM.e.find('[detail="input_maps"]').val('[]').change()
+        mapContainers.hide();
     }else{
         inputs.first().change()
+        mapContainers.show();
     }
-    $.aM.channelPlacementInit()
+    $.aM.mapPlacementInit()
 })
-$.aM.e.on('change','[channel-detail]',function(){
+$.aM.e.on('change','[map-detail]',function(){
+  var e={};
+    e.e=$.aM.maps.find('.input-map')
+    e.s=[]
+    e.e.each(function(n,v){
+        var map={}
+        $.each($(v).find('[map-detail]'),function(m,b){
+            map[$(b).attr('map-detail')]=$(b).val()
+        });
+        e.s.push(map)
+    });
+    $.aM.e.find('[detail="input_maps"]').val(JSON.stringify(e.s)).change()
+})
+$.aM.e.on('click','[input-mapping] .add_map_row',function(){
+    $.ccio.tm('input-map-selector',{},$(this).parents('[input-mapping]').find('.choices'))
+    $.aM.mapSave()
+})
+$.aM.e.on('click','[input-mapping] .delete_map_row',function(){
+    $(this).parents('.map-row').remove()
+    $.aM.mapSave()
+})
+$.aM.e.on('change','[map-input]',function(){
+    $.aM.mapSave()
+})
+//////////////////
+//Stream Channels
+$.aM.channelSave = function(){
   var e={};
     e.e=$.aM.channels.find('.stream-channel')
     e.s=[]
@@ -2720,7 +3032,25 @@ $.aM.e.on('change','[channel-detail]',function(){
         e.s.push(channel)
     });
     $.aM.e.find('[detail="stream_channels"]').val(JSON.stringify(e.s)).change()
+}
+$.aM.channelPlacementInit = function(){
+    $('.stream-channel').each(function(n,v){
+        var _this = $(this)
+        _this.attr('stream-channel',n)
+        _this.find('.place').text(n)
+        _this.find('[input-mapping]').attr('input-mapping','stream_channel-'+n)
+        $.aM.mapSave()
+    })
+}
+$.aM.channels.on('click','.delete',function(){
+    $(this).parents('.stream-channel').remove()
+    $.aM.channelSave()
+    $.aM.channelPlacementInit()
 })
+$.aM.e.on('change','[channel-detail]',function(){
+    $.aM.channelSave()
+})
+//////////////////
 $.aM.e.on('change','[group]',function(){
   var e={};
     e.e=$.aM.e.find('[group]:checked');
@@ -2811,6 +3141,10 @@ $.aM.e.find('.save_config').click(function(e){
         .attr('href',e.dataStr)
         .attr('download','Shinobi_'+e.mid+'_config.json')
         [0].click()
+});
+$.aM.e.find('.add_map').click(function(e){
+    $('[input-mapping]').show()
+    $.ccio.tm('input-map')
 });
 $.aM.e.find('.add_channel').click(function(e){
     $.ccio.tm('stream-channel')
