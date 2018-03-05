@@ -1595,13 +1595,13 @@ s.ffmpeg=function(e){
             x.ffmpegCommandString += ' -pattern_type glob -f image2pipe'+x.framerate+' -vcodec mjpeg'+x.cust_input+' -i -';
         break;
         case'mjpeg':
-            x.ffmpegCommandString += ' -reconnect 1 -r '+e.details.sfps+' -f mjpeg'+x.cust_input+' -i "'+e.url+'"';
+            x.ffmpegCommandString += ' -reconnect 1 -r '+e.details.sfps+' -f mjpeg'+x.cust_input+' -i '+e.url+'';
         break;
         case'h264':case'hls':case'mp4':
-            x.ffmpegCommandString += x.cust_input+x.hwaccel+' -i "'+e.url+'"';
+            x.ffmpegCommandString += x.cust_input+x.hwaccel+' -i '+e.url+'';
         break;
         case'local':
-            x.ffmpegCommandString += x.cust_input+' -i "'+e.path+'"';
+            x.ffmpegCommandString += x.cust_input+' -i '+e.path+'';
         break;
     }
     //add extra input maps
