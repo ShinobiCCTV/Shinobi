@@ -1184,7 +1184,7 @@ s.ffmpeg=function(e){
                     if(x.cust_stream.indexOf('-s ')===-1&&x.ratio){x.cust_stream+='-s '+x.ratio}
                     x.cust_stream+=x.stream_video_filters
                 }
-                x.pipe+=x.preset_stream+x.stream_quality+x.stream_acodec+x.stream_vcodec+x.stream_fps+' -f hls'+x.cust_stream+' -hls_time '+x.hls_time+' -hls_list_size '+x.hls_list_size+' -start_number 0 -hls_allow_cache 0 -hls_flags +delete_segments+omit_endlist "'+x.channel_sdir+'s.m3u8"';
+                x.pipe+=x.preset_stream+x.stream_quality+x.stream_acodec+x.stream_vcodec+x.stream_fps+' -f hls'+x.cust_stream+' -hls_time '+x.hls_time+' -hls_list_size '+x.hls_list_size+' -start_number 0 -hls_allow_cache 0 -hls_flags +delete_segments+omit_endlist '+x.channel_sdir+'s.m3u8';
             break;
             case'mjpeg':
                 if(x.stream_quality&&x.stream_quality!=='')x.stream_quality=' -q:v '+x.stream_quality;
@@ -1464,7 +1464,7 @@ s.ffmpeg=function(e){
                 if(x.cust_stream.indexOf('-s ')===-1&&x.ratio){x.cust_stream+='-s '+x.ratio}
                 x.cust_stream+=x.stream_video_filters
             }
-            x.pipe+=x.preset_stream+x.stream_quality+x.stream_acodec+x.stream_vcodec+x.stream_fps+' -f hls'+x.cust_stream+' -hls_time '+x.hls_time+' -hls_list_size '+x.hls_list_size+' -start_number 0 -hls_allow_cache 0 -hls_flags +delete_segments+omit_endlist "'+e.sdir+'s.m3u8"';
+            x.pipe+=x.preset_stream+x.stream_quality+x.stream_acodec+x.stream_vcodec+x.stream_fps+' -f hls'+x.cust_stream+' -hls_time '+x.hls_time+' -hls_list_size '+x.hls_list_size+' -start_number 0 -hls_allow_cache 0 -hls_flags +delete_segments+omit_endlist '+e.sdir+'s.m3u8';
         break;
         case'mjpeg':
             if(x.stream_quality&&x.stream_quality!=='')x.stream_quality=' -q:v '+x.stream_quality;
