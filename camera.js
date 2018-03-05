@@ -1181,10 +1181,10 @@ s.ffmpeg=function(e){
                     if(x.stream_quality&&x.stream_quality!=='')x.stream_quality=' -crf '+x.stream_quality;
                     if(x.cust_stream.indexOf('-tune')===-1){x.cust_stream+=' -tune zerolatency'}
                     if(x.cust_stream.indexOf('-g ')===-1){x.cust_stream+=' -g 1'}
-                    if(x.cust_stream.indexOf('-s ')===-1&&x.ratio){x.cust_stream+='-s '+x.ratio}
+                    if(x.cust_stream.indexOf('-s ')===-1&&x.ratio){x.cust_stream+=' -s '+x.ratio}
                     x.cust_stream+=x.stream_video_filters
                 }
-                x.pipe+=x.preset_stream+x.stream_quality+x.stream_acodec+x.stream_vcodec+x.stream_fps+' -f hls'+x.cust_stream+' -hls_time '+x.hls_time+' -hls_list_size '+x.hls_list_size+' -start_number 0 -hls_allow_cache 0 -hls_flags +delete_segments+omit_endlist '+x.channel_sdir+'s.m3u8';
+                x.pipe+=x.preset_stream+x.stream_quality+x.stream_acodec+x.stream_vcodec+x.stream_fps+' -f hls'+x.cust_stream+' -hls_time '+x.hls_time+' -hls_list_size '+x.hls_list_size+' -start_number 0 -hls_allow_cache 0 -hls_flags +delete_segments+omit_endlist "'+x.channel_sdir+'s.m3u8"';
             break;
             case'mjpeg':
                 if(x.stream_quality&&x.stream_quality!=='')x.stream_quality=' -q:v '+x.stream_quality;
@@ -1461,10 +1461,10 @@ s.ffmpeg=function(e){
                 if(x.stream_quality&&x.stream_quality!=='')x.stream_quality=' -crf '+x.stream_quality;
                 if(x.cust_stream.indexOf('-tune')===-1){x.cust_stream+=' -tune zerolatency'}
                 if(x.cust_stream.indexOf('-g ')===-1){x.cust_stream+=' -g 1'}
-                if(x.cust_stream.indexOf('-s ')===-1&&x.ratio){x.cust_stream+='-s '+x.ratio}
+                if(x.cust_stream.indexOf('-s ')===-1&&x.ratio){x.cust_stream+=' -s '+x.ratio}
                 x.cust_stream+=x.stream_video_filters
             }
-            x.pipe+=x.preset_stream+x.stream_quality+x.stream_acodec+x.stream_vcodec+x.stream_fps+' -f hls'+x.cust_stream+' -hls_time '+x.hls_time+' -hls_list_size '+x.hls_list_size+' -start_number 0 -hls_allow_cache 0 -hls_flags +delete_segments+omit_endlist '+e.sdir+'s.m3u8';
+            x.pipe+=x.preset_stream+x.stream_quality+x.stream_acodec+x.stream_vcodec+x.stream_fps+' -f hls'+x.cust_stream+' -hls_time '+x.hls_time+' -hls_list_size '+x.hls_list_size+' -start_number 0 -hls_allow_cache 0 -hls_flags +delete_segments+omit_endlist "'+e.sdir+'s.m3u8"';
         break;
         case'mjpeg':
             if(x.stream_quality&&x.stream_quality!=='')x.stream_quality=' -q:v '+x.stream_quality;
@@ -1595,13 +1595,13 @@ s.ffmpeg=function(e){
             x.ffmpegCommandString += ' -pattern_type glob -f image2pipe'+x.framerate+' -vcodec mjpeg'+x.cust_input+' -i -';
         break;
         case'mjpeg':
-            x.ffmpegCommandString += ' -reconnect 1 -r '+e.details.sfps+' -f mjpeg'+x.cust_input+' -i '+e.url+'';
+            x.ffmpegCommandString += ' -reconnect 1 -r '+e.details.sfps+' -f mjpeg'+x.cust_input+' -i "'+e.url+'"';
         break;
         case'h264':case'hls':case'mp4':
-            x.ffmpegCommandString += x.cust_input+x.hwaccel+' -i '+e.url+'';
+            x.ffmpegCommandString += x.cust_input+x.hwaccel+' -i "'+e.url+'"';
         break;
         case'local':
-            x.ffmpegCommandString += x.cust_input+' -i '+e.path+'';
+            x.ffmpegCommandString += x.cust_input+' -i "'+e.path+'"';
         break;
     }
     //add extra input maps
@@ -5416,7 +5416,13 @@ app.get(['/:auth/mp4/:ke/:id/:channel/s.mp4','/:auth/mp4/:ke/:id/s.mp4','/:auth/
     });
 });
 //simulate RTSP over HTTP
-app.get(['/:auth/h264/:ke/:id/:feed/:file','/:auth/h264/:ke/:id/:feed','/:auth/h264/:ke/:id'], function (req, res) {
+app.get([
+    '/:auth/mpegts/:ke/:id/:feed/:file',
+    '/:auth/mpegts/:ke/:id/:feed/',
+    '/:auth/h264/:ke/:id/:feed/:file',
+    '/:auth/h264/:ke/:id/:feed',
+    '/:auth/h264/:ke/:id'
+], function (req, res) {
     res.header("Access-Control-Allow-Origin",req.headers.origin);
     s.auth(req.params,function(user){
         if(!req.query.feed){req.query.feed='1'}
