@@ -12,7 +12,7 @@ process.on('uncaughtException', function (err) {
     console.error('Uncaught Exception occured!');
     console.error(err.stack);
 });
-var ffmpegPath
+var ffmpegPath = false;
 try{
     ffmpegPath = require('ffmpeg-static').path;
 }catch(err){
@@ -463,7 +463,7 @@ io.attach(server);
 console.log('NODE.JS version : '+execSync("node -v"))
 //ffmpeg location
 if(!config.ffmpegDir){
-    if(ffmpegPath){
+    if(ffmpegPath !== false){
         config.ffmpegDir = ffmpegPath
     }else{
         if(s.isWin===true){
@@ -1511,7 +1511,7 @@ s.ffmpeg=function(e){
         x.pipe+=' -update 1 -r '+e.details.snap_fps+x.cust_snap+x.sratio+x.snap_vf+' "'+e.sdir+'s.jpg" -y';
     }
     //Traditional Recording Buffer
-    if(e.details.detector_trigger=='1'&&e.details.detector_record_method==='sip'){
+    if(e.details.detector=='1'&&e.details.detector_trigger=='1'&&e.details.detector_record_method==='sip'){
         if(e.details.input_map_choices&&e.details.input_map_choices.detector_sip_buffer){
             //add input feed map
             x.pipe += createFFmpegMap(e.details.input_map_choices.detector_sip_buffer)
