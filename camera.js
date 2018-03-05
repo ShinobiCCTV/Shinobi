@@ -1899,18 +1899,21 @@ s.camera=function(x,e,cn,tx){
                 },60000*1);
             }
             if(x==='record'||(x==='start'&&e.details.detector_record_method==='sip')){
+                if(s.group[e.ke].mon[e.id].fswatch && typeof s.group[e.ke].mon[e.id].fswatch.close === 'function'){s.group[e.ke].mon[e.id].fswatch.close()}
                 s.group[e.ke].mon[e.id].fswatch=fs.watch(e.dir,{encoding:'utf8'},function(eventType,filename){
                     if(s.group[e.ke].mon[e.id].fixingVideos[filename]){return}
                     switch(eventType){
                         case'change':
-                            clearTimeout(s.group[e.ke].mon[e.id].checker)
-                            clearTimeout(s.group[e.ke].mon[e.id].checkStream)
-                            s.group[e.ke].mon[e.id].checker=setTimeout(function(){
-                                if(s.group[e.ke].mon[e.id].started===1){
-                                    e.fn();
-                                    s.log(e,{type:lang['Camera is not recording'],msg:{msg:lang['Restarting Process']}});
-                                }
-                            },60000*2);
+                            if(s.platform!=='darwin'){
+                                clearTimeout(s.group[e.ke].mon[e.id].checker)
+                                clearTimeout(s.group[e.ke].mon[e.id].checkStream)
+                                s.group[e.ke].mon[e.id].checker=setTimeout(function(){
+                                    if(s.group[e.ke].mon[e.id].started===1){
+                                        e.fn();
+                                        s.log(e,{type:lang['Camera is not recording'],msg:{msg:lang['Restarting Process']}});
+                                    }
+                                },60000*2);
+                            }
                         break;
                         case'rename':
                             fs.exists(e.dir+filename,function(exists){
@@ -1944,7 +1947,9 @@ s.camera=function(x,e,cn,tx){
                             s.group[e.ke].mon[e.id].fswatchStream=fs.watch(e.sdir,{encoding:'utf8'},function(eventType,filename){
                                 switch(eventType){
                                     case'change':
-                                        e.resetStreamCheck()
+                                        if(s.platform!=='darwin'){
+                                            e.resetStreamCheck()
+                                        }
                                     break;
                                 }
                             })
