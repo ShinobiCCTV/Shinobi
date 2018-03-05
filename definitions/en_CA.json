@@ -250,7 +250,7 @@
                   "name": "detail=stream_type",
                   "field": "Stream  Type",
                   "description": "The method that will used to consume the video stream.",
-                  "default": "Base64",
+                  "default": "HLS",
                   "example": "",
                   "possible": [
                      {
@@ -319,15 +319,15 @@
                {
                   "name": "detail=stream_fps",
                   "field": "Rate (FPS)",
-                  "description": "The speed in which frames are displayed to clients. Frames Per Second. Be aware there is no default. This can lead to high bandwidth usage.",
+                  "description": "The speed in which frames are displayed to clients, in Frames Per Second. Be aware there is no default. This can lead to high bandwidth usage.",
                   "default": "",
-                  "example": "2",
+                  "example": "1",
                   "possible": ""
                },
                {
                   "name": "height",
                   "field": "Height",
-                  "description": "Height of the stream image.",
+                  "description": "Height of the stream image.  Recommend you set to",
                   "default": "640",
                   "example": "1280",
                   "possible": ""
@@ -335,7 +335,7 @@
                {
                   "name": "width",
                   "field": "Width",
-                  "description": "Height of the stream image.",
+                  "description": "Width of the stream image.",
                   "default": "480",
                   "example": "720",
                   "possible": ""
@@ -358,7 +358,7 @@
                   "name": "detail=stream_vcodec",
                   "field": "Video Codec",
                   "description": "Video codec for streaming.",
-                  "default": "libx264",
+                  "default": "copy",
                   "example": "",
                   "possible": [
                      {
@@ -387,7 +387,7 @@
                      },
                      {
                         "name": "copy",
-                        "info": "Used for MP4 video. Has very low CPU usage but cannot use video filters and filesizes may be gigantic."
+                        "info": "Used for MP4 video. Has very low CPU usage but cannot use video filters and filesizes may be gigantic.  Best to setup your MP4 settings camera-side when using this option."
                      }
                   ]
                },
@@ -439,10 +439,10 @@
                {
                   "name": "detail=hls_time",
                   "field": "HLS Segment Length",
-                  "description": "How long each segment should be. Each segment will be drawn by the client through an m3u8 file. Shorter is better, less space used.",
+                  "description": "How long each video segment should be, in minutes. Each segment will be drawn by the client through an m3u8 file.",
                   "default": "2",
                   "example": "3",
-                  "possible": "1-23"
+                  "possible": "1-30"
                },
                {
                   "name": "detail=hls_list_size",
@@ -463,17 +463,17 @@
                {
                   "name": "detail=stream_scale_x",
                   "field": "Width",
-                  "description": "Height of the stream image.",
-                  "default": "480",
+                  "description": "Width of the stream image.",
+                  "default": "720",
                   "example": "720",
                   "possible": ""
                },
                {
                   "name": "detail=stream_scale_y",
-                  "field": "Video Filter",
-                  "description": "Place FFMPEG video filters in this box to affect the streaming portion. No spaces.",
-                  "default": "",
-                  "example": "",
+                  "field": "Height",
+                  "description": "Height of the stream image.",
+                  "default": "480",
+                  "example": "480",
                   "possible": ""
                },
                {
@@ -507,7 +507,7 @@
                   "possible": [
                      {
                         "name": "MP4",
-                        "info": "This file type is playable is almost all modern web browsers, that includes mobile. The filesize just tends to be gigantic unless you lower the quality."
+                        "info": "This file type is playable is almost all modern web browsers, that includes mobile. The filesize just tends to be larger unless you lower the quality."
                      },
                      {
                         "name": "WebM",
@@ -519,7 +519,7 @@
                   "name": "detail=vcodec",
                   "field": "Video Codec",
                   "description": "Video codec for recording.",
-                  "default": "libx264",
+                  "default": "copy",
                   "example": "",
                   "possible": [
                      {
@@ -548,7 +548,7 @@
                      },
                      {
                         "name": "copy",
-                        "info": "Used for MP4 video. Has very low CPU usage but cannot use video filters and filesizes may be gigantic."
+                        "info": "Used for MP4 video. Has very low CPU usage but cannot use video filters and filesizes may be gigantic.  Best to setup your MP4 settings camera-side when using this option."
                      }
                   ]
                },
@@ -616,7 +616,7 @@
                {
                   "name": "fps",
                   "field": "Video Record Rate (FPS)",
-                  "description": "The speed in which frames are recorded to files. Frames Per Second. Be aware there is no default. This can lead to large files.",
+                  "description": "The speed in which frames are recorded to files. Frames Per Second. Be aware there is no default. This can lead to large files. Best to set this camera-side.",
                   "default": "",
                   "example": "2",
                   "possible": ""
@@ -632,7 +632,7 @@
                {
                   "name": "width",
                   "field": "Record Width",
-                  "description": "Height of the stream image.",
+                  "description": "Width of the stream image.",
                   "default": "480",
                   "example": "720",
                   "possible": ""
@@ -872,9 +872,9 @@
                {
                   "name": "detail=detector_sensitivity",
                   "field": "Indifference",
-                  "description": "How much it doesn't care before doing something. The opposite of sensitivity. A lower number means it will trigger sooner. The value ranges up to 15(+) decimal places.",
-                  "default": "0.5",
-                  "example": "25",
+                  "description": "How much Shinobi doesn't care about motion before doing something. The opposite of sensitivity; a lower number means it will trigger sooner. The value ranges up to 15(+) decimal places.  0.5 is default, 0.005 is pretty sensitive to motion changes.",
+                  "default": "",
+                  "example": "0.5",
                   "possible": "Any number."
                },
                {
@@ -1085,7 +1085,7 @@
                   "name": "detail=days",
                   "field": "Number of Days to keep Videos",
                   "description": "The number of days to keep videos before purging.",
-                  "default": "5",
+                  "default": "7",
                   "example": "30",
                   "possible": ""
                },
@@ -1093,7 +1093,7 @@
                   "name": "detail=event_days",
                   "field": "Number of Days to keep Events",
                   "description": "The number of days to keep events before purging.",
-                  "default": "5",
+                  "default": "7",
                   "example": "30",
                   "possible": ""
                },
@@ -1101,7 +1101,7 @@
                   "name": "detail=log_days",
                   "field": "Number of Days to keep Logs",
                   "description": "The number of days to keep logs before purging.",
-                  "default": "5",
+                  "default": "7",
                   "example": "30",
                   "possible": ""
                }
