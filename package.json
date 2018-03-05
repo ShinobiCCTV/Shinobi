@@ -30,6 +30,7 @@
     "mysql": "^2.12.0",
     "sqlite3": "^3.1.13",
     "knex": "^0.14.2",
+    "ffmpeg-static": "^2.1.0",
     "pam-diff": "0.10.2",
     "pipe2pam": "0.6.2",
     "nodemailer": "^4.0.1",

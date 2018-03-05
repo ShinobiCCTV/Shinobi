@@ -12,6 +12,13 @@ process.on('uncaughtException', function (err) {
     console.error('Uncaught Exception occured!');
     console.error(err.stack);
 });
+var ffmpegPath
+try{
+    ffmpegPath = require('ffmpeg-static').path;
+}catch(err){
+    console.log('No Static FFmpeg. Continuing.')
+    //no static ffmpeg
+}
 var fs = require('fs');
 var os = require('os');
 var URL = require('url');
@@ -456,10 +463,14 @@ io.attach(server);
 console.log('NODE.JS version : '+execSync("node -v"))
 //ffmpeg location
 if(!config.ffmpegDir){
-    if(s.isWin===true){
-        config.ffmpegDir=__dirname+'/ffmpeg/ffmpeg.exe'
+    if(ffmpegPath){
+        config.ffmpegDir = ffmpegPath
     }else{
-        config.ffmpegDir='ffmpeg'
+        if(s.isWin===true){
+            config.ffmpegDir = __dirname+'/ffmpeg/ffmpeg.exe'
+        }else{
+            config.ffmpegDir = 'ffmpeg'
+        }
     }
 }
 s.ffmpegVersion=execSync(config.ffmpegDir+" -version").toString().split('Copyright')[0].replace('ffmpeg version','').trim()
