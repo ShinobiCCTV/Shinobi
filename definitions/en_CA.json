@@ -327,7 +327,7 @@
                {
                   "name": "height",
                   "field": "Height",
-                  "description": "Height of the stream image.  Recommend you set to",
+                  "description": "Height of the stream image.",
                   "default": "640",
                   "example": "1280",
                   "possible": ""
@@ -439,10 +439,10 @@
                {
                   "name": "detail=hls_time",
                   "field": "HLS Segment Length",
-                  "description": "How long each video segment should be, in minutes. Each segment will be drawn by the client through an m3u8 file.",
+                  "description": "How long each video segment should be, in minutes. Each segment will be drawn by the client through an m3u8 file. Shorter segments take less space.",
                   "default": "2",
                   "example": "3",
-                  "possible": "1-30"
+                  "possible": ""
                },
                {
                   "name": "detail=hls_list_size",
@@ -616,7 +616,7 @@
                {
                   "name": "fps",
                   "field": "Video Record Rate (FPS)",
-                  "description": "The speed in which frames are recorded to files. Frames Per Second. Be aware there is no default. This can lead to large files. Best to set this camera-side.",
+                  "description": "The speed in which frames are recorded to files, Frames Per Second. Be aware there is no default. This can lead to large files. Best to set this camera-side.",
                   "default": "",
                   "example": "2",
                   "possible": ""
@@ -873,9 +873,9 @@
                   "name": "detail=detector_sensitivity",
                   "field": "Indifference",
                   "description": "How much Shinobi doesn't care about motion before doing something. The opposite of sensitivity; a lower number means it will trigger sooner. The value ranges up to 15(+) decimal places.  0.5 is default, 0.005 is pretty sensitive to motion changes.",
-                  "default": "",
+                  "default": "0.5",
                   "example": "0.5",
-                  "possible": "Any number."
+                  "possible": ""
                },
                {
                   "name": "detail=detector_webhook",
