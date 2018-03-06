@@ -196,7 +196,7 @@
                   "field": "Path",
                   "description": "The path to your camera",
                   "default": "",
-                  "example": "/videostream.cgi",
+                  "example": "/video.h264",
                   "possible": ""
                },
                {
