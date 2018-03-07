@@ -1636,6 +1636,10 @@ s.file=function(x,e){
             if(!e){return false;}
             return exec('rm -f '+e,{detached: true});
         break;
+        case'delete_folder':
+            if(!e){return false;}
+            return exec('rm -rf '+e,{detached: true});
+        break;
         case'delete_files':
             if(!e.age_type){e.age_type='min'};if(!e.age){e.age='1'};
             exec('find '+e.path+' -type f -c'+e.age_type+' +'+e.age+' -exec rm -f {} +',{detached: true});
@@ -1842,18 +1846,20 @@ s.camera=function(x,e,cn,tx){
                     fs.mkdirSync(e.dir);
                 }
             }
-            //stream dir
-            e.sdir=s.dir.streams+e.ke+'/';
-            if (!fs.existsSync(e.sdir)){
-                fs.mkdirSync(e.sdir);
+            var setStreamDir = function(){
+                //stream dir
+                e.sdir=s.dir.streams+e.ke+'/';
+                if (!fs.existsSync(e.sdir)){
+                    fs.mkdirSync(e.sdir);
+                }
+                e.sdir=s.dir.streams+e.ke+'/'+e.id+'/';
+                if (!fs.existsSync(e.sdir)){
+                    fs.mkdirSync(e.sdir);
+                }else{
+                    s.file('delete_folder',e.sdir+'*')
+                }
             }
-            e.sdir=s.dir.streams+e.ke+'/'+e.id+'/';
-            if (!fs.existsSync(e.sdir)){
-                fs.mkdirSync(e.sdir);
-            }else{
-                s.file('delete',e.sdir+'*')
-                s.file('delete',e.sdir+'channel*')
-            }
+            setStreamDir()
             //start "no motion" checker
             if(e.details.detector=='1'&&e.details.detector_notrigger=='1'){
                 if(!e.details.detector_notrigger_timeout||e.details.detector_notrigger_timeout===''){
@@ -1978,6 +1984,7 @@ s.camera=function(x,e,cn,tx){
                 }
                 e.error_fatal_count=0;
                 e.fn=function(){//this function loops to create new files
+                    setStreamDir()
                     clearTimeout(s.group[e.ke].mon[e.id].checker)
                     if(s.group[e.ke].mon[e.id].started===1){
                     e.error_count=0;
