@@ -782,8 +782,8 @@
                {
                   "name": "detail=detector_save",
                   "field": "Save Events to SQL",
-                  "description": "Save Motion Events in SQL. This will overlay object on top of video recorded during the time motion events occured.",
-                  "default": "No",
+                  "description": "Save Motion Events in SQL. This will allow display of motion over video during the time motion events occured in the Power Viewer.",
+                  "default": "Yes",
                   "example": "",
                   "possible": ""
                },
@@ -831,8 +831,8 @@
                {
                   "name": "detail=detector_fps",
                   "field": "Detector Rate (FPS)",
-                  "description": "How many frames a second to send to the motion detector. 0.5 is the default. 0.5 means it will send a frame every 2 seconds.",
-                  "default": "0.5",
+                  "description": "How many frames a second to send to the motion detector; 1 is the default.",
+                  "default": "1",
                   "example": "",
                   "possible": ""
                },
@@ -861,7 +861,7 @@
                   "possible": [
                      {
                         "name": "No",
-                        "info": "Makes motion detector do nothing if regions are not specified."
+                        "info": "Makes motion detector do nothing if regions are not specified. Which is a stupid option to have if motion detection is on. One day we will remove this option."
                      },
                      {
                         "name": "Yes",
@@ -872,9 +872,9 @@
                {
                   "name": "detail=detector_sensitivity",
                   "field": "Indifference",
-                  "description": "How much Shinobi doesn't care about motion before doing something. The opposite of sensitivity; a lower number means it will trigger sooner. The value ranges up to 15(+) decimal places.  0.5 is default, 0.005 is pretty sensitive to motion changes.",
-                  "default": "0.5",
-                  "example": "0.5",
+                  "description": "How much Shinobi doesn't care about motion before doing something. The opposite of sensitivity; a lower number means it will trigger sooner. The value ranges up to 15(+) decimal places.  10 is default, 0.005 is pretty sensitive to motion changes.  Note: If using Region Editor, leave this blank, and set indifference in the Region Editor (below).",
+                  "default": "10",
+                  "example": "10",
                   "possible": ""
                },
                {
