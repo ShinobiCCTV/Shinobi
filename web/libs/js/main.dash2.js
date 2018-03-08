@@ -1551,6 +1551,9 @@ $.ccio.globalWebsocket=function(d,user){
         $('[ke="'+d.ke+'"][mid="'+d.id+'"][auth="'+user.auth_token+'"] .viewers').html(d.viewers);
     }
     switch(d.f){
+        case'note':
+            $.ccio.init('note',d.note);
+        break;
         case'detector_trigger':
             d.e=$('.monitor_item[ke="'+d.ke+'"][mid="'+d.id+'"][auth="'+user.auth_token+'"]')
             if($.ccio.mon[d.ke+d.id+user.auth_token]&&d.e.length>0){
