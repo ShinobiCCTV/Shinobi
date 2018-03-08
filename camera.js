@@ -3334,11 +3334,13 @@ var tx;
                 break;
                 case'video':
                     switch(d.ff){
-                        case'fix':
-                            s.video('fix',d)
-                        break;
+//                        case'fix':
+//                            s.video('fix',d)
+//                        break;
                         case'delete':
-                            s.video('delete',d)
+                            if(!user.details.sub||(user.details.sub&&user.details.allmonitors!=='1'&&s.group[d.ke].users[d.auth].details.video_delete.indexOf(req.params.id)===-1)){
+                                s.video('delete',d)
+                            }
                         break;
                     }
                 break;
