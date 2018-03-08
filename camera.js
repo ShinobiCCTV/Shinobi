@@ -3332,27 +3332,13 @@ var tx;
                         break;
                     }
                 break;
-                case'video':
-                    switch(d.ff){
+//                case'video':
+//                    switch(d.ff){
 //                        case'fix':
 //                            s.video('fix',d)
 //                        break;
-                        case'delete':
-                            if(!user.details.sub||(user.details.sub&&user.details.allmonitors!=='1'&&s.group[d.ke].users[d.auth].details.video_delete.indexOf(req.params.id)===-1)){
-                                s.video('delete',d)
-                            }else{
-                                tx({
-                                    f:'note',
-                                    note:{
-                                        title:s.group[d.ke].users[d.auth].lang['Not Permitted'],
-                                        text:s.group[d.ke].users[d.auth].lang.notPermitted,
-                                        type:'error'
-                                    }
-                                })
-                            }
-                        break;
-                    }
-                break;
+//                    }
+//                break;
                 case'ffprobe':
                     if(s.group[cn.ke].users[cn.auth]){
                         switch(d.ff){

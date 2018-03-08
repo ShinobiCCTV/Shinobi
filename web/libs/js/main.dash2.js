@@ -3418,8 +3418,9 @@ $.vidview.e.find('.delete_selected').click(function(e){
     $.confirm.body.html(e.html)
     $.confirm.click({title:'Delete Video',class:'btn-danger'},function(){
         $.each(e.s,function(n,v){
-            n=n.split('.')
-            $.ccio.cx({f:'video',ff:'delete',filename:n[0],ext:n[1],mid:v.mid},$.users[v.auth]);
+            $.getJSON($.ccio.init('location',$.users[v.auth])+v.auth+'/videos/'+v.ke+'/'+v.mid+'/'+n+'/delete',function(d){
+                $.ccio.log(d)
+            })
         })
     });
 })
@@ -4051,17 +4052,6 @@ $('body')
                 })
             }
         break;
-        case'fix':
-            $.confirm.e.modal('show');
-            $.confirm.title.text('<%-cleanLang(lang['Fix Video'])%> : '+e.file)
-            e.html='<%-cleanLang(lang.FixVideoMsg)%>'
-            e.html+='<video class="video_video" autoplay loop controls><source src="'+e.p.find('[download]').attr('href')+'" type="video/'+e.mon.ext+'"></video>';
-            $.confirm.body.html(e.html)
-            $.confirm.click({title:'Fix Video',class:'btn-warning'},function(){
-                e.file=e.file.split('.')
-                $.ccio.cx({f:'video',ff:'fix',filename:e.file[0],ext:e.file[1],ke:e.ke,mid:e.mid});
-            });
-        break;
         case'delete':
             e.href=e.p.find('[download]').attr('href')
             if(!e.href||e.href===''){
@@ -4073,8 +4063,9 @@ $('body')
             e.html+='<video class="video_video" autoplay loop controls><source src="'+e.href+'" type="video/'+e.mon.ext+'"></video>';
             $.confirm.body.html(e.html)
             $.confirm.click({title:'Delete Video',class:'btn-danger'},function(){
-                e.file=e.file.split('.')
-                $.ccio.cx({f:'video',ff:'delete',filename:e.file[0],ext:e.file[1],ke:e.ke,mid:e.mid});
+                $.getJSON($.ccio.init('location',$.users[e.auth])+e.auth+'/videos/'+e.ke+'/'+e.mid+'/'+e.file+'/delete',function(d){
+                    $.ccio.log(d)
+                })
             });
         break;
         case'download':
