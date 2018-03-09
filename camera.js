@@ -1499,7 +1499,7 @@ s.ffmpeg=function(e){
         }
     }
     //api - snapshot bin/ cgi.bin (JPEG Mode)
-    if(e.details.snap==='1'||e.details.stream_type==='jpeg'){
+    if(e.details.snap==='1'){
         if(e.details.input_map_choices&&e.details.input_map_choices.snap){
             //add input feed map
             x.pipe += createFFmpegMap(e.details.input_map_choices.snap)
