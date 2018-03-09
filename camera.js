@@ -3532,7 +3532,13 @@ var tx;
                             case'update':
                                 s.ffmpegKill()
                                 s.systemLog('Shinobi ordered to update',{by:cn.mail,ip:cn.ip,distro:d.distro})
-                                exec('chmod +x '+__dirname+'/UPDATE.sh&&'+__dirname+'/UPDATE.sh '+d.distro,{detached: true})
+                                var updateProcess = spawn('sh',(__dirname+'/UPDATE.sh '+d.distro).split(' '),{detached: true})
+                                updateProcess.stderr.on('data',function(data){
+                                    s.systemLog('Update Info',data.toString())
+                                })
+                                updateProcess.stdout.on('data',function(data){
+                                    s.systemLog('Update Info',data.toString())
+                                })
                             break;
                             case'restart':
                                 d.check=function(x){return d.target.indexOf(x)>-1}
@@ -4909,7 +4915,7 @@ app.get(['/:auth/events/:ke','/:auth/events/:ke/:id','/:auth/events/:ke/:id/:lim
     },res,req);
 });
 // Get logs json
-app.get(['/:auth/logs/:ke','/:auth/logs/:ke/:id','/:auth/logs/:ke/:limit','/:auth/logs/:ke/:id/:limit'], function (req,res){
+app.get(['/:auth/logs/:ke','/:auth/logs/:ke/:id'], function (req,res){
     req.ret={ok:false};
     res.setHeader('Content-Type', 'application/json');
     res.header("Access-Control-Allow-Origin",req.headers.origin);
@@ -4936,8 +4942,8 @@ app.get(['/:auth/logs/:ke','/:auth/logs/:ke/:id','/:auth/logs/:ke/:limit','/:aut
                 return;
             }
         }
-        if(!req.params.limit||req.params.limit==''){req.params.limit=100}
-        req.sql+=' ORDER BY `time` DESC LIMIT '+req.params.limit+'';
+        if(!req.query.limit||req.query.limit==''){req.query.limit=50}
+        req.sql+=' ORDER BY `time` DESC LIMIT '+req.query.limit+'';
         s.sqlQuery(req.sql,req.ar,function(err,r){
             if(err){
                 err.sql=req.sql;

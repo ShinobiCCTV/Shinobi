@@ -21,3 +21,4 @@ rm version.json
 touch version.json
 chmod 755 version.json
 echo '{"Product" : "'"$productName"'" , "Branch" : "'"$distro"'" , "Version" : "'"$gitVersionNumber"'" , "Date" : "'"$theDateRightNow"'" , "Repository" : "'"$gitURL"'"}' > version.json
+echo "Restart Shinobi for updates to take effect."
