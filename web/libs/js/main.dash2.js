@@ -44,7 +44,7 @@ switch($user.details.lang){
             user=$user
         }
         switch(x){
-            case'cleanMons':
+            case'cleanMon':
                 var acceptedFields = [
                     'mid',
                     'ke',
@@ -63,18 +63,22 @@ switch($user.details.lang){
                     'width',
                     'height'
                 ]
+                var row = {};
+                $.each(d,function(m,b){
+                    if(acceptedFields.indexOf(m)>-1){
+                        row[m]=b;
+                    }
+                })
+                return row
+            break;
+            case'cleanMons':
                 if(d==='object'){
                     var arr={}
                 }else{
                     var arr=[]
                 }
                 $.each($.ccio.mon,function(n,v){
-                    var row = {};
-                    $.each(v,function(m,b){
-                        if(acceptedFields.indexOf(m)>-1){
-                            row[m]=b;
-                        }
-                    })
+                    var row = $.ccio.init('cleanMon',v)
                     if(d==='object'){
                         arr[n]=row
                     }else{
@@ -2667,11 +2671,16 @@ $.multimon.e.find('.import_config').click(function(){
 //        });
     });
 })
-$.multimon.e.find('.delete').click(function(){
+$.multimon.getSelectedMonitors = function(){
     var arr=[];
+    var monitors = $.ccio.init('cleanMons','object')
     $.each($.multimon.f.serializeObject(),function(n,v){
-        arr.push($.ccio.mon[n])
+        arr.push(monitors[n])
     })
+    return arr;
+}
+$.multimon.e.find('.delete').click(function(){
+    var arr=$.multimon.getSelectedMonitors();
     if(arr.length===0){
         $.ccio.init('note',{title:'No Monitors Selected',text:'Select atleast one monitor to delete.',type:'error'});
         return
@@ -2688,15 +2697,21 @@ $.multimon.e.find('.delete').click(function(){
         })
     });
 })
+$.multimon.e.find('.edit_all').click(function(){
+    var arr=$.multimon.getSelectedMonitors();
+    var arrObject={}
+    if(arr.length===0){
+        $.ccio.init('note',{title:'No Monitors Selected',text:'Select atleast one monitor to delete.',type:'error'});
+        return
+    }
+    $.multimonedit.selectedList = arr;
+    $.multimonedit.e.modal('show')
+})
 $.multimon.e.find('.save_config').click(function(){
     var e={};e.e=$(this);
-    var arr=[];
-    var monitors = $.ccio.init('cleanMons','object')
-    $.each($.multimon.f.serializeObject(),function(n,v){
-        arr.push(monitors[n])
-    })
+    var arr=$.multimon.getSelectedMonitors();
     if(arr.length===0){
-        $.ccio.init('note',{title:'No Monitors Selected',text:'Select atleast one monitor to export.',type:'error'});
+        $.ccio.init('note',{title:'No Monitors Selected',text:'Select atleast one monitor to delete.',type:'error'});
         return
     }
     e.dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(arr));
@@ -2724,7 +2739,7 @@ $.multimon.e.on('shown.bs.modal',function() {
     $.multimon.table.html(tmp)
 })
 //Monitor Editor
-$.aM={e:$('#add_monitor')};
+$.aM={e:$('#add_monitor'),monitorsForCopy:$('#copy_settings_monitors')};
 $.aM.f=$.aM.e.find('form')
 $.aM.channels=$('#monSectionStreamChannels')
 $.aM.maps=$('#monSectionInputMaps')
@@ -2746,6 +2761,172 @@ $.each(<%-JSON.stringify(define["Monitor Settings"].blocks)%>,function(n,v){
         v.parent.append('<small class="hover">'+b.description+'</small>')
     })
 })
+$.aM.generateDefaultMonitorSettings=function(){
+    return {
+    "mode": "start",
+    "mid": $.ccio.gid(),
+    "name": "Some Stream",
+    "type": "h264",
+    "protocol": "rtsp",
+    "host": "",
+    "port": "",
+    "path": "",
+    "ext": "mp4",
+    "fps": "1",
+    "width": "640",
+    "height": "480",
+    "details": JSON.stringify({
+        "fatal_max": "0",
+        "notes": "",
+        "dir": "",
+        "auto_host_enable": "1",
+        "auto_host": "",
+        "rtsp_transport": "tcp",
+        "muser": "",
+        "mpass": "",
+        "port_force": "0",
+        "aduration": "1000000",
+        "probesize": "1000000",
+        "stream_loop": "0",
+        "sfps": "1",
+        "accelerator": "0",
+        "hwaccel": "0",
+        "hwaccel_vcodec": "",
+        "hwaccel_device": "",
+        "stream_type": "mp4",
+        "stream_mjpeg_clients": "",
+        "stream_vcodec": "copy",
+        "stream_acodec": "no",
+        "hls_time": "2",
+        "preset_stream": "ultrafast",
+        "hls_list_size": "3",
+        "signal_check": "10",
+        "signal_check_log": "0",
+        "stream_quality": "15",
+        "stream_fps": "2",
+        "stream_scale_x": "",
+        "stream_scale_y": "",
+        "rotate_stream": "no",
+        "svf": "",
+        "rtmp_vcodec": "h264",
+        "rtmp_acodec": "aac",
+        "stream_timestamp": "0",
+        "stream_timestamp_font": "",
+        "stream_timestamp_font_size": "",
+        "stream_timestamp_color": "",
+        "stream_timestamp_box_color": "",
+        "stream_timestamp_x": "",
+        "stream_timestamp_y": "",
+        "stream_watermark": "0",
+        "stream_watermark_location": "",
+        "stream_watermark_position": "tr",
+        "snap": "1",
+        "snap_fps": "",
+        "snap_scale_x": "",
+        "snap_scale_y": "",
+        "snap_vf": "",
+        "rawh264": "0",
+        "rawh264_vcodec": "copy",
+        "rawh264_acodec": "",
+        "rawh264_fps": "",
+        "rawh264_scale_x": "",
+        "rawh264_scale_y": "",
+        "rawh264_crf": "",
+        "rawh264_vf": "",
+        "vcodec": "copy",
+        "crf": "1",
+        "preset_record": "",
+        "acodec": "no",
+        "dqf": "0",
+        "cutoff": "15",
+        "rotate_record": "no",
+        "vf": "",
+        "timestamp": "0",
+        "timestamp_font": "",
+        "timestamp_font_size": "10",
+        "timestamp_color": "white",
+        "timestamp_box_color": "0x00000000@1",
+        "timestamp_x": "(w-tw)/2",
+        "timestamp_y": "0",
+        "watermark": "0",
+        "watermark_location": "",
+        "watermark_position": "tr",
+        "cust_input": "",
+        "cust_snap": "",
+        "cust_rawh264": "",
+        "cust_detect": "",
+        "cust_stream": "",
+        "cust_stream_server": "",
+        "cust_record": "",
+        "custom_output": "",
+        "detector": "0",
+        "detector_pam": "1",
+        "detector_webhook": "0",
+        "detector_webhook_url": "",
+        "detector_command_enable": "0",
+        "detector_command": "",
+        "detector_command_timeout": "",
+        "detector_lock_timeout": "",
+        "detector_save": "0",
+        "detector_frame_save": "0",
+        "detector_mail": "0",
+        "detector_mail_timeout": "",
+        "detector_record_method": "sip",
+        "detector_trigger": "1",
+        "detector_trigger_record_fps": "",
+        "detector_timeout": "10",
+        "watchdog_reset": "0",
+        "detector_delete_motionless_videos": "0",
+        "detector_send_frames": "1",
+        "detector_region_of_interest": "0",
+        "detector_fps": "",
+        "detector_scale_x": "640",
+        "detector_scale_y": "480",
+        "detector_use_motion": "1",
+        "detector_use_detect_object": "0",
+        "detector_frame": "0",
+        "detector_sensitivity": "",
+        "cords": "[]",
+        "detector_buffer_vcodec": "auto",
+        "detector_buffer_fps": "",
+        "detector_buffer_hls_time": "",
+        "detector_buffer_hls_list_size": "",
+        "detector_buffer_start_number": "",
+        "detector_buffer_live_start_index": "",
+        "detector_lisence_plate": "0",
+        "detector_lisence_plate_country": "us",
+        "detector_notrigger": "0",
+        "detector_notrigger_mail": "0",
+        "detector_notrigger_timeout": "",
+        "control": "0",
+        "control_base_url": "",
+        "control_stop": "0",
+        "control_url_stop_timeout": "",
+        "control_url_center": "",
+        "control_url_left": "",
+        "control_url_left_stop": "",
+        "control_url_right": "",
+        "control_url_right_stop": "",
+        "control_url_up": "",
+        "control_url_up_stop": "",
+        "control_url_down": "",
+        "control_url_down_stop": "",
+        "control_url_enable_nv": "",
+        "control_url_disable_nv": "",
+        "control_url_zoom_out": "",
+        "control_url_zoom_out_stop": "",
+        "control_url_zoom_in": "",
+        "control_url_zoom_in_stop": "",
+        "tv_channel": "0",
+        "groups": "[]",
+        "loglevel": "warning",
+        "sqllog": "0",
+        "detector_cascades": ""
+    }),
+    "shto": "[]",
+    "shfr": "[]"
+}
+}
 $.aM.drawList=function(){
     e={list:$.aM.e.find('.follow-list ul'),html:''}
     $.aM.e.find('[section]:visible').each(function(n,v){
@@ -2869,31 +3050,39 @@ $.aM.import=function(e){
     });
     try{
         $.each(['group','group_detector'],function(m,b){
-            e.tmp=''
+            var tmp=''
             $.each($user.mon_groups,function(n,v){
-                e.tmp+='<li class="mdl-list__item">';
-                e.tmp+='<span class="mdl-list__item-primary-content">';
-                e.tmp+=v.name;
-                e.tmp+='</span>';
-                e.tmp+='<span class="mdl-list__item-secondary-action">';
-                e.tmp+='<label class="mdl-switch mdl-js-switch mdl-js-ripple-effect">';
-                e.tmp+='<input type="checkbox" '+b+' value="'+v.id+'" class="mdl-switch__input"';
+                tmp+='<li class="mdl-list__item">';
+                tmp+='<span class="mdl-list__item-primary-content">';
+                tmp+=v.name;
+                tmp+='</span>';
+                tmp+='<span class="mdl-list__item-secondary-action">';
+                tmp+='<label class="mdl-switch mdl-js-switch mdl-js-ripple-effect">';
+                tmp+='<input type="checkbox" '+b+' value="'+v.id+'" class="mdl-switch__input"';
                 if(!e.ss[b]){
                     e.ss[b]=[]
                 }
-                if(e.ss[b].indexOf(v.id)>-1){e.tmp+=' checked';}
-                e.tmp+=' />';
-                e.tmp+='</label>';
-                e.tmp+='</span>';
-                e.tmp+='</li>';
+                if(e.ss[b].indexOf(v.id)>-1){tmp+=' checked';}
+                tmp+=' />';
+                tmp+='</label>';
+                tmp+='</span>';
+                tmp+='</li>';
             })
-            $('#monitor_'+b).html(e.tmp)
+            $('#monitor_'+b).html(tmp)
         })
         componentHandler.upgradeAllRegistered()
     }catch(er){
         console.log(er)
         //no group, this 'try' will be removed in future.
     };
+    $('#copy_settings').val('0').change()
+    var tmp = '';
+    $.each($.ccio.mon,function(n,v){
+        if(v.ke === $user.ke){
+            tmp += $.ccio.tm('option',{auth_token:$user.auth_token,id:v.mid,name:v.name},null,$user);
+        }
+    })
+    $.aM.monitorsForCopy.find('optgroup').html(tmp)
     setTimeout(function(){$.aM.drawList()},1000)
 }
 //parse "Automatic" field in "Input" Section
@@ -2939,8 +3128,10 @@ $.aM.e.on('change','[detail="auto_host"]',function(e){
 $.aM.e.find('.refresh_cascades').click(function(e){
     $.ccio.cx({f:'ocv_in',data:{f:'refreshPlugins',ke:$user.ke}})
 })
-$.aM.f.submit(function(e){
-    e.preventDefault();e.e=$(this),e.s=e.e.serializeObject();
+$.aM.f.submit(function(ee){
+    ee.preventDefault();
+    e={e:$(this)};
+    e.s=e.e.serializeObject();
     e.er=[];
     $.each(e.s,function(n,v){e.s[n]=v.trim()});
     e.s.mid=e.s.mid.replace(/[^\w\s]/gi,'').replace(/ /g,'')
@@ -2956,6 +3147,88 @@ $.aM.f.submit(function(e){
     $.post('/'+$user.auth_token+'/configureMonitor/'+$user.ke+'/'+e.s.mid,{data:JSON.stringify(e.s)},function(d){
         $.ccio.log(d)
     })
+    //
+    if($('#copy_settings').val() === '1'){
+        e.s.details = JSON.parse(e.s.details);
+        var copyMonitors = $.aM.monitorsForCopy.val();
+        var chosenSections = [];
+        var chosenMonitors = {};
+        
+        if(!copyMonitors||copyMonitors.length===0){
+            $.ccio.init('note',{title:'<%-cleanLang(lang['No Monitors Selected'])%>',text:'<%-cleanLang(lang.monSavedButNotCopied)%>'})
+            return
+        }
+        
+        $.aM.e.find('[copy]').each(function(n,v){
+            var el = $(v)
+            if(el.val() === '1'){
+                chosenSections.push(el.attr('copy'))
+            }
+        })
+        var alterSettings = function(settingsToAlter,monitor){
+            monitor.details = JSON.parse(monitor.details);
+            $.aM.e.find(settingsToAlter).find('input,select,textarea').each(function(n,v){
+                var el = $(v);
+                var name = el.attr('name')
+                var detail = el.attr('detail')
+                var value
+                switch(true){
+                    case !!name:
+                        var value = e.s[name]
+                        monitor[name] = value;
+                    break;
+                    case !!detail:
+                        detail = detail.replace('"','')
+                        var value = e.s.details[detail]
+                        monitor.details[detail] = value;
+                    break;
+                }
+            })
+            monitor.details = JSON.stringify(monitor.details);
+            return monitor;
+        }
+        $.each(copyMonitors,function(n,id){
+            var monitor
+            if(id === '$New'){
+                monitor = $.aM.generateDefaultMonitorSettings();
+                //connection
+                monitor.name = e.s.name+' - '+monitor.mid
+                monitor.type = e.s.type
+                monitor.protocol = e.s.protocol
+                monitor.host = e.s.host
+                monitor.port = e.s.port
+                monitor.path = e.s.path
+                monitor.details.fatal_max = e.s.details.fatal_max
+                monitor.details.port_force = e.s.details.port_force
+                monitor.details.muser = e.s.details.muser
+                monitor.details.password = e.s.details.password
+                monitor.details.rtsp_transport = e.s.details.rtsp_transport
+                monitor.details.auto_host = e.s.details.auto_host
+                monitor.details.auto_host_enable = e.s.details.auto_host_enable
+                //input
+                monitor.details.aduration = e.s.details.aduration
+                monitor.details.probesize = e.s.details.probesize
+                monitor.details.stream_loop = e.s.details.stream_loop
+                monitor.details.sfps = e.s.details.sfps
+                monitor.details.accelerator = e.s.details.accelerator
+                monitor.details.hwaccel = e.s.details.hwaccel
+                monitor.details.hwaccel_vcodec = e.s.details.hwaccel_vcodec
+                monitor.details.hwaccel_device = e.s.details.hwaccel_device
+            }else{
+                monitor = Object.assign({},$.ccio.init('cleanMon',$.ccio.mon[$user.ke+id+$user.auth_token]));
+            }
+            $.each(chosenSections,function(n,section){
+                monitor = alterSettings(section,monitor)
+            })
+            console.log(monitor)
+            $.post('/'+$user.auth_token+'/configureMonitor/'+$user.ke+'/'+monitor.mid,{data:JSON.stringify(monitor)},function(d){
+                $.ccio.log(d)
+            })
+             chosenMonitors[monitor.mid] = monitor;
+        })
+        console.log(chosenMonitors)
+    }
+    
     $.aM.e.modal('hide')
     return false;
 });
@@ -4500,170 +4773,7 @@ $('body')
                 e.p.find('[monitor="delete"]').hide()
                 e.mt.find('span').text('Add'),e.mt.find('i').attr('class','fa fa-plus');
                 //default values
-                e.values={
-                    "mode": "start",
-                    "mid": $.ccio.gid(),
-                    "name": "Some Stream",
-                    "type": "h264",
-                    "protocol": "rtsp",
-                    "host": "",
-                    "port": "",
-                    "path": "",
-                    "ext": "mp4",
-                    "fps": "1",
-                    "width": "640",
-                    "height": "480",
-                    "details": JSON.stringify({
-                        "fatal_max": "0",
-                        "notes": "",
-                        "dir": "",
-                        "auto_host_enable": "1",
-                        "auto_host": "",
-                        "rtsp_transport": "tcp",
-                        "muser": "",
-                        "mpass": "",
-                        "port_force": "0",
-                        "aduration": "1000000",
-                        "probesize": "1000000",
-                        "stream_loop": "0",
-                        "sfps": "1",
-                        "accelerator": "0",
-                        "hwaccel": "0",
-                        "hwaccel_vcodec": "",
-                        "hwaccel_device": "",
-                        "stream_type": "mp4",
-                        "stream_mjpeg_clients": "",
-                        "stream_vcodec": "copy",
-                        "stream_acodec": "no",
-                        "hls_time": "2",
-                        "preset_stream": "ultrafast",
-                        "hls_list_size": "3",
-                        "signal_check": "10",
-                        "signal_check_log": "0",
-                        "stream_quality": "15",
-                        "stream_fps": "2",
-                        "stream_scale_x": "",
-                        "stream_scale_y": "",
-                        "rotate_stream": "no",
-                        "svf": "",
-                        "rtmp_vcodec": "h264",
-                        "rtmp_acodec": "aac",
-                        "stream_timestamp": "0",
-                        "stream_timestamp_font": "",
-                        "stream_timestamp_font_size": "",
-                        "stream_timestamp_color": "",
-                        "stream_timestamp_box_color": "",
-                        "stream_timestamp_x": "",
-                        "stream_timestamp_y": "",
-                        "stream_watermark": "0",
-                        "stream_watermark_location": "",
-                        "stream_watermark_position": "tr",
-                        "snap": "1",
-                        "snap_fps": "",
-                        "snap_scale_x": "",
-                        "snap_scale_y": "",
-                        "snap_vf": "",
-                        "rawh264": "0",
-                        "rawh264_vcodec": "copy",
-                        "rawh264_acodec": "",
-                        "rawh264_fps": "",
-                        "rawh264_scale_x": "",
-                        "rawh264_scale_y": "",
-                        "rawh264_crf": "",
-                        "rawh264_vf": "",
-                        "vcodec": "copy",
-                        "crf": "1",
-                        "preset_record": "",
-                        "acodec": "no",
-                        "dqf": "0",
-                        "cutoff": "15",
-                        "rotate_record": "no",
-                        "vf": "",
-                        "timestamp": "0",
-                        "timestamp_font": "",
-                        "timestamp_font_size": "10",
-                        "timestamp_color": "white",
-                        "timestamp_box_color": "0x00000000@1",
-                        "timestamp_x": "(w-tw)/2",
-                        "timestamp_y": "0",
-                        "watermark": "0",
-                        "watermark_location": "",
-                        "watermark_position": "tr",
-                        "cust_input": "",
-                        "cust_snap": "",
-                        "cust_rawh264": "",
-                        "cust_detect": "",
-                        "cust_stream": "",
-                        "cust_stream_server": "",
-                        "cust_record": "",
-                        "custom_output": "",
-                        "detector": "0",
-                        "detector_pam": "1",
-                        "detector_webhook": "0",
-                        "detector_webhook_url": "",
-                        "detector_command_enable": "0",
-                        "detector_command": "",
-                        "detector_command_timeout": "",
-                        "detector_lock_timeout": "",
-                        "detector_save": "0",
-                        "detector_frame_save": "0",
-                        "detector_mail": "0",
-                        "detector_mail_timeout": "",
-                        "detector_record_method": "sip",
-                        "detector_trigger": "1",
-                        "detector_trigger_record_fps": "",
-                        "detector_timeout": "10",
-                        "watchdog_reset": "0",
-                        "detector_delete_motionless_videos": "0",
-                        "detector_send_frames": "1",
-                        "detector_region_of_interest": "0",
-                        "detector_fps": "",
-                        "detector_scale_x": "640",
-                        "detector_scale_y": "480",
-                        "detector_use_motion": "1",
-                        "detector_use_detect_object": "0",
-                        "detector_frame": "0",
-                        "detector_sensitivity": "",
-                        "cords": "[]",
-                        "detector_buffer_vcodec": "auto",
-                        "detector_buffer_fps": "",
-                        "detector_buffer_hls_time": "",
-                        "detector_buffer_hls_list_size": "",
-                        "detector_buffer_start_number": "",
-                        "detector_buffer_live_start_index": "",
-                        "detector_lisence_plate": "0",
-                        "detector_lisence_plate_country": "us",
-                        "detector_notrigger": "0",
-                        "detector_notrigger_mail": "0",
-                        "detector_notrigger_timeout": "",
-                        "control": "0",
-                        "control_base_url": "",
-                        "control_stop": "0",
-                        "control_url_stop_timeout": "",
-                        "control_url_center": "",
-                        "control_url_left": "",
-                        "control_url_left_stop": "",
-                        "control_url_right": "",
-                        "control_url_right_stop": "",
-                        "control_url_up": "",
-                        "control_url_up_stop": "",
-                        "control_url_down": "",
-                        "control_url_down_stop": "",
-                        "control_url_enable_nv": "",
-                        "control_url_disable_nv": "",
-                        "control_url_zoom_out": "",
-                        "control_url_zoom_out_stop": "",
-                        "control_url_zoom_in": "",
-                        "control_url_zoom_in_stop": "",
-                        "tv_channel": "0",
-                        "groups": "[]",
-                        "loglevel": "warning",
-                        "sqllog": "0",
-                        "detector_cascades": ""
-                    }),
-                    "shto": "[]",
-                    "shfr": "[]"
-                }
+                e.values=$.aM.generateDefaultMonitorSettings();
             }else{
                 e.p.find('.am_notice_edit').show()
                 //edit monitor

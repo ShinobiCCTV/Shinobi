@@ -47,11 +47,6 @@
                 </label>
               </div>
               <div class="form-group">
-                <label><div><span><%-lang['Retry Connection']%></span></div>
-                    <div><input class="form-control" detail="fatal_max" placeholder="10"></div>
-                </label>
-              </div>
-              <div class="form-group">
                 <label><div><span><%-lang.Notes%></span></div>
                     <div><textarea class="form-control" detail="notes" placeholder="<%-lang.NotesPlacholder%>"></textarea></div>
                 </label>
@@ -68,9 +63,9 @@
             </label>
             </div>
           </div>
-<!--     START of Input     -->
-          <div class="form-group-group forestgreen" section id="monSectionInput">
-          <h4><%-lang.Input%></h4>
+<!--     START of Connection     -->
+          <div class="form-group-group orange" section id="monSectionConnection">
+          <h4><%-lang.Connection%></h4>
               <blockquote class="global_tip">
                   <p><%-lang.InputText1%></p>
                   <%-lang.InputText2%>
@@ -164,24 +159,34 @@
                     <div><input class="form-control" name="path" placeholder="/videostream.cgi?1"></div>
                     </label>
                   </div>
-                  <div class="form-group">
-                    <label><div><span><%-lang['Analyzation Duration']%></span></div>
-                    <div><input class="form-control" detail="aduration"></div>
-                    </label>
-                  </div>
-                  <div class="form-group">
-                    <label><div><span><%-lang['Probe Size']%></span></div>
-                    <div><input class="form-control" detail="probesize"></div>
-                    </label>
-                  </div>
-                  <div class="form-group h_t_input h_t_mp4">
-                    <label><div><span><%-lang["Loop Stream"]%></span></div>
-                        <div><select class="form-control" detail="stream_loop">
-                            <option value="0" selected><%-lang.No%></option>
-                            <option value="1"><%-lang.Yes%></option>
-                        </select></div>
-                    </label>
-                  </div>
+              </div>
+              <div class="form-group">
+                <label><div><span><%-lang['Retry Connection']%></span></div>
+                    <div><input class="form-control" detail="fatal_max" placeholder="10"></div>
+                </label>
+              </div>
+            </div>
+<!--     END of Connection     -->
+<!--     START of Input     -->
+          <div class="form-group-group forestgreen" section id="monSectionInput">
+          <h4><%-lang['Input Settings']%></h4>
+              <div class="form-group">
+                <label><div><span><%-lang['Analyzation Duration']%></span></div>
+                <div><input class="form-control" detail="aduration"></div>
+                </label>
+              </div>
+              <div class="form-group">
+                <label><div><span><%-lang['Probe Size']%></span></div>
+                <div><input class="form-control" detail="probesize"></div>
+                </label>
+              </div>
+              <div class="form-group h_t_input h_t_mp4">
+                <label><div><span><%-lang["Loop Stream"]%></span></div>
+                    <div><select class="form-control" detail="stream_loop">
+                        <option value="0" selected><%-lang.No%></option>
+                        <option value="1"><%-lang.Yes%></option>
+                    </select></div>
+                </label>
               </div>
               <div class="form-group h_t_input h_t_socket h_t_jpeg h_t_mjpeg">
                 <label><div><span><%-lang['Monitor Capture Rate']%></span></div>
@@ -1288,16 +1293,103 @@
                       </label>
                   </div>
               </div>
-              <div class="form-group" style="display:none">
-                  <input type="hidden" detail="detector_cascades">
-                  <input type="hidden" detail="stream_channels">
-                  <input type="hidden" detail="input_maps">
-                  <input type="hidden" detail="input_map_choices" value="{}">
-                  <input class="form-control" name="details" value="{}">
-                  <input class="form-control" name="shto" value="[]">
-                  <input class="form-control" name="shfr" value="[]">
+          </div>
+          <div class="form-group-group orange" section id="monSectionCopying">
+          <h4><%-lang['Copy Settings']%></h4>
+              <div class="form-group">
+                  <label><div><span><%-lang['Copy to Settings']%></span></div>
+                    <div><select class="form-control" id="copy_settings" selector="h_copy_settings">
+                        <option value="0" selected><%-lang.No%></option>  
+                        <option value="1"><%-lang.Yes%></option>  
+                    </select></div>
+                  </label>
+              </div>
+              <div class="h_copy_settings_input h_copy_settings_1">
+                  <div class="form-group">
+                      <label><div><span><%-lang['Copy Connection Settings']%></span></div>
+                        <div><select class="form-control" copy="#monSectionConnection">
+                            <option value="0" selected><%-lang.No%></option>  
+                            <option value="1"><%-lang.Yes%></option>  
+                        </select></div>
+                      </label>
+                  </div>
+                  <div class="form-group">
+                      <label><div><span><%-lang['Copy Input Settings']%></span></div>
+                        <div><select class="form-control" copy="#monSectionInput">
+                            <option value="0" selected><%-lang.No%></option>  
+                            <option value="1"><%-lang.Yes%></option>  
+                        </select></div>
+                      </label>
+                  </div>
+                  <div class="form-group">
+                      <label><div><span><%-lang['Copy Stream Settings']%></span></div>
+                        <div><select class="form-control" copy="#monSectionStream,#monSectionStreamTimestamp,#monSectionStreamWatermark,#monSectionJPEGAPI">
+                            <option value="0" selected><%-lang.No%></option>  
+                            <option value="1"><%-lang.Yes%></option>  
+                        </select></div>
+                      </label>
+                  </div>
+    <!--
+                  <div class="form-group">
+                      <label><div><span><%-lang['Copy Stream Channel Settings']%></span></div>
+                        <div><select class="form-control" copy="stream_channel">
+                            <option value="0" selected><%-lang.No%></option>  
+                            <option value="1"><%-lang.Yes%></option>  
+                        </select></div>
+                      </label>
+                  </div>
+    -->
+                  <div class="form-group">
+                      <label><div><span><%-lang['Copy Recording Settings']%></span></div>
+                        <div><select class="form-control" copy="#monSectionRecording">
+                            <option value="0" selected><%-lang.No%></option>  
+                            <option value="1"><%-lang.Yes%></option>  
+                        </select></div>
+                      </label>
+                  </div>
+                  <div class="form-group">
+                      <label><div><span><%-lang['Copy Detector Settings']%></span></div>
+                        <div><select class="form-control" copy="#monSectionDetector,#monSectionDetectorBuffer,#monSectionLisencePlateDetector,#monSectionNoMotionDetector">
+                            <option value="0" selected><%-lang.No%></option>  
+                            <option value="1"><%-lang.Yes%></option>  
+                        </select></div>
+                      </label>
+                  </div>
+                  <div class="form-group">
+                      <label><div><span><%-lang['Copy Custom Settings']%></span></div>
+                        <div><select class="form-control" copy="#monSectionCustom">
+                            <option value="0" selected><%-lang.No%></option>  
+                            <option value="1"><%-lang.Yes%></option>  
+                        </select></div>
+                      </label>
+                  </div>
+                  <div class="form-group">
+                      <label><div><span><%-lang['Copy Logging Settings']%></span></div>
+                        <div><select class="form-control" copy="#monSectionLogging">
+                            <option value="0" selected><%-lang.No%></option>  
+                            <option value="1"><%-lang.Yes%></option>  
+                        </select></div>
+                      </label>
+                  </div>
+                  <div class="form-group">
+                      <label><div><span><%-lang['Monitors to Copy to']%></span></div>
+                        <div><select class="form-control" style="min-height:100px" multiple id="copy_settings_monitors">
+                            <option value="$New"><%-lang['New Monitor']%></option>
+                            <optgroup label="<%-lang['Monitors']%>"></optgroup>
+                        </select></div>
+                      </label>
+                  </div>
               </div>
           </div>
+          </div>
+          <div class="form-group" style="display:none">
+              <input type="hidden" detail="detector_cascades">
+              <input type="hidden" detail="stream_channels">
+              <input type="hidden" detail="input_maps">
+              <input type="hidden" detail="input_map_choices" value="{}">
+              <input class="form-control" name="details" value="{}">
+              <input class="form-control" name="shto" value="[]">
+              <input class="form-control" name="shfr" value="[]">
           </div>
       </div>
       </div>
