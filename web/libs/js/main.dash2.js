@@ -2336,10 +2336,10 @@ $.gR.drawList=function(){
     })
     $.gR.e.html(e.tmp)
 }
-$.gR.e.on('click','[group]',function(){
+$.gR.e.on('click','[groups]',function(){
   var e={};
     e.e=$(this),
-    e.a=e.e.attr('group');
+    e.a=e.e.attr('groups');
     var user=$.users[e.e.attr('auth')];
     if(!user){user=$user}
     if(user===$user){
@@ -3049,7 +3049,7 @@ $.aM.import=function(e){
         }
     });
     try{
-        $.each(['group','group_detector'],function(m,b){
+        $.each(['groups','group_detector'],function(m,b){
             var tmp=''
             $.each($user.mon_groups,function(n,v){
                 tmp+='<li class="mdl-list__item">';
@@ -3328,9 +3328,9 @@ $.aM.e.on('change','[channel-detail]',function(){
     $.aM.channelSave()
 })
 //////////////////
-$.aM.e.on('change','[group]',function(){
+$.aM.e.on('change','[groups]',function(){
   var e={};
-    e.e=$.aM.e.find('[group]:checked');
+    e.e=$.aM.e.find('[groups]:checked');
     e.s=[];
     e.e.each(function(n,v){
         e.s.push($(v).val())
@@ -3590,7 +3590,7 @@ $.sM.g.change(function(e){
         $.sM.f.find('[group="'+n+'"]').val(v)
     })
 });
-$.sM.f.find('[group]').change(function(e){
+$.sM.f.find('[groups]').change(function(e){
     e.v=$.sM.g.val();
     if(!e.v||e.v==''){
         e.e=$.sM.f.find('[group="name"]')
@@ -3600,9 +3600,9 @@ $.sM.f.find('[group]').change(function(e){
         e.e.val(e.name)
     }
     e.group=$user.mon_groups[e.v];
-    $.sM.f.find('[group]').each(function(n,v){
+    $.sM.f.find('[groups]').each(function(n,v){
         v=$(v)
-        e.group[v.attr('group')]=v.val()
+        e.group[v.attr('groups')]=v.val()
     });
     $user.mon_groups[e.v]=e.group;
     $.sM.g.find('option[value="'+$.sM.g.val()+'"]').text(e.group.name)
@@ -4280,7 +4280,7 @@ $('#monitors_list_search').keyup(function(){
     }
     monitorBlocks.hide()
     $.each($.ccio.mon,function(n,monitor){
-        var searchThis = JSON.stringify($.ccio.init('cleanMon',monitor)).toLowerCase();
+        var searchThis = JSON.stringify($.ccio.init('cleanMon',monitor)).toLowerCase().replace('"','');
         console.log(searchTerms,searchThis)
         $.each(searchTerms,function(m,term){
             if(searchThis.indexOf(term) >-1 ){

@@ -1266,7 +1266,7 @@
           <div class="form-group-group purple" section id="monSectionGrouping">
           <h4><%-lang['Grouping']%></h4>
               <div>
-                  <ul class="mdl-list" id="monitor_group"></ul>
+                  <ul class="mdl-list" id="monitor_groups"></ul>
                   <input type="hidden" detail="groups">
               </div>
           </div>
@@ -1358,6 +1358,14 @@
                   <div class="form-group">
                       <label><div><span><%-lang['Copy Custom Settings']%></span></div>
                         <div><select class="form-control" copy="#monSectionCustom">
+                            <option value="0" selected><%-lang.No%></option>  
+                            <option value="1"><%-lang.Yes%></option>  
+                        </select></div>
+                      </label>
+                  </div>
+                  <div class="form-group">
+                      <label><div><span><%-lang['Copy Group Settings']%></span></div>
+                        <div><select class="form-control" copy="#monSectionGrouping">
                             <option value="0" selected><%-lang.No%></option>  
                             <option value="1"><%-lang.Yes%></option>  
                         </select></div>
