@@ -2697,16 +2697,16 @@ $.multimon.e.find('.delete').click(function(){
         })
     });
 })
-$.multimon.e.find('.edit_all').click(function(){
-    var arr=$.multimon.getSelectedMonitors();
-    var arrObject={}
-    if(arr.length===0){
-        $.ccio.init('note',{title:'No Monitors Selected',text:'Select atleast one monitor to delete.',type:'error'});
-        return
-    }
-    $.multimonedit.selectedList = arr;
-    $.multimonedit.e.modal('show')
-})
+//$.multimon.e.find('.edit_all').click(function(){
+//    var arr=$.multimon.getSelectedMonitors();
+//    var arrObject={}
+//    if(arr.length===0){
+//        $.ccio.init('note',{title:'No Monitors Selected',text:'Select atleast one monitor to delete.',type:'error'});
+//        return
+//    }
+//    $.multimonedit.selectedList = arr;
+//    $.multimonedit.e.modal('show')
+//})
 $.multimon.e.find('.save_config').click(function(){
     var e={};e.e=$(this);
     var arr=$.multimon.getSelectedMonitors();
@@ -4269,6 +4269,25 @@ $.pwrvid.e.on('hidden.bs.modal',function(e){
 //open all monitors
 $('[class_toggle="list-blocks"][data-target="#left_menu"]').dblclick(function(){
     $('#monitors_list [monitor="watch"]').click()
+})
+//search monitors list
+$('#monitors_list_search').keyup(function(){
+    var monitorBlocks = $('.monitor_block');
+    var searchTerms = $(this).val().toLowerCase().split(' ')
+    if(searchTerms.length === 0 || searchTerms[0] === ''){
+        monitorBlocks.show()
+        return
+    }
+    monitorBlocks.hide()
+    $.each($.ccio.mon,function(n,monitor){
+        var searchThis = JSON.stringify($.ccio.init('cleanMon',monitor)).toLowerCase();
+        console.log(searchTerms,searchThis)
+        $.each(searchTerms,function(m,term){
+            if(searchThis.indexOf(term) >-1 ){
+                $('.monitor_block[ke="'+monitor.ke+'"][mid="'+monitor.mid+'"]').show()
+            }
+        })
+    })
 })
 //dynamic bindings
 $('body')
