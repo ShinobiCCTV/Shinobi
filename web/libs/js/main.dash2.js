@@ -2237,6 +2237,8 @@ $user.ws.on('f',function (d){
             $.ccio.init('note',d.pnote);
         break;
         case'onvif':
+            var tempID = $.ccio.gid();
+            $.oB.foundMonitors[tempID] = Object.assign({},d);
             $.oB.e.find('._loading').hide()
             $.oB.e.find('[type="submit"]').prop('disabled',false)
             d.info=$.ccio.init('jsontoblock',d.info)
@@ -2246,7 +2248,7 @@ $user.ws.on('f',function (d){
             }else{
                 d.stream='URL not Found'
             }
-            $('#onvif_probe .output_data').append('<tr><td class="ip">'+d.ip+'</td><td class="port">'+d.port+'</td><td>'+$.ccio.init('jsontoblock',d.info)+'</td><td class="url">'+d.stream+'</td><td class="date">'+d.date+'</td><td><a class="btn btn-sm btn-primary copy">&nbsp;<i class="fa fa-copy"></i>&nbsp;</a></td></tr>')
+            $('#onvif_probe .output_data').append('<tr onvif_row="'+tempID+'"><td><a class="btn btn-sm btn-primary copy">&nbsp;<i class="fa fa-copy"></i>&nbsp;</a></td><td class="ip">'+d.ip+'</td><td class="port">'+d.port+'</td><td>'+$.ccio.init('jsontoblock',d.info)+'</td><td class="url">'+d.stream+'</td><td class="date">'+d.date+'</td></tr>')
         break;
     }
     delete(d);
@@ -2271,9 +2273,16 @@ $.ccio.form.details=function(e){
     e.f.find('[name="details"]').val(JSON.stringify(e.ar));
 };
 //onvif probe
-$.oB={e:$('#onvif_probe'),v:$('#onvif_video')};$.oB.f=$.oB.e.find('form');$.oB.o=$.oB.e.find('.output_data');
-$.oB.f.submit(function(e){
-    e.preventDefault();e.e=$(this),e.s=e.e.serializeObject();
+$.oB={
+    e:$('#onvif_probe'),
+    v:$('#onvif_video'),
+};
+$.oB.f=$.oB.e.find('form');$.oB.o=$.oB.e.find('.output_data');
+$.oB.f.submit(function(ee){
+    ee.preventDefault();
+    e={};
+    $.oB.foundMonitors={}
+    e.e=$(this),e.s=e.e.serializeObject();
     $.oB.o.empty();
     $.oB.e.find('._loading').show()
     $.oB.e.find('[type="submit"]').prop('disabled',true)
@@ -2288,22 +2297,20 @@ $.oB.f.submit(function(e){
     },30000)
     return false;
 });
-$.oB.e.on('click','.copy',function(e){
-    e.e=$(this).parents('tr');
+$.oB.e.on('click','.copy',function(){
     $('.hidden-xs [monitor="edit"]').click();
-    e.host=e.e.find('.ip').text();
-    e.url=$.ccio.init('getLocation',e.e.find('.url').text().replace('rtsp','http'));
+    e={};
+    e.e = $(this).parents('[onvif_row]');
+    var id = e.e.attr('onvif_row');
+    var onvifRecord = $.oB.foundMonitors[id];
+    console.log(onvifRecord)
+    var streamURL = onvifRecord.url.uri;
     if($.oB.e.find('[name="user"]').val()!==''){
-        e.host=$.oB.e.find('[name="user"]').val()+':'+$.oB.e.find('[name="pass"]').val()+'@'+e.host
+        streamURL = streamURL.split('://')
+        streamURL = streamURL[0]+'://'+$.oB.e.find('[name="user"]').val()+':'+$.oB.e.find('[name="pass"]').val()+'@'+streamURL[1];
     }
-    $.aM.e.find('[name="host"]').val(e.host)
-    $.aM.e.find('[detail="port_force"]').val('1')
-    $.aM.e.find('[detail="rtsp_transport"]').val('tcp')
-    $.aM.e.find('[detail="aduration"]').val('100000')
-    $.aM.e.find('[name="port"]').val(e.url.port)
+    $.aM.e.find('[detail="auto_host"]').val(streamURL).change()
     $.aM.e.find('[name="mode"]').val('start')
-    $.aM.e.find('[name="type"] [value="h264"]').prop('selected',true).parent().change()
-    $.aM.e.find('[name="path"]').val(e.url.pathname)
     $.oB.e.modal('hide')
 })
 $.oB.e.find('[name="ip"]').change(function(e){
@@ -2794,6 +2801,7 @@ $.aM.generateDefaultMonitorSettings=function(){
         "hwaccel_vcodec": "",
         "hwaccel_device": "",
         "stream_type": "mp4",
+        "stream_flv_type": "ws",
         "stream_mjpeg_clients": "",
         "stream_vcodec": "copy",
         "stream_acodec": "no",
