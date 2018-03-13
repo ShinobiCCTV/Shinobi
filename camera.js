@@ -1530,7 +1530,7 @@ s.ffmpeg=function(e){
         if(!e.details.detector_buffer_tune||e.details.detector_buffer_tune===''){e.details.detector_buffer_tune='zerolatency'}
         if(!e.details.detector_buffer_g||e.details.detector_buffer_g===''){e.details.detector_buffer_g='1'}
         if(!e.details.detector_buffer_hls_time||e.details.detector_buffer_hls_time===''){e.details.detector_buffer_hls_time='2'}
-        if(!e.details.detector_buffer_hls_list_size||e.details.detector_buffer_hls_list_size===''){e.details.detector_buffer_hls_list_size='10'}
+        if(!e.details.detector_buffer_hls_list_size||e.details.detector_buffer_hls_list_size===''){e.details.detector_buffer_hls_list_size='4'}
         if(!e.details.detector_buffer_start_number||e.details.detector_buffer_start_number===''){e.details.detector_buffer_start_number='0'}
         if(!e.details.detector_buffer_live_start_index||e.details.detector_buffer_live_start_index===''){e.details.detector_buffer_live_start_index='-3'}
 
@@ -2454,13 +2454,8 @@ s.camera=function(x,e,cn,tx){
             }else{
                 detector_timeout = parseFloat(d.mon.details.detector_timeout)
             }
-            if(d.mon.mode=='start'&&d.mon.details.detector_trigger=='1'&&d.mon.details.detector_record_method==='sip'){
+            if(d.mon.mode=='start'&&d.mon.details.detector_trigger==='1'&&d.mon.details.detector_record_method==='sip'){
                 //s.group[d.ke].mon[d.id].eventBasedRecording.timeout
-                if(s.group[d.ke].mon[d.id].eventBasedRecording.timeout
-//                   &&d.mon.details.watchdog_reset!=='1'
-                  ){
-//                    return
-                }
 //                clearTimeout(s.group[d.ke].mon[d.id].eventBasedRecording.timeout)
                 s.group[d.ke].mon[d.id].eventBasedRecording.timeout = setTimeout(function(){
                     s.group[d.ke].mon[d.id].eventBasedRecording.allowEnd=true;
@@ -2478,23 +2473,24 @@ s.camera=function(x,e,cn,tx){
                     }
                     s.group[d.ke].mon[d.id].eventBasedRecording.allowEnd = false;
                     var runRecord = function(){
-                        s.log(d,'Spawned Recorder')
+                        s.log(d,{type:"Traditional Recording",msg:"Started"})
                         //-t 00:'+moment(new Date(detector_timeout * 1000 * 60)).format('mm:ss')+'
-                        s.group[d.ke].mon[d.id].eventBasedRecording.process = spawn(config.ffmpegDir,s.splitForFFPMEG(('-loglevel warning -analyzeduration 1000000 -probesize 1000000 -re -i http://'+config.ip+':'+config.port+'/'+d.auth+'/hls/'+d.ke+'/'+d.id+'/detectorStream.m3u8 -t 00:'+moment(new Date(detector_timeout * 1000 * 60)).format('mm:ss')+' -c:v copy -an -strftime 1 "'+s.dir.videos+d.ke+'/'+d.id+'/'+s.moment()+'.mp4"').replace(/\s+/g,' ').trim()))
+                        s.group[d.ke].mon[d.id].eventBasedRecording.process = spawn(config.ffmpegDir,s.splitForFFPMEG(('-loglevel warning -analyzeduration 1000000 -probesize 1000000 -re -i http://'+config.ip+':'+config.port+'/'+d.auth+'/hls/'+d.ke+'/'+d.id+'/detectorStream.m3u8 -t 00:'+moment(new Date(detector_timeout * 1000 * 60)).format('mm:ss')+' -c:v copy -c:a copy -strftime 1 "'+s.video('getDir',d.mon)+s.moment()+'.mp4"').replace(/\s+/g,' ').trim()))
                         var ffmpegError='';
                         var error
-                        s.group[d.ke].mon[d.id].eventBasedRecording.process.stderr.on('data',function(d){
-                            s.log(e,{type:"Traditional Recording",msg:d.toString()})
+                        s.group[d.ke].mon[d.id].eventBasedRecording.process.stderr.on('data',function(data){
+                            s.log(d,{type:"Traditional Recording",msg:data.toString()})
                         })
                         s.group[d.ke].mon[d.id].eventBasedRecording.process.on('close',function(){
                             if(!s.group[d.ke].mon[d.id].eventBasedRecording.allowEnd){
-                                s.log(e,{type:"Traditional Recording",msg:"Detector Recording Complete"})
+                                s.log(d,{type:"Traditional Recording",msg:"Detector Recording Process Exited Prematurely. Restarting."})
                                 runRecord()
                                 return
                             }
+                            s.log(d,{type:"Traditional Recording",msg:"Detector Recording Complete"})
                             s.group[d.ke].mon[d.id].closeVideo()
                             delete(s.group[d.ke].users[d.auth])
-                            s.log(e,{type:"Traditional Recording",msg:'Clear Recorder Process'})
+                            s.log(d,{type:"Traditional Recording",msg:'Clear Recorder Process'})
                             delete(s.group[d.ke].mon[d.id].eventBasedRecording.process)
                             delete(s.group[d.ke].mon[d.id].eventBasedRecording.timeout)
                         })
@@ -3427,7 +3423,7 @@ var tx;
                     d.cams=[]
                     d.IP_LIST.forEach(function(ip_entry,n) {
                         d.PORT_LIST.forEach(function(port_entry,nn) {
-                           return new Cam({
+                           new Cam({
                                 hostname: ip_entry,
                                 username: d.USERNAME,
                                 password: d.PASSWORD,
@@ -3456,6 +3452,7 @@ var tx;
                             });
                         }); // foreach
                     }); // foreach
+//                    tx({f:'onvif_end'})
                 break;
             }
         }catch(er){
