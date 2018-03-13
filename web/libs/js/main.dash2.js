@@ -2236,10 +2236,18 @@ $user.ws.on('f',function (d){
             }
             $.ccio.init('note',d.pnote);
         break;
+//        case'onvif_end':
+//            if(Object.keys($.oB.foundMonitorsCount).length===0){
+//                $.oB.e.find('._loading').hide()
+//                $.oB.e.find('[type="submit"]').prop('disabled',false)
+//                $.oB.o.append('<td class="text-center _notfound">Sorry, nothing was found.</td>')
+//            }
+//        break;
         case'onvif':
             var tempID = $.ccio.gid();
             $.oB.foundMonitors[tempID] = Object.assign({},d);
             $.oB.e.find('._loading').hide()
+            $.oB.e.find('._notfound').remove()
             $.oB.e.find('[type="submit"]').prop('disabled',false)
             d.info=$.ccio.init('jsontoblock',d.info)
             if(d.url){
@@ -2292,9 +2300,9 @@ $.oB.f.submit(function(ee){
         if($.oB.o.find('tr').length===0){
             $.oB.e.find('._loading').hide()
             $.oB.e.find('[type="submit"]').prop('disabled',false)
-            $.oB.o.append('<td class="text-center">Sorry, nothing was found.</td>')
+            $.oB.o.append('<td class="text-center _notfound">Sorry, nothing was found.</td>')
         }
-    },30000)
+    },5000)
     return false;
 });
 $.oB.e.on('click','.copy',function(){
