@@ -1926,7 +1926,7 @@ s.camera=function(x,e,cn,tx){
                                 if(exists){
                                     if(s.group[e.ke].mon[e.id].open){
                                         s.video('close',e);
-                                        if(e.details.detector==='1'&&s.ocv&&s.group[e.ke].mon[e.id].started===1&&e.details&&e.details.detector_record_method==='del'&&e.details.detector_delete_motionless_videos==='1'&&s.group[e.ke].mon[e.id].detector_motion_count===0){
+                                        if(e.details.detector==='1'&&s.group[e.ke].mon[e.id].started===1&&e.details&&e.details.detector_record_method==='del'&&e.details.detector_delete_motionless_videos==='1'&&s.group[e.ke].mon[e.id].detector_motion_count===0){
                                             if(e.details.loglevel!=='quiet'){
                                                 s.log(e,{type:lang['Delete Motionless Video'],msg:e.filename+'.'+e.ext});
                                             }
@@ -1939,7 +1939,7 @@ s.camera=function(x,e,cn,tx){
                                         s.group[e.ke].mon[e.id].open=e.filename;
                                         s.group[e.ke].mon[e.id].open_ext=e.ext;
                                         s.group[e.ke].mon[e.id].detector_motion_count=0;
-                                    },2000)
+                                    },1500)
                                 }
                             });
                         break;
