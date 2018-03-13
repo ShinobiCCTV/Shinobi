@@ -3389,7 +3389,7 @@ var tx;
                         d.ip=d.arr.join(',')
                     }
                     if(d.port===''){
-                        d.port='80,8080,554'
+                        d.port='80,8080,8000,7575,8081,554'
                     }
                     d.ip.split(',').forEach(function(v){
                         if(v.indexOf('-')>-1){
