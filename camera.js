@@ -779,21 +779,27 @@ s.video=function(x,e){
         break;
         case'delete':
             if(!e.filename&&e.time){e.filename=s.moment(e.time)}
+            var filename
+            if(e.filename.indexOf('.')>-1){
+                filename = e.filename
+            }else{
+                filename = e.filename+'.'+e.ext
+            }
             if(!e.status){e.status=0}
-            e.save=[e.id,e.ke,s.nameToTime(e.filename)];
+            e.save=[e.id,e.ke,s.nameToTime(filename)];
             s.sqlQuery('SELECT * FROM Videos WHERE `mid`=? AND `ke`=? AND `time`=?',e.save,function(err,r){
                 if(r&&r[0]){
                     r=r[0]
-                    e.dir=s.video('getDir',r)
+                    var dir=s.video('getDir',r)
                     s.sqlQuery('DELETE FROM Videos WHERE `mid`=? AND `ke`=? AND `time`=?',e.save,function(){
-                        fs.stat(e.dir+e.filename+'.'+e.ext,function(err,file){
+                        fs.stat(dir+filename,function(err,file){
                             if(err){
                                 s.systemLog('File Delete Error : '+e.ke+' : '+' : '+e.mid,err)
                             }
                             s.init('diskUsedSet',e,-(r.size/1000000))
                         })
-                        s.tx({f:'video_delete',filename:e.filename+'.'+e.ext,mid:e.mid,ke:e.ke,time:s.nameToTime(e.filename),end:s.moment(new Date,'YYYY-MM-DD HH:mm:ss')},'GRP_'+e.ke);
-                        s.file('delete',e.dir+e.filename+'.'+e.ext)
+                        s.tx({f:'video_delete',filename:filename,mid:e.mid,ke:e.ke,time:s.nameToTime(filename),end:s.moment(new Date,'YYYY-MM-DD HH:mm:ss')},'GRP_'+e.ke);
+                        s.file('delete',dir+filename)
                     })
                 }
             })
@@ -1926,20 +1932,21 @@ s.camera=function(x,e,cn,tx){
                                 if(exists){
                                     if(s.group[e.ke].mon[e.id].open){
                                         s.video('close',e);
-                                        if(e.details.detector==='1'&&s.group[e.ke].mon[e.id].started===1&&e.details&&e.details.detector_record_method==='del'&&e.details.detector_delete_motionless_videos==='1'&&s.group[e.ke].mon[e.id].detector_motion_count===0){
-                                            if(e.details.loglevel!=='quiet'){
-                                                s.log(e,{type:lang['Delete Motionless Video'],msg:e.filename+'.'+e.ext});
+                                        var row = Object.assign({},s.init('noReference',e));
+                                        setTimeout(function(){
+                                            if(row.details.detector==='1'&&s.group[row.ke].mon[row.id].started===1&&row.details&&row.details.detector_record_method==='del'&&row.details.detector_delete_motionless_videos==='1'&&s.group[row.ke].mon[row.id].detector_motion_count===0){
+                                                if(row.details.loglevel!=='quiet'){
+                                                    s.log(row,{type:lang['Delete Motionless Video'],msg:row.filename+'.'+row.ext});
+                                                }
+                                                s.video('delete',row)
                                             }
-                                            s.video('delete',s.init('noReference',e))
-                                        }
+                                        },2000)
                                     }
-                                    setTimeout(function(){
-                                        e.filename=filename.split('.')[0];
-                                        s.video('open',e);
-                                        s.group[e.ke].mon[e.id].open=e.filename;
-                                        s.group[e.ke].mon[e.id].open_ext=e.ext;
-                                        s.group[e.ke].mon[e.id].detector_motion_count=0;
-                                    },1500)
+                                    e.filename=filename.split('.')[0];
+                                    s.video('open',e);
+                                    s.group[e.ke].mon[e.id].open=e.filename;
+                                    s.group[e.ke].mon[e.id].open_ext=e.ext;
+                                    s.group[e.ke].mon[e.id].detector_motion_count=0;
                                 }
                             });
                         break;
@@ -3804,8 +3811,7 @@ var tx;
                         s.camera('watch_off',{id:v,ke:cn.monitor_watching[v].ke},s.cn(cn))
                     })
                 }
-            }
-            if(!cn.embedded){
+            }else if(!cn.embedded){
                 if(s.group[cn.ke].users[cn.auth].login_type==='Dashboard'){
                     s.tx({f:'user_status_change',ke:cn.ke,uid:cn.uid,status:0})
                 }
