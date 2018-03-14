@@ -3585,8 +3585,8 @@ $.sM.reDrawMonGroups=function(){
 $.sM.f.submit(function(e){
     e.preventDefault();
     $.sM.writewMonGroups()
-    e.e=$(this),e.s=e.e.serializeObject();
     $.sM.linkChange()
+    e.e=$(this),e.s=e.e.serializeObject();
     e.er=[];
     if(e.s.pass!==''&&e.password_again===e.s.pass){e.er.push("<%-lang["Passwords don't match"]%>")};
     if(e.er.length>0){$.sM.e.find('.msg').html(e.er.join('<br>'));return;}
