@@ -1533,6 +1533,21 @@ s.ffmpeg=function(e){
                 break;
             }
         }
+        if(!e.details.detector_buffer_acodec||e.details.detector_buffer_acodec===''||e.details.detector_buffer_acodec==='auto'){
+            switch(e.type){
+                case'h264':case'hls':case'mp4':
+                    e.details.detector_buffer_acodec = 'copy'
+                break;
+                default:
+                    e.details.detector_buffer_acodec = 'aac'
+                break;
+            }
+        }
+        if(e.details.detector_buffer_acodec === 'no'){
+            x.detector_buffer_acodec = ' -an'
+        }else{
+            x.detector_buffer_acodec = ' -c:a '+e.details.detector_buffer_acodec
+        }
         if(!e.details.detector_buffer_tune||e.details.detector_buffer_tune===''){e.details.detector_buffer_tune='zerolatency'}
         if(!e.details.detector_buffer_g||e.details.detector_buffer_g===''){e.details.detector_buffer_g='1'}
         if(!e.details.detector_buffer_hls_time||e.details.detector_buffer_hls_time===''){e.details.detector_buffer_hls_time='2'}
@@ -1560,7 +1575,7 @@ s.ffmpeg=function(e){
         if(x.detector_buffer_filters.length>0){
             x.pipe+=' -vf '+x.detector_buffer_filters.join(',')
         }
-        x.pipe+=x.detector_buffer_fps+' -an -c:v '+e.details.detector_buffer_vcodec+' -f hls -tune '+e.details.detector_buffer_tune+' -g '+e.details.detector_buffer_g+' -hls_time '+e.details.detector_buffer_hls_time+' -hls_list_size '+e.details.detector_buffer_hls_list_size+' -start_number '+e.details.detector_buffer_start_number+' -live_start_index '+e.details.detector_buffer_live_start_index+' -hls_allow_cache 0 -hls_flags +delete_segments+omit_endlist '+e.sdir+'detectorStream.m3u8'
+        x.pipe+=x.detector_buffer_fps+x.detector_buffer_acodec+' -c:v '+e.details.detector_buffer_vcodec+' -f hls -tune '+e.details.detector_buffer_tune+' -g '+e.details.detector_buffer_g+' -hls_time '+e.details.detector_buffer_hls_time+' -hls_list_size '+e.details.detector_buffer_hls_list_size+' -start_number '+e.details.detector_buffer_start_number+' -live_start_index '+e.details.detector_buffer_live_start_index+' -hls_allow_cache 0 -hls_flags +delete_segments+omit_endlist '+e.sdir+'detectorStream.m3u8'
     }
     //custom - output
     if(e.details.custom_output&&e.details.custom_output!==''){x.pipe+=' '+e.details.custom_output;}
@@ -2400,6 +2415,10 @@ s.camera=function(x,e,cn,tx){
         break;
         case'motion':
             var d=e;
+            if(s.group[d.ke].mon[d.id].open){
+                d.details.videoTime = s.group[d.ke].mon[d.id].open;
+            }
+            var detailString = JSON.stringify(d.details);
             if(!s.group[d.ke]||!s.group[d.ke].mon[d.id]){
                 return s.systemLog(lang['No Monitor Found, Ignoring Request'])
             }
@@ -2440,7 +2459,8 @@ s.camera=function(x,e,cn,tx){
                 var detector_webhook_url = d.mon.details.detector_webhook_url
                     .replace(/{{TIME}}/g,moment(new Date).format())
                     .replace(/{{MONITOR_ID}}/g,d.id)
-                    .replace(/{{GROUP_KEY}}/g,d.ke);
+                    .replace(/{{GROUP_KEY}}/g,d.ke)
+                    .replace(/{{DETAILS}}/g,detailString)
                 http.get(detector_webhook_url, function(data) {
                       data.setEncoding('utf8');
                       var chunks='';
@@ -2590,7 +2610,7 @@ s.camera=function(x,e,cn,tx){
             }
             //save this detection result in SQL, only coords. not image.
             if(d.mon.details.detector_save==='1'){
-                s.sqlQuery('INSERT INTO Events (ke,mid,details) VALUES (?,?,?)',[d.ke,d.id,JSON.stringify(d.details)])
+                s.sqlQuery('INSERT INTO Events (ke,mid,details) VALUES (?,?,?)',[d.ke,d.id,detailString])
             }
             if(d.mon.details.detector_command_enable==='1'&&!s.group[d.ke].mon[d.id].detector_command){
                 var detector_command_timeout
@@ -2608,6 +2628,7 @@ s.camera=function(x,e,cn,tx){
                     .replace(/{{TIME}}/g,moment(new Date).format())
                     .replace(/{{MONITOR_ID}}/g,d.id)
                     .replace(/{{GROUP_KEY}}/g,d.ke)
+                    .replace(/{{DETAILS}}/g,detailString)
                 if(d.details.confidence){
                     detector_command = detector_command
                     .replace(/{{CONFIDENCE}}/g,d.details.confidence)
