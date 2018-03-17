@@ -4755,29 +4755,33 @@ app.get(['/:auth/monitor/:ke','/:auth/monitor/:ke/:id'], function (req,res){
                     r[n].subStream.jpeg = '/'+req.params.auth+'/jpeg/'+v.ke+'/'+v.mid+'/s.jpg'
                 }
                 if(details.stream_channels&&details.stream_channels!==''){
-                    details.stream_channels=JSON.parse(details.stream_channels)
-                    r[n].channels=[]
-                    details.stream_channels.forEach(function(b,m){
-                        var streamURL
-                        switch(b.stream_type){
-                            case'mjpeg':
-                                streamURL='/'+req.params.auth+'/mjpeg/'+v.ke+'/'+v.mid+'/'+m
-                            break;
-                            case'hls':
-                                streamURL='/'+req.params.auth+'/hls/'+v.ke+'/'+v.mid+'/'+m+'/s.m3u8'
-                            break;
-                            case'h264':
-                                streamURL='/'+req.params.auth+'/h264/'+v.ke+'/'+v.mid+'/'+m
-                            break;
-                            case'flv':
-                                streamURL='/'+req.params.auth+'/flv/'+v.ke+'/'+v.mid+'/'+m+'/s.flv'
-                            break;
-                            case'mp4':
-                                streamURL='/'+req.params.auth+'/mp4/'+v.ke+'/'+v.mid+'/'+m+'/s.mp4'
-                            break;
-                        }
-                        r[n].channels.push(streamURL)
-                    })
+                    try{
+                        details.stream_channels=JSON.parse(details.stream_channels)
+                        r[n].channels=[]
+                        details.stream_channels.forEach(function(b,m){
+                            var streamURL
+                            switch(b.stream_type){
+                                case'mjpeg':
+                                    streamURL='/'+req.params.auth+'/mjpeg/'+v.ke+'/'+v.mid+'/'+m
+                                break;
+                                case'hls':
+                                    streamURL='/'+req.params.auth+'/hls/'+v.ke+'/'+v.mid+'/'+m+'/s.m3u8'
+                                break;
+                                case'h264':
+                                    streamURL='/'+req.params.auth+'/h264/'+v.ke+'/'+v.mid+'/'+m
+                                break;
+                                case'flv':
+                                    streamURL='/'+req.params.auth+'/flv/'+v.ke+'/'+v.mid+'/'+m+'/s.flv'
+                                break;
+                                case'mp4':
+                                    streamURL='/'+req.params.auth+'/mp4/'+v.ke+'/'+v.mid+'/'+m+'/s.mp4'
+                                break;
+                            }
+                            r[n].channels.push(streamURL)
+                        })
+                    }catch(err){
+                        s.log(req.params,{type:'Broken Monitor Object',msg:'Stream Channels Field is damaged. Skipping.'})
+                    }
                 }
             })
             if(r.length===1){r=r[0];}
