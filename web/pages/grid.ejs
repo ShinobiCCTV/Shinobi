@@ -32,6 +32,9 @@ if(data.addon){
 }; %>
 <script>
 var data = <%- JSON.stringify(data) %>
+if(!data.group || data.group === ''){
+    data.group = '$'
+}
 </script>
 <link rel="stylesheet" href="<%=data.url%>/libs/css/bootstrap.min.css">
 <link rel="stylesheet" href="<%=data.url%>/libs/css/gridstack.min.css">
@@ -56,28 +59,78 @@ var data = <%- JSON.stringify(data) %>
 <script src="<%=data.url%>/libs/js/gridstack.jQueryUI.min.js"></script>
 <div class="grid-stack"></div>
 <script type="text/javascript">
-$(function () {
-    //init grid
-    var gridTag = '.grid-stack';
-    var options = {
-        cellHeight: 80,
-        verticalMargin: 10
-    };
-    $(gridTag).gridstack(options);
-    
-    //draw grid items
-    gridX = 0;
-    gridY = 0;
-    var grid = $(gridTag).data('gridstack');
-    $.each(<%- JSON.stringify(monitors) %>,function(n,monitor){
-        var tmp = '<div class="grid-stack-item-content-overlay">'+monitor.mid+'</div><iframe src="'+data.url+'/'+data.auth+'/embed/'+monitor.ke+'/'+monitor.mid+'/fullscreen|jquery|relative"></iframe>'
-        grid.addWidget($('<div class="grid-stack-item"><div class="grid-stack-item-content">'+tmp+'</div></div>'), 0, 0, 4, 4, true);
-        if(gridX === 12){
-            gridX = 0;
-            gridY += 4;
+    $.grid = {};
+    $.grid.op=function(r,rr,rrr){
+        if(!rrr){rrr={};};if(typeof rrr === 'string'){rrr={n:rrr}};if(!rrr.n){rrr.n='ShinobiOptions_'+location.host}
+        ii={o:localStorage.getItem(rrr.n)};try{ii.o=JSON.parse(ii.o)}catch(e){ii.o={}}
+        if(!ii.o){ii.o={}}
+        if(r&&rr&&!rrr.x){
+            ii.o[r]=rr;
         }
-        gridX += 4
-    })
-});
+        switch(rrr.x){
+            case 0:
+                delete(ii.o[r])
+            break;
+            case 1:
+                delete(ii.o[r][rr])
+            break;
+        }
+        localStorage.setItem(rrr.n,JSON.stringify(ii.o))
+        return ii.o
+    }
+    $(function () {
+        //init grid
+        var gridTag = '.grid-stack';
+        var options = {
+            cellHeight: 80,
+            verticalMargin: 10,
+        };
+        $(gridTag).gridstack(options);
+        $(gridTag).on('change', function (event, ui) {
+            var savedGrids = $.grid.op().savedGrids;
+            if(!savedGrids)savedGrids = {};
+            savedGrids[data.group] = {};
+            $(gridTag).find('.grid-stack-item').each(function(n,v){
+                var el = $(v);
+                var mid = el.attr('mid')
+                savedGrids[data.group][mid] = {
+                    mid:mid,
+                    x:el.attr('data-gs-x'),
+                    y:el.attr('data-gs-y'),
+                    width:el.attr('data-gs-width'),
+                    height:el.attr('data-gs-height')
+                };
+            })
+            $.grid.op('savedGrids',savedGrids)
+            console.log(savedGrids[data.group])
+        });
+
+        //draw grid items
+        var gridX = 0;
+        var gridY = 0;
+        var itemW = 4;
+        var itemH = 4;
+        var savedGrids = $.grid.op().savedGrids;
+        if(!savedGrids)savedGrids = {};
+        if(!savedGrids[data.group])savedGrids[data.group] = {};
+        var grid = $(gridTag).data('gridstack');
+        $.each(<%- JSON.stringify(monitors) %>,function(n,monitor){
+            var x = gridX;
+            var y = gridY;
+            var width = itemW;
+            var height = itemH;
+            var autoPlacement = true;
+            var saved = savedGrids[data.group][monitor.mid];
+            if(saved){
+                x = saved.x;
+                y = saved.y;
+                width = saved.width;
+                height = saved.height;
+                autoPlacement = false;
+            }
+            var tmp = '<div class="grid-stack-item-content-overlay">'+monitor.mid+'</div><iframe src="'+data.url+'/'+data.auth+'/embed/'+monitor.ke+'/'+monitor.mid+'/fullscreen|jquery|relative"></iframe>'
+            grid.addWidget($('<div mid="'+monitor.mid+'" class="grid-stack-item"><div class="grid-stack-item-content">'+tmp+'</div></div>'), x, y, width, height, autoPlacement);
+        })
+    });
 </script>
             
