@@ -1,0 +1,83 @@
+<%
+if(config.ssl&&config.ssl.port&&data.protocol==='https'){
+    data.port=config.ssl.port
+}else{
+    data.port=config.port
+}
+if(!data.port||data.port===''||data.port==80||data.port==443){data.url=baseUrl}else{data.url=baseUrl+':'+data.port}
+if(data.addon){
+    var ar={}
+    decodeURI(data.addon).split('|').forEach(function(v){
+        if(v.indexOf('=')>-1){
+            v=v.split('=');
+            ar[v[0]]=v[1];
+        }
+    })
+    if(!ar.width){ar.width=640;}
+    if(!ar.height){ar.height=480;}
+    if(data.addon.indexOf('jquery')>-1){ %>
+    <script src="<%=data.url%>/libs/js/jquery.min.js"></script>
+    <% };
+    if(data.addon.indexOf('relative')>-1){
+        data.url=''
+    }
+    if(data.addon.indexOf('gui')>-1){ %>
+
+    <% };
+    if(data.addon.indexOf('fullscreen')>-1){ %>
+
+    <% } %>
+<% }else{
+    //no addon set, do defaults
+}; %>
+<script>
+var data = <%- JSON.stringify(data) %>
+</script>
+<link rel="stylesheet" href="<%=data.url%>/libs/css/bootstrap.min.css">
+<link rel="stylesheet" href="<%=data.url%>/libs/css/gridstack.min.css">
+<link rel="stylesheet" href="<%=data.url%>/libs/css/gridstack-extra.min.css">
+<style>
+    .grid-stack-item{
+        border:1px solid #333;
+    }
+    .grid-stack-item-content-overlay{
+        z-index:2;
+    }
+    .grid-stack-item-content-overlay,.grid-stack-item iframe{
+        margin:0;width:100%;height:100%;position:absolute;top:0;left:0;border:0;
+    }
+</style>
+
+<script src="<%=data.url%>/libs/js/jquery.min.js"></script>
+<script src="<%=data.url%>/libs/js/jquery-ui.min.js"></script>
+<script src="<%=data.url%>/libs/js/bootstrap.min.js"></script>
+<script src="<%=data.url%>/libs/js/lodash.min.js"></script>
+<script src="<%=data.url%>/libs/js/gridstack.min.js"></script>
+<script src="<%=data.url%>/libs/js/gridstack.jQueryUI.min.js"></script>
+<div class="grid-stack"></div>
+<script type="text/javascript">
+$(function () {
+    //init grid
+    var gridTag = '.grid-stack';
+    var options = {
+        cellHeight: 80,
+        verticalMargin: 10
+    };
+    $(gridTag).gridstack(options);
+    
+    //draw grid items
+    gridX = 0;
+    gridY = 0;
+    var grid = $(gridTag).data('gridstack');
+    $.each(<%- JSON.stringify(monitors) %>,function(n,monitor){
+        var tmp = '<div class="grid-stack-item-content-overlay">'+monitor.mid+'</div><iframe src="'+data.url+'/'+data.auth+'/embed/'+monitor.ke+'/'+monitor.mid+'/fullscreen|jquery|relative"></iframe>'
+        grid.addWidget($('<div class="grid-stack-item"><div class="grid-stack-item-content">'+tmp+'</div></div>'), 0, 0, 4, 4, true);
+        if(gridX === 12){
+            gridX = 0;
+            gridY += 4;
+        }
+        gridX += 4
+    })
+});
+</script>
+            
