@@ -5,37 +5,14 @@ if(config.ssl&&config.ssl.port&&data.protocol==='https'){
     data.port=config.port
 }
 if(!data.port||data.port===''||data.port==80||data.port==443){data.url=baseUrl}else{data.url=baseUrl+':'+data.port}
-if(data.addon){
-    var ar={}
-    decodeURI(data.addon).split('|').forEach(function(v){
-        if(v.indexOf('=')>-1){
-            v=v.split('=');
-            ar[v[0]]=v[1];
-        }
-    })
-    if(!ar.width){ar.width=640;}
-    if(!ar.height){ar.height=480;}
-    if(data.addon.indexOf('jquery')>-1){ %>
-    <script src="<%=data.url%>/libs/js/jquery.min.js"></script>
-    <% };
-    if(data.addon.indexOf('relative')>-1){
-        data.url=''
-    }
-    if(data.addon.indexOf('gui')>-1){ %>
-
-    <% };
-    if(data.addon.indexOf('fullscreen')>-1){ %>
-
-    <% } %>
-<% }else{
-    //no addon set, do defaults
-}; %>
+%>
 <script>
 var data = <%- JSON.stringify(data) %>
 if(!data.group || data.group === ''){
     data.group = '$'
 }
 </script>
+<link rel="stylesheet" href="<%=data.url%>/libs/css/font-awesome.min.css">
 <link rel="stylesheet" href="<%=data.url%>/libs/css/bootstrap.min.css">
 <link rel="stylesheet" href="<%=data.url%>/libs/css/gridstack.min.css">
 <link rel="stylesheet" href="<%=data.url%>/libs/css/gridstack-extra.min.css">
@@ -81,16 +58,18 @@ if(!data.group || data.group === ''){
     $(function () {
         //init grid
         var gridTag = '.grid-stack';
+        var gridEl = $(gridTag);
         var options = {
             cellHeight: 80,
-            verticalMargin: 10,
+            verticalMargin: 0,
         };
-        $(gridTag).gridstack(options);
-        $(gridTag).on('change', function (event, ui) {
+        //monitor="watch_off"
+        gridEl.gridstack(options);
+        gridEl.on('change', function (event, ui) {
             var savedGrids = $.grid.op().savedGrids;
             if(!savedGrids)savedGrids = {};
             savedGrids[data.group] = {};
-            $(gridTag).find('.grid-stack-item').each(function(n,v){
+            gridEl.find('.grid-stack-item').each(function(n,v){
                 var el = $(v);
                 var mid = el.attr('mid')
                 savedGrids[data.group][mid] = {
@@ -102,7 +81,6 @@ if(!data.group || data.group === ''){
                 };
             })
             $.grid.op('savedGrids',savedGrids)
-            console.log(savedGrids[data.group])
         });
 
         //draw grid items
@@ -113,7 +91,7 @@ if(!data.group || data.group === ''){
         var savedGrids = $.grid.op().savedGrids;
         if(!savedGrids)savedGrids = {};
         if(!savedGrids[data.group])savedGrids[data.group] = {};
-        var grid = $(gridTag).data('gridstack');
+        var grid = gridEl.data('gridstack');
         $.each(<%- JSON.stringify(monitors) %>,function(n,monitor){
             var x = gridX;
             var y = gridY;
@@ -128,8 +106,8 @@ if(!data.group || data.group === ''){
                 height = saved.height;
                 autoPlacement = false;
             }
-            var tmp = '<div class="grid-stack-item-content-overlay">'+monitor.mid+'</div><iframe src="'+data.url+'/'+data.auth+'/embed/'+monitor.ke+'/'+monitor.mid+'/fullscreen|jquery|relative"></iframe>'
-            grid.addWidget($('<div mid="'+monitor.mid+'" class="grid-stack-item"><div class="grid-stack-item-content">'+tmp+'</div></div>'), x, y, width, height, autoPlacement);
+            var tmp = '<div auth="'+data.auth+'" ke="'+data.ke+'" mid="'+monitor.mid+'" class="grid-stack-item"><div class="grid-stack-item-content"><div class="grid-stack-item-content-overlay"><a monitor="watch_off"><i class="fa fa-times-circle"></i></a></div><iframe src="'+data.url+'/'+data.auth+'/embed/'+monitor.ke+'/'+monitor.mid+'/fullscreen|jquery|relative"></iframe></div></div>'
+            grid.addWidget($(tmp), x, y, width, height, autoPlacement);
         })
     });
 </script>
