@@ -9,6 +9,8 @@
 <link rel="stylesheet" href="/libs/css/bootstrap.min.css">
 <link rel="stylesheet" href="/libs/css/font-awesome.min.css">
 <link rel="stylesheet" href="/libs/css/fullcalendar.min.css">
+<link rel="stylesheet" href="/libs/css/gridstack.min.css">
+<link rel="stylesheet" href="/libs/css/gridstack-extra.min.css">
 <link rel="stylesheet" href="/libs/css/bootstrap-table.min.css">
 <link rel="stylesheet" href="/libs/css/main.dash2.css">
 <style id="theme">
@@ -154,7 +156,7 @@
         </nav>
       </div>
       <main class="mdl-layout__content selected" id="main_canvas">
-          <div class="demo-blog__posts mdl-grid" id="monitors_live"></div>
+          <div class="grid-stack" id="monitors_live"></div>
       </main>
     </div>
   </body>
@@ -196,5 +198,9 @@
 <script src="/libs/js/clusterPoints.js"></script>
 <script src="/libs/js/daterangepicker.js"></script>
 <script src="/libs/js/jquery.canvasAreaDraw.js"></script>
+<script src="/libs/js/jquery-ui.min.js"></script>
+<script src="/libs/js/lodash.min.js"></script>
+<script src="/libs/js/gridstack.min.js"></script>
+<script src="/libs/js/gridstack.jQueryUI.min.js"></script>
 <script><% include ../libs/js/main.dash2.js %></script>
 <% include blocks/help.ejs %>

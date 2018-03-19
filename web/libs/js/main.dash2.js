@@ -368,42 +368,44 @@ switch($user.details.lang){
                 }
             break;
             case'montage':
-                k.dimensions=$.ccio.op().montage
-                k.monitors=$('.monitor_item');
-                $.each([1,2,3,4,5,'5ths',6,7,8,9,10,11,12],function(n,v){
-                    k.monitors.removeClass('col-md-'+v)
-                })
-                if(!$('#monitors_live').hasClass('montage')){
-                    k.dimensions='2'
-                }else{
-                    if(!k.dimensions){
-                        k.dimensions='3'
-                    }
-                }
-                switch((k.dimensions).toString()){
-                    case'1':
-                        k.class='12'
-                    break;
-                    case'2':
-                        k.class='6'
-                    break;
-                    case'4':
-                        k.class='3'
-                    break;
-                    case'5':
-                        k.class='5ths'
-                    break;
-                    case'6':
-                        k.class='2'
-                    break;
-                   default://3
-                        k.class='4'
-                    break;
-                }
-                k.class='col-md-'+k.class;
-                k.monitors.addClass(k.class)
+                console.log('Deprecated : montage')
+//                k.dimensions=$.ccio.op().montage
+//                k.monitors=$('.monitor_item');
+//                $.each([1,2,3,4,5,'5ths',6,7,8,9,10,11,12],function(n,v){
+//                    k.monitors.removeClass('col-md-'+v)
+//                })
+//                if(!$('#monitors_live').hasClass('montage')){
+//                    k.dimensions='2'
+//                }else{
+//                    if(!k.dimensions){
+//                        k.dimensions='3'
+//                    }
+//                }
+//                switch((k.dimensions).toString()){
+//                    case'1':
+//                        k.class='12'
+//                    break;
+//                    case'2':
+//                        k.class='6'
+//                    break;
+//                    case'4':
+//                        k.class='3'
+//                    break;
+//                    case'5':
+//                        k.class='5ths'
+//                    break;
+//                    case'6':
+//                        k.class='2'
+//                    break;
+//                   default://3
+//                        k.class='4'
+//                    break;
+//                }
+//                k.class='col-md-'+k.class;
+//                k.monitors.addClass(k.class)
             break;
             case'monitorOrder':
+                console.log('Deprecated? : monitorOrder')
                 k.order = user.details.monitorOrder;
                 if(!k.order){
                     k.order=[];
@@ -490,12 +492,13 @@ switch($user.details.lang){
                 });
             break;
             case'dragWindows':
-                k.e=$("#monitors_live");
-                if(k.e.disableSelection){k.e.disableSelection()};
-                k.e.sortable({
-                  handle: ".mdl-card__supporting-text",
-                  placeholder: "ui-state-highlight col-md-6"
-                });
+                console.log('Deprecated : dragWindows')
+//                k.e=$("#monitors_live");
+//                if(k.e.disableSelection){k.e.disableSelection()};
+//                k.e.sortable({
+//                  handle: ".mdl-card__supporting-text",
+//                  placeholder: "ui-state-highlight col-md-6"
+//                });
             break;
             case'getLocation':
                 var l = document.createElement("a");
@@ -838,9 +841,13 @@ switch($user.details.lang){
                 d.per=parseInt(d.hr/24*100);
                 d.href='href="'+d.href+'?downloadName='+d.mid+'-'+d.filename+'"';
                 d.circle='<div title="at '+d.hr+' hours of '+d.mom.format('MMMM DD')+'" '+d.href+' video="launch" class="progress-circle progress-'+d.per+'"><span>'+d.hr+'</span></div>'
-                tmp+='<li class="glM'+d.mid+user.auth_token+'" auth="'+user.auth_token+'" mid="'+d.mid+'" ke="'+d.ke+'" status="'+d.status+'" status="'+d.status+'" file="'+d.filename+'">'+d.circle+'<div><span title="'+d.end+'" class="livestamp"></span></div><div><div class="small"><b><%-cleanLang(lang.Start)%></b> : '+moment(d.time).format('h:mm:ss , MMMM Do YYYY')+'</div><div class="small"><b><%-cleanLang(lang.End)%></b> : '+moment(d.end).format('h:mm:ss , MMMM Do YYYY')+'</div></div><div><span class="pull-right">'+(parseInt(d.size)/1000000).toFixed(2)+'mb</span><div class="controls btn-group"><a class="btn btn-sm btn-primary" video="launch" '+d.href+'><i class="fa fa-play-circle"></i></a> <a download="'+d.dlname+'" '+d.href+' class="btn btn-sm btn-default"><i class="fa fa-download"></i></a>'
+                tmp+='<li class="video-item glM'+d.mid+user.auth_token+'" auth="'+user.auth_token+'" mid="'+d.mid+'" ke="'+d.ke+'" status="'+d.status+'" status="'+d.status+'" file="'+d.filename+'">'+d.circle+'<div><span title="'+d.end+'" class="livestamp"></span></div><div><div class="small"><b><%-cleanLang(lang.Start)%></b> : '+moment(d.time).format('h:mm:ss , MMMM Do YYYY')+'</div><div class="small"><b><%-cleanLang(lang.End)%></b> : '+moment(d.end).format('h:mm:ss , MMMM Do YYYY')+'</div></div><div><span class="pull-right">'+(parseInt(d.size)/1000000).toFixed(2)+'mb</span><div class="controls btn-group"><a class="btn btn-sm btn-primary" video="launch" '+d.href+'><i class="fa fa-play-circle"></i></a> <a download="'+d.dlname+'" '+d.href+' class="btn btn-sm btn-default"><i class="fa fa-download"></i></a>'
                 <% if(config.DropboxAppKey){ %> tmp+='<a video="download" host="dropbox" download="'+d.dlname+'" '+d.href+' class="btn btn-sm btn-default"><i class="fa fa-dropbox"></i></a>' <% } %>
                 tmp+='<a title="<%-cleanLang(lang['Delete Video'])%>" video="delete" class="btn btn-sm btn-danger permission_video_delete"><i class="fa fa-trash"></i></a></div></div></li>';
+                $(z).each(function(n,v){
+                    v=$(v);
+                    if(v.find('.video-item').length>10){v.find('.video-item:last').remove()}
+                })
             break;
             case 1://monitor icon
                 d.src=placeholder.getData(placeholder.plcimg({bgcolor:'#b57d00',text:'...'}));
@@ -851,11 +858,16 @@ switch($user.details.lang){
                 try{k.d=JSON.parse(d.details);}catch(er){k.d=d.details;}
                 k.mode=$.ccio.init('humanReadMode',d.mode);
                 var dataTarget = '.monitor_item[mid=\''+d.mid+'\'][ke=\''+d.ke+'\'][auth=\''+user.auth_token+'\']';
-                tmp+='<div auth="'+user.auth_token+'" mid="'+d.mid+'" ke="'+d.ke+'" id="monitor_live_'+d.mid+user.auth_token+'" mode="'+k.mode+'" class="monitor_item glM'+d.mid+user.auth_token+' mdl-grid col-md-6">';
-                tmp+='<div class="mdl-card mdl-cell mdl-cell--8-col">';
+                tmp+='<div id="monitor_live_'+d.mid+user.auth_token+'" auth="'+user.auth_token+'" mid="'+d.mid+'" ke="'+d.ke+'" mode="'+k.mode+'" class="grid-stack-item monitor_item glM'+d.mid+user.auth_token+'"><div class="grid-stack-item-content">';
                 tmp+='<div class="stream-block no-padding mdl-card__media mdl-color-text--grey-50">';
+                tmp+='<div class="mdl-data_window">';
+                tmp+='<div>';
+                tmp+='<div class="data-menu col-md-6 no-padding videos_monitor_list glM'+d.mid+user.auth_token+' scrollable"><ul></ul></div>';
+                tmp+='<div class="data-menu col-md-6 no-padding logs scrollable"></div>';
+                tmp+='</div>';
+                tmp+='</div>';//.mdl-data_window
                 tmp+='<div class="stream-objects"></div>';
-                tmp+='<div class="stream-hud"><div class="lamp" title="'+k.mode+'"><i class="fa fa-eercast"></i></div><div class="controls"><span title="<%-cleanLang(lang['Currently viewing'])%>" class="label label-default"><span class="viewers"></span></span> <a class="btn-xs btn-danger btn" monitor="mode" mode="record"><i class="fa fa-circle"></i> <%-cleanLang(lang['Start Recording'])%></a> <a class="btn-xs btn-primary btn" monitor="mode" mode="start"><i class="fa fa-eye"></i> <%-cleanLang(lang['Set to Watch Only'])%></a></div><div class="bottom-text monospace"><div class="detector-fade">'
+                tmp+='<div class="stream-hud"><div class="lamp" title="'+k.mode+'"><i class="fa fa-eercast"></i></div><div class="controls"><span title="<%-cleanLang(lang['Currently viewing'])%>" class="label label-default"><span class="viewers"></span></span> <a class="btn-xs btn-danger btn" monitor="mode" mode="record"><i class="fa fa-circle"></i> <%-cleanLang(lang['Start Recording'])%></a> <a class="btn-xs btn-primary btn" monitor="mode" mode="start"><i class="fa fa-eye"></i> <%-cleanLang(lang['Set to Watch Only'])%></a></div><div class="bottom-text monospace "><div class="detector-fade">'
                     $.each([
                         {label:'Currently Detected',tag:'stream-detected-count'}
                     ],function(n,v){
@@ -870,7 +882,7 @@ switch($user.details.lang){
                 tmp+='<div class="btn-group btn-group-sm">'//start of btn list
                     $.each([
                         {label:"<%-cleanLang(lang.Snapshot)%>",attr:'monitor="snapshot"',class:'primary',icon:'camera'},
-                        {label:"<%-cleanLang(lang['Show Logs'])%>",attr:'class_toggle="show_logs" data-target="'+dataTarget+'"',class:'warning',icon:'exclamation-triangle'},
+                        {label:"<%-cleanLang(lang['Show Logs'])%>",attr:'class_toggle="show_data" data-target="'+dataTarget+'"',class:'warning',icon:'exclamation-triangle'},
                         {label:"<%-cleanLang(lang.Control)%>",attr:'monitor="control_toggle"',class:'default arrows'},
                         {label:"<%-cleanLang(lang['Status Indicator'])%>",attr:'monitor="watch_on"',class:'success signal',icon:'plug'},
                         {label:"<%-cleanLang(lang['Detector'])%>",attr:'monitor="motion"',class:'warning',icon:'grav'},
@@ -887,19 +899,9 @@ switch($user.details.lang){
                         tmp+='<a class="btn btn-'+v.class+'" '+v.attr+' title="'+v.label+'"><i class="fa fa-'+v.icon+'"></i></a>'
                     })
                 tmp+='</div>';//end of btn list
-                tmp+='</div>';
-                tmp+='</div>';
-                tmp+='<div class="mdl-card mdl-cell mdl-cell--8-col mdl-cell--4-col-desktop">';
-                tmp+='<div class="mdl-card__media">';
-                tmp+='<div class="side-menu logs scrollable"></div>';
-                tmp+='<div class="side-menu videos_monitor_list glM'+d.mid+user.auth_token+' scrollable"><ul></ul></div>';
-                tmp+='</div>';
-                tmp+='<div class="mdl-card__supporting-text meta meta--fill mdl-color-text--grey-600">';
-                tmp+='<div><span class="monitor_name">'+d.name+'</span><span class="monitor_not_record_copy"><%-cleanLang(lang['Recording FPS'])%> : <b class="monitor_fps">'+d.fps+'</b></span>';
-                tmp+='<b class="monitor_mode">'+k.mode+'</b>';
-                tmp+='</div>';
-                tmp+='</div>';
-                tmp+='</div>';
+                tmp+='</div>';//.stream-block
+                tmp+='</div>';//.grid-stack-content
+                tmp+='</div>';//#monitor_live_...
             break;
             case 3://api key row
                 tmp+='<tr api_key="'+d.code+'"><td class="code">'+d.code+'</td><td class="ip">'+d.ip+'</td><td class="time">'+d.time+'</td><td class="text-right"><a class="delete btn btn-xs btn-danger">&nbsp;<i class="fa fa-trash"></i>&nbsp;</a></td></tr>';
@@ -1405,7 +1407,7 @@ switch($user.details.lang){
                 tmp+='  </div>'
             break;
         }
-        if(z){
+        if(z && x !== 2){
             $(z).prepend(tmp)
         }
         switch(x){
@@ -1413,21 +1415,27 @@ switch($user.details.lang){
                 z='#monitors_list .link-monitors-list[auth="'+user.auth_token+'"][ke="'+d.ke+'"]'
                 if($('.link-monitors-list[auth="'+user.auth_token+'"][ke="'+d.ke+'"]').length===0){
                     $("#monitors_list").append('<div class="link-monitors-list" auth="'+user.auth_token+'" ke="'+d.ke+'"></div>')
-                    $(z).sortable({
-                        handle:'.title',
-                        update: function(event, ui) {
-                            var arr=[]
-                            $(z+" .monitor_block").each(function(n,v){
-                                arr.push($(this).attr('mid'))
-                            })
-                            $user.details.monitorOrder=arr;
-                            $.ccio.cx({f:'monitorOrder',monitorOrder:arr})
-                            event.o=$.ccio.op().switches;
-                            if(event.o&&event.o.monitorOrder===1){
-                                $.ccio.init('monitorOrder',{no:['#monitors_list .link-monitors-list[auth="'+user.auth_token+'"][ke="'+d.ke+'"]']},user)
-                            }
-                        }
-                    });
+                    var options = {
+                        cellHeight: 80,
+                        verticalMargin: 10,
+                    };
+                    //monitor="watch_off"
+                    $(z).gridstack(options);
+//                    $(z).sortable({
+//                        handle:'.title',
+//                        update: function(event, ui) {
+//                            var arr=[]
+//                            $(z+" .monitor_block").each(function(n,v){
+//                                arr.push($(this).attr('mid'))
+//                            })
+//                            $user.details.monitorOrder=arr;
+//                            $.ccio.cx({f:'monitorOrder',monitorOrder:arr})
+//                            event.o=$.ccio.op().switches;
+//                            if(event.o&&event.o.monitorOrder===1){
+//                                $.ccio.init('monitorOrder',{no:['#monitors_list .link-monitors-list[auth="'+user.auth_token+'"][ke="'+d.ke+'"]']},user)
+//                            }
+//                        }
+//                    });
                 }
                 $(z).prepend(tmp)
             break;
@@ -1435,6 +1443,19 @@ switch($user.details.lang){
                 $.ccio.init('ls');
             break;
             case 2:
+                var x = 0;
+                var y = 0;
+                var width = 4;
+                var height = 4;
+                var savedGrids = $.grid.getGrids();
+                var saved = savedGrids['$$'][d.mid];
+                if(savedGrids['$$'][d.mid]){
+                    x = saved.x;
+                    y = saved.y;
+                    width = saved.width;
+                    height = saved.height;
+                }
+                $(z).data('gridstack').addWidget($(tmp), x, y, width, height, true);
                 k.e=$('#monitor_live_'+d.mid+user.auth_token);
                 try{
                     if(JSON.parse(d.details).control=="1"){
@@ -1673,7 +1694,7 @@ $.ccio.globalWebsocket=function(d,user){
             d.e.attr('status',d.status),d.e.attr('data-status',d.status);
         break;
         case'video_delete':
-            if($('.modal[mid="'+d.mid+'"][auth="'+user.auth_token+'"]').length>0){$('#video_viewer[mid="'+d.mid+'"]').attr('file',null).attr('ke',null).attr('mid',null).attr('auth',null).modal('hide')}
+//            if($('.modal[mid="'+d.mid+'"][auth="'+user.auth_token+'"]').length>0){$('#video_viewer[mid="'+d.mid+'"]').attr('file',null).attr('ke',null).attr('mid',null).attr('auth',null).modal('hide')}
             $('[file="'+d.filename+'"][mid="'+d.mid+'"][ke="'+d.ke+'"][auth="'+user.auth_token+'"]').remove();
             $('[data-file="'+d.filename+'"][data-mid="'+d.mid+'"][data-ke="'+d.ke+'"][data-auth="'+user.auth_token+'"]').remove();
             if($.pwrvid.currentDataObject&&$.pwrvid.currentDataObject[d.filename]){
@@ -4282,6 +4303,34 @@ $.pwrvid.e.on('hidden.bs.modal',function(e){
     $.pwrvid.mL.empty()
     $.pwrvid.d.empty()
 })
+//monitor grid
+$.grid={e:$('#monitors_live')}
+$.grid.getGrids = function(){
+    var savedGrids = $.ccio.op().savedGrids;
+    if(!savedGrids)savedGrids = {};
+    if(!savedGrids['$$'])savedGrids['$$'] = {};
+    return savedGrids;
+}
+$.grid.e
+.gridstack({
+    cellHeight: 80,
+    verticalMargin: 0,
+})
+.on('change', function (event, ui) {
+    var savedGrids = $.grid.getGrids();
+    $.grid.e.find('.grid-stack-item').each(function(n,v){
+        var el = $(v);
+        var mid = el.attr('mid')
+        savedGrids['$$'][mid] = {
+            mid:mid,
+            x:el.attr('data-gs-x'),
+            y:el.attr('data-gs-y'),
+            width:el.attr('data-gs-width'),
+            height:el.attr('data-gs-height')
+        };
+    })
+    $.ccio.op('savedGrids',savedGrids)
+});
 //open all monitors
 $('[class_toggle="list-blocks"][data-target="#left_menu"]').dblclick(function(){
     $('#monitors_list [monitor="watch"]').click()
@@ -4855,12 +4904,12 @@ $('body')
     e=$(this)
     e.find('.flex-modal-block').css('height',e.height())
 })
-.on('resize','#monitors_live .monitor_item',function(e){
-    e.e=$(this).find('.mdl-card__media');
-    e.c=e.e.find('canvas');
-    e.c.attr('height',e.e.height());
-    e.c.attr('width',e.e.width());
-})
+//.on('resize','#monitors_live .monitor_item',function(e){
+//    e.e=$(this).find('.mdl-card__media');
+//    e.c=e.e.find('canvas');
+//    e.c.attr('height',e.e.height());
+//    e.c.attr('width',e.e.width());
+//})
 .on('keyup','.search-parent .search-controller',function(){
     _this = this;
     $.each($(".search-parent .search-body .search-row"), function() {
