@@ -1700,6 +1700,76 @@ s.camera=function(x,e,cn,tx){
         }
     });
     switch(x){
+        case'control':
+            if(!s.group[e.ke]||!s.group[e.ke].mon[e.id]){return}
+            var monitorConfig = s.group[e.ke].mon_conf[e.id];
+            if(monitorConfig.details.control!=="1"){s.log(e,{type:lang['Control Error'],msg:lang.ControlErrorText1});return}
+            if(!monitorConfig.details.control_base_url||monitorConfig.details.control_base_url===''){
+                e.base=s.init('url_no_path',monitorConfig);
+            }else{
+                e.base=monitorConfig.details.control_base_url;
+            }
+            if(!monitorConfig.details.control_url_stop_timeout||monitorConfig.details.control_url_stop_timeout===''){monitorConfig.details.control_url_stop_timeout=1000}
+            if(!monitorConfig.details.control_url_method||monitorConfig.details.control_url_method===''){monitorConfig.details.control_url_method="GET"}
+            var setURL=function(url){
+                e.URLobject=URL.parse(url)
+                if(!e.URLobject.port){e.URLobject.port=80}
+                e.options = {
+                    host: e.URLobject.hostname,
+                    port: e.URLobject.port,
+                    method: monitorConfig.details.control_url_method,
+                    path: e.URLobject.pathname,
+                };
+                if(e.URLobject.query){
+                    e.options.path=e.options.path+'?'+e.URLobject.query
+                }
+                if(e.URLobject.username&&e.URLobject.password){
+                    e.options.auth=e.URLobject.username+':'+e.URLobject.password
+                }
+                if(e.URLobject.auth){
+                    e.options.auth=e.URLobject.auth
+                }
+            }
+            setURL(e.base+monitorConfig.details['control_url_'+e.direction])
+            http.request(e.options, function(first) {
+                var body = '';
+                var msg;
+                first.on('data', function(chunk) {
+                    body+=chunk
+                });
+                first.on('end',function(){
+                    if(monitorConfig.details.control_stop=='1'&&e.direction!=='center'){
+                        s.log(e,{type:'Control Triggered Started',msg:body});
+                        setURL(e.base+monitorConfig.details['control_url_'+e.direction+'_stop'])
+                        setTimeout(function(){
+                            http.request(e.options, function(data) {
+                                var body=''
+                                  data.on('data', function(chunk){
+                                      body+=chunk
+                                  })
+                                  data.on('end', function(){
+                                      msg = {ok:true,type:'Control Trigger Ended'};
+                                      cn(msg)
+                                      s.log(e,msg);
+                                  });
+                            }).on('error', function(err) {
+                               msg = {ok:false,type:'Control Error',msg:err};
+                               cn(msg)
+                               s.log(e,msg);
+                            }).end();
+                        },monitorConfig.details.control_url_stop_timeout)
+                    }else{
+                        msg = {ok:true,type:'Control Triggered',msg:body};
+                        cn(msg)
+                        s.log(e,msg);
+                    }
+                });
+            }).on('error', function(err) {
+                msg = {ok:false,type:'Control Error',msg:err};
+                cn(msg)
+                s.log(e,msg);
+            }).end();
+        break;
         case'snapshot'://get snapshot from monitor URL
             if(config.doSnapshot===true){
                 if(e.mon.mode!=='stop'){
@@ -3242,79 +3312,17 @@ var tx;
                             }
                         break;
                         case'control':
-                            if(!s.group[d.ke]||!s.group[d.ke].mon[d.mid]){return}
-                            d.m=s.group[d.ke].mon_conf[d.mid];
-                            if(d.m.details.control!=="1"){s.log(d,{type:lang['Control Error'],msg:lang.ControlErrorText1});return}
-                            if(!d.m.details.control_base_url||d.m.details.control_base_url===''){
-                                d.base=s.init('url_no_path',d.m);
-                            }else{
-                                d.base=d.m.details.control_base_url;
-                            }
-                            if(!d.m.details.control_url_stop_timeout||d.m.details.control_url_stop_timeout===''){d.m.details.control_url_stop_timeout=1000}
-                            if(!d.m.details.control_url_method||d.m.details.control_url_method===''){d.m.details.control_url_method="GET"}
-                            d.setURL=function(url){
-                                d.URLobject=URL.parse(url)
-                                if(!d.URLobject.port){d.URLobject.port=80}
-                                d.options = {
-                                    host: d.URLobject.hostname,
-                                    port: d.URLobject.port,
-                                    method: d.m.details.control_url_method,
-                                    path: d.URLobject.pathname,
-                                };
-                                if(d.URLobject.query){
-                                    d.options.path=d.options.path+'?'+d.URLobject.query
-                                }
-                                if(d.URLobject.username&&d.URLobject.password){
-                                    d.options.auth=d.URLobject.username+':'+d.URLobject.password
-                                }
-                                if(d.URLobject.auth){
-                                    d.options.auth=d.URLobject.auth
-                                }
-                            }
-                            d.setURL(d.base+d.m.details['control_url_'+d.direction])
-                            http.request(d.options, function(first) {
-                                var body = '';
-                                first.on('data', function(chunk) {
-                                    body+=chunk
-                                });
-                                first.endCommand=function(){
-                                    clearTimeout(first.endCommandLastResort)
-                                    if(d.m.details.control_stop=='1'&&d.direction!=='center'){
-                                        s.log(d,{type:'Control Triggered Started',msg:body});
-                                        d.setURL(d.base+d.m.details['control_url_'+d.direction+'_stop'])
-                                        setTimeout(function(){
-                                            http.request(d.options, function(data) {
-                                                var body=''
-                                                  data.on('data', function(chunk){
-                                                      body+=chunk
-                                                  })
-                                                  data.on('end', function(){
-                                                      if(err){s.log(d,{type:'Control Error',msg:{error:err,body:body}});return false}
-                                                      s.log(d,{type:'Control Triggered Ended',msg:body});
-                                                      s.tx({f:'control',mid:d.mid,ke:d.ke,direction:d.direction,url_stop:true});
-                                                  });
-                                            }).on('error', function(err) {
-                                               s.log(d,{type:'Control Error',msg:err});
-                                            }).end();
-                                        },d.m.details.control_url_stop_timeout)
-                                    }else{
-                                        s.log(d,{type:'Control Triggered',msg:body});
-                                        tx({f:'control',mid:d.mid,ke:d.ke,direction:d.direction,url_stop:false});
-                                    }
-                                }
-                                first.on('end',first.endCommand);
-                                first.endCommandLastResort=setTimeout(first.endCommand,3000)
-                            }).on('error', function(err) {
-                                s.log(d,{type:'Control Error',msg:err});
-                            }).end();
+                            s.camera('control',d,function(resp){
+                                tx({f:'control',response:resp})
+                            })
                         break;
                         case'jpeg_off':
                           delete(cn.jpeg_on);
                             if(cn.monitor_watching){
-                          Object.keys(cn.monitor_watching).forEach(function(n,v){
-                              v=cn.monitor_watching[n];
-                              cn.join('MON_STREAM_'+n);
-                          });
+                              Object.keys(cn.monitor_watching).forEach(function(n,v){
+                                  v=cn.monitor_watching[n];
+                                  cn.join('MON_STREAM_'+n);
+                              });
                             }
                             tx({f:'mode_jpeg_off'})
                         break;
@@ -5456,7 +5464,25 @@ app.get('/:auth/motion/:ke/:id', function (req,res){
         s.camera('motion',d,function(){
             res.end(user.lang['Trigger Successful'])
         });
-},res,req);
+    },res,req);
+})
+//hookTester trigger
+app.get('/:auth/hookTester/:ke/:id', function (req,res){
+    res.setHeader('Content-Type', 'application/json');
+    s.auth(req.params,function(user){
+        s.log(req.params,{type:'Test',msg:'Hook Test'})
+        res.end(s.s({ok:true},null,3))
+    },res,req);
+})
+//control trigger
+app.get('/:auth/control/:ke/:id/:direction', function (req,res){
+    res.setHeader('Content-Type', 'application/json');
+    res.header("Access-Control-Allow-Origin",req.headers.origin);
+    s.auth(req.params,function(user){
+        s.camera('control',req.params,function(resp){
+            res.end(s.s(resp,null,3))
+        });
+    },res,req);
 })
 //modify video file
 app.get(['/:auth/videos/:ke/:id/:file/:mode','/:auth/videos/:ke/:id/:file/:mode/:f'], function (req,res){
