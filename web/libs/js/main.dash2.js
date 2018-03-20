@@ -883,7 +883,7 @@ switch($user.details.lang){
                     $.each([
                         {label:"<%-cleanLang(lang.Snapshot)%>",attr:'monitor="snapshot"',class:'primary',icon:'camera'},
                         {label:"<%-cleanLang(lang['Show Logs'])%>",attr:'class_toggle="show_data" data-target="'+dataTarget+'"',class:'warning',icon:'exclamation-triangle'},
-                        {label:"<%-cleanLang(lang.Control)%>",attr:'monitor="control_toggle"',class:'default arrows'},
+                        {label:"<%-cleanLang(lang.Control)%>",attr:'monitor="control_toggle"',class:'default arrows',icon:'arrows'},
                         {label:"<%-cleanLang(lang['Status Indicator'])%>",attr:'monitor="watch_on"',class:'success signal',icon:'plug'},
                         {label:"<%-cleanLang(lang['Detector'])%>",attr:'monitor="motion"',class:'warning',icon:'grav'},
                         {label:"<%-cleanLang(lang.Pop)%>",attr:'monitor="pop"',class:'default',icon:'external-link'},
@@ -4941,6 +4941,8 @@ $('body')
                  }
             })
         })
+    }else{
+        $.ccio.op('switches',{notifyHide:0})
     }
     //set class toggle preferences
     e.o=$.ccio.op().class_toggle;
