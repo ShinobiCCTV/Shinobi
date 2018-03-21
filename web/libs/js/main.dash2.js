@@ -2022,12 +2022,22 @@ $.ccio.globalWebsocket=function(d,user){
                     data[v.filename]={filename:v.filename,time:v.time,timeFormatted:moment(v.time).format('MM/DD/YYYY HH:mm'),endTime:v.end,close:moment(v.time).diff(moment(v.end),'minutes')/-1,motion:[],row:v,position:n}
                 }
             });
+            var videosToCheck = Object.assign({},data)
             $.each(events,function(n,v){
-                $.each(data,function(m,b){
-                    if (moment(v.time).isBetween(moment(b.time).format(),moment(b.endTime).format())) {
+                var eventTime = v.details.videoTime.split('T');
+                eventTime[1] = eventTime[1].replace(/-/g,':'),eventTime = eventTime.join(' ');
+                var newSetOfVideosWithoutChecked = {};
+                $.each(videosToCheck,function(m,b){
+                    videoTime = moment(b.time).format('YYYY-MM-DD HH:mm:ss');
+                    if(eventTime === videoTime){
                         data[m].motion.push(v)
+                    }else if (moment(v.time).isBetween(videoTime,moment(b.endTime).format())) {
+                        data[m].motion.push(v)
+                    }else{
+                        newSetOfVideosWithoutChecked[m] = b;
                     }
                 })
+                videosToCheck = newSetOfVideosWithoutChecked;
             });
             $.pwrvid.currentDataObject=data;
             if($.pwrvid.chart){
