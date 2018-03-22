@@ -2022,22 +2022,25 @@ $.ccio.globalWebsocket=function(d,user){
                     data[v.filename]={filename:v.filename,time:v.time,timeFormatted:moment(v.time).format('MM/DD/YYYY HH:mm'),endTime:v.end,close:moment(v.time).diff(moment(v.end),'minutes')/-1,motion:[],row:v,position:n}
                 }
             });
-            var videosToCheck = Object.assign({},data)
-            $.each(events,function(n,v){
-                var eventTime = v.details.videoTime.split('T');
-                eventTime[1] = eventTime[1].replace(/-/g,':'),eventTime = eventTime.join(' ');
-                var newSetOfVideosWithoutChecked = {};
-                $.each(videosToCheck,function(m,b){
-                    videoTime = moment(b.time).format('YYYY-MM-DD HH:mm:ss');
-                    if(eventTime === videoTime){
+            
+            var eventsToCheck = Object.assign({},events)
+            $.each(data,function(m,b){
+                startTimeFormatted = moment(b.time).format('YYYY-MM-DD HH:mm:ss');
+                startTime = moment(b.time).format();
+                endTime = moment(b.endTime).format();
+                var newSetOfEventsWithoutChecked = {};
+                $.each(eventsToCheck,function(n,v){
+                    var eventTime = v.details.videoTime.split('T');
+                    eventTime[1] = eventTime[1].replace(/-/g,':'),eventTime = eventTime.join(' ');
+                    if(eventTime === startTimeFormatted){
                         data[m].motion.push(v)
-                    }else if (moment(v.time).isBetween(videoTime,moment(b.endTime).format())) {
+                    }else if (moment(v.time).isBetween(startTime,moment(b.endTime).format())) {
                         data[m].motion.push(v)
                     }else{
-                        newSetOfVideosWithoutChecked[m] = b;
+                        newSetOfEventsWithoutChecked[n] = v;
                     }
                 })
-                videosToCheck = newSetOfVideosWithoutChecked;
+                eventsToCheck = newSetOfEventsWithoutChecked;
             });
             $.pwrvid.currentDataObject=data;
             if($.pwrvid.chart){
@@ -4267,34 +4270,50 @@ $.pwrvid.drawTimeline=function(getData){
     e.live_header=$.pwrvid.lv.find('h3 span');
     e.live=$.pwrvid.lv.find('iframe');
     e.dateRange=$.pwrvid.dr.data('daterangepicker');
-    if(e.eventLimit===''){e.eventLimit=500}
-    if(e.videoLimit===''){e.videoLimit=0}
-    e.live_header.text($.ccio.mon[$user.ke+mid+$user.auth_token].name)
-    e.live.attr('src','/'+$user.auth_token+'/embed/'+$user.ke+'/'+mid+'/fullscreen|jquery|relative|gui')
+    e.videoLimit = $('#pvideo_video_limit').val();
+    e.eventLimit = $('#pvideo_event_limit').val();
+    if(e.eventLimit===''||isNaN(e.eventLimit)){e.eventLimit=500}
+    if(e.videoLimit===''||isNaN(e.videoLimit)){e.videoLimit=0}
+    
+    var getTheData = function(){
+        e.live_header.text($.ccio.mon[$user.ke+mid+$user.auth_token].name)
+        e.live.attr('src','/'+$user.auth_token+'/embed/'+$user.ke+'/'+mid+'/fullscreen|jquery|relative|gui')
 
-    var pulseLoading = function(){
-        var loading = $.pwrvid.e.find('.loading')
-        var currentColor = loading.css('color')
-        loading.animate('color','red')
-        setTimeout(function(){
-            loading.css('color',currentColor)
-        },500)
+        var pulseLoading = function(){
+            var loading = $.pwrvid.e.find('.loading')
+            var currentColor = loading.css('color')
+            loading.animate('color','red')
+            setTimeout(function(){
+                loading.css('color',currentColor)
+            },500)
+        }
+        if(getData===true){
+            $.ccio.cx({
+                f:'monitor',
+                ff:'get',
+                fff:'videos&events',
+                videoLimit:e.videoLimit,
+                eventLimit:e.eventLimit,
+                startDate:$.ccio.init('th',e.dateRange.startDate),
+                endDate:$.ccio.init('th',e.dateRange.endDate),
+                ke:e.ke,
+                mid:mid
+            });
+        }else{
+            $.pwrvid.e.find('.loading').hide()
+            e.next($.pwrvid.currentVideos,$.pwrvid.currentEvents)
+        }
     }
-    if(getData===true){
-        $.ccio.cx({
-            f:'monitor',
-            ff:'get',
-            fff:'videos&events',
-            videoLimit:$('#pvideo_video_limit').val(),
-            eventLimit:$('#pvideo_event_limit').val(),
-            startDate:$.ccio.init('th',e.dateRange.startDate),
-            endDate:$.ccio.init('th',e.dateRange.endDate),
-            ke:e.ke,
-            mid:mid
+    if(parseInt(e.eventLimit) >= 1000){
+        $.confirm.e.modal('show');
+        $.confirm.title.text('<%-cleanLang(lang['Warning'])%>!')
+        e.html='<%-cleanLang(lang.powerVideoEventLimit)%>'
+        $.confirm.body.html(e.html)
+        $.confirm.click({title:'<%-cleanLang(lang.Request)%>',class:'btn-primary'},function(){
+            getTheData()
         });
     }else{
-        $.pwrvid.e.find('.loading').hide()
-        e.next($.pwrvid.currentVideos,$.pwrvid.currentEvents)
+        getTheData()
     }
 }
 $('#vis_monitors,#pvideo_event_limit,#pvideo_video_limit').change(function(){

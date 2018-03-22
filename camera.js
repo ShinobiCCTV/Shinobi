@@ -3261,20 +3261,10 @@ var tx;
                         case'get':
                             switch(d.fff){
                                 case'videos&events':
-                                     d.videoURL=[]
-                                     d.eventURL=[]
-                                    ///
-                                    if(!d.videoLimit&&d.limit){
-                                        d.videoLimit=d.limit
-                                    }
-                                    if(!d.videoStartDate&&d.startDate){
-                                        d.videoStartDate=d.startDate
-                                    }
-                                    if(!d.videoEndDate&&d.endDate){
-                                        d.videoEndDate=d.endDate
-                                    }
                                     if(!d.eventLimit){
                                         d.eventLimit=500
+                                    }else{
+                                        d.eventLimit = parseInt(d.eventLimit);
                                     }
                                     if(!d.eventStartDate&&d.startDate){
                                         d.eventStartDate=d.startDate
@@ -3282,30 +3272,112 @@ var tx;
                                     if(!d.eventEndDate&&d.endDate){
                                         d.eventEndDate=d.endDate
                                     }
-                                    ///
-                                    if(d.videoLimit){
-                                        d.videoURL.push('limit='+d.videoLimit)
+                                    var getEvents = function(callback){
+                                        var eventQuery = 'SELECT * FROM Events WHERE ke=?';
+                                        var eventQueryValues = [cn.ke];
+                                        if(d.eventStartDate&&d.eventStartDate!==''){
+                                            d.eventStartDate=d.eventStartDate.replace('T',' ')
+                                            if(d.eventEndDate&&d.eventEndDate!==''){
+                                                d.eventEndDate=d.eventEndDate.replace('T',' ')
+                                                eventQuery+=' AND `time` >= ? AND `time` <= ?';
+                                                eventQueryValues.push(decodeURIComponent(d.eventStartDate))
+                                                eventQueryValues.push(decodeURIComponent(d.eventEndDate))
+                                            }else{
+                                                eventQuery+=' AND `time` >= ?';
+                                                eventQueryValues.push(decodeURIComponent(d.eventStartDate))
+                                            }
+                                        }
+                                        eventQuery+=' ORDER BY `time` DESC LIMIT '+d.eventLimit+'';
+                                        s.sqlQuery(eventQuery,eventQueryValues,function(err,r){
+                                            if(err){
+                                                console.log(eventQuery)
+                                                console.error('LINE 2428',err)
+                                                setTimeout(function(){
+                                                    getEvents(callback)
+                                                },2000)
+                                            }else{
+                                                if(!r){r=[]}
+                                                r.forEach(function(v,n){
+                                                    r[n].details=JSON.parse(v.details);
+                                                })
+                                                callback(r)
+                                            }
+                                        })
                                     }
-                                    d.eventURL.push('/'+d.eventStartDate)
-                                    if(d.videoStartDate){
-                                        d.videoURL.push('start='+d.videoStartDate)
+                                    if(!d.videoLimit&&d.limit){
+                                        d.videoLimit=d.limit
+                                        eventQuery.push()
                                     }
-                                    if(d.videoEndDate){
-                                        d.videoURL.push('end='+d.videoEndDate)
+                                    if(!d.videoStartDate&&d.startDate){
+                                        d.videoStartDate=d.startDate
                                     }
-                                    if(d.eventStartDate){
-                                        d.eventURL.push('/'+d.eventStartDate)
+                                    if(!d.videoEndDate&&d.endDate){
+                                        d.videoEndDate=d.endDate
                                     }
-                                    if(d.eventEndDate){
-                                        d.eventURL.push('/'+d.eventEndDate)
+                                     var getVideos = function(callback){
+                                        var videoQuery='SELECT * FROM Videos WHERE ke=?';
+                                        var videoQueryValues=[cn.ke];
+                                        if(d.videoStartDate||d.videoEndDate){
+                                            if(!d.videoStartDateOperator||d.videoStartDateOperator==''){
+                                                d.videoStartDateOperator='>='
+                                            }
+                                            if(!d.videoEndDateOperator||d.videoEndDateOperator==''){
+                                                d.videoEndDateOperator='<='
+                                            }
+                                            switch(true){
+                                                case(d.videoStartDate&&d.videoStartDate!==''&&d.videoEndDate&&d.videoEndDate!==''):
+                                                    d.videoStartDate=d.videoStartDate.replace('T',' ')
+                                                    d.videoEndDate=d.videoEndDate.replace('T',' ')
+                                                    videoQuery+=' AND `time` '+d.videoStartDateOperator+' ? AND `end` '+d.videoEndDateOperator+' ?';
+                                                    videoQueryValues.push(d.videoStartDate)
+                                                    videoQueryValues.push(d.videoEndDate)
+                                                break;
+                                                case(d.videoStartDate&&d.videoStartDate!==''):
+                                                    d.videoStartDate=d.videoStartDate.replace('T',' ')
+                                                    videoQuery+=' AND `time` '+d.videoStartDateOperator+' ?';
+                                                    videoQueryValues.push(d.videoStartDate)
+                                                break;
+                                                case(d.videoEndDate&&d.videoEndDate!==''):
+                                                    d.videoEndDate=d.videoEndDate.replace('T',' ')
+                                                    videoQuery+=' AND `end` '+d.videoEndDateOperator+' ?';
+                                                    videoQueryValues.push(d.videoEndDate)
+                                                break;
+                                            }
+                                        }
+                                        videoQuery+=' ORDER BY `time` DESC';
+                                        if(!d.videoLimit||d.videoLimit==''){
+                                            d.videoLimit='100'
+                                        }
+                                        if(d.videoLimit!=='0'){
+                                            videoQuery+=' LIMIT '+d.videoLimit
+                                        }
+                                        s.sqlQuery(videoQuery,videoQueryValues,function(err,r){
+                                            if(err){
+                                                console.log(videoQuery)
+                                                console.error('LINE 2416',err)
+                                                setTimeout(function(){
+                                                    getVideos(callback)
+                                                },2000)
+                                            }else{
+                                                r.forEach(function(v){
+                                                    v.href='/'+cn.auth+'/videos/'+v.ke+'/'+v.mid+'/'+s.moment(v.time)+'.'+v.ext;
+                                                })
+                                                callback({total:r.length,limit:d.videoLimit,videos:r})
+                                            }
+                                        })
                                     }
-                                    if(d.videoURL.length>0){d.videoURL = '?'+d.videoURL.join('&');}else{d.videoURL=''}
-                                    d.getURL = 'http://'+config.ip+':'+config.port+'/'+cn.auth;
-                                    d.videoURL = d.getURL+'/videos/'+cn.ke+'/'+d.mid+d.videoURL;
-                                    d.eventURL = d.getURL+'/events/'+cn.ke+'/'+d.mid+'?'+d.eventURL.join('&');
-                                    s.getRequest(d.videoURL,function(videos){
-                                        s.getRequest(d.eventURL,function(events){
-                                            tx({f:'drawPowerVideoMainTimeLine',videos:videos,events:events})
+                                    getVideos(function(videos){
+                                        getEvents(function(events){
+                                            console.log({
+                                                f:'drawPowerVideoMainTimeLine',
+                                                videos:videos,
+                                                events:events
+                                            })
+                                            tx({
+                                                f:'drawPowerVideoMainTimeLine',
+                                                videos:videos,
+                                                events:events
+                                            })
                                         })
                                     })
                                 break;
