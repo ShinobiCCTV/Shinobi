@@ -445,6 +445,7 @@
    "Fatal": "Fatal",
    "on Error": "on Error",
    "All Warnings": "All Warnings",
+   "Warning": "Warning",
    "Debug": "Debug",
    "Export": "Export",
    "Import": "Import",
@@ -459,6 +460,7 @@
    "Executed": "Executed",
    "Deleted": "Deleted",
    "Query": "Query",
+   "Request": "Request",
    "System": "System",
    "Restart Core": "Restart Core",
    "Restart CRON": "Restart CRON",
@@ -659,6 +661,7 @@
    "Copy Recording Settings":"Copy Recording Settings",
    "Copy Detector Settings":"Copy Detector Settings",
    "Monitors to Copy to":"Monitors to Copy to",
+   "powerVideoEventLimit":"You have set a high event limit. Are you sure you want to make this request?",
    "There are no monitors that you can view with this account.":"There are no monitors that you can view with this account.",
    "Use Built-In":"Use Built-In"
 }
