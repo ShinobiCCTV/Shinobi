@@ -2590,6 +2590,7 @@ s.camera=function(x,e,cn,tx){
                             s.log(d,{type:"Traditional Recording",msg:'Clear Recorder Process'})
                             delete(s.group[d.ke].mon[d.id].eventBasedRecording.process)
                             delete(s.group[d.ke].mon[d.id].eventBasedRecording.timeout)
+                            clearTimeout(s.group[d.ke].mon[d.id].checker)
                         })
                     }
                     runRecord()
