@@ -1746,7 +1746,7 @@ $.ccio.globalWebsocket=function(d,user){
                 $.ccio.mon[d.ke+d.id+user.auth_token].watch=0;
                 if($.ccio.mon[d.ke+d.id+user.auth_token].hls){$.ccio.mon[d.ke+d.id+user.auth_token].hls.destroy()}
                 if($.ccio.mon[d.ke+d.id+user.auth_token].dash){$.ccio.mon[d.ke+d.id+user.auth_token].dash.reset()}
-                $('#monitor_live_'+d.id+user.auth_token).remove();
+                $.grid.e.data('gridstack').removeWidget($('#monitor_live_'+d.id+user.auth_token))
             }
         break;
         case'monitor_watch_on':
