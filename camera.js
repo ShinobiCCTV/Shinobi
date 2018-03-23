@@ -3272,6 +3272,23 @@ var tx;
                                     if(!d.eventEndDate&&d.endDate){
                                         d.eventEndDate=d.endDate
                                     }
+                                    var monitorQuery = ''
+                                    var monitorValues = []
+                                    var permissions = s.group[d.ke].users[cn.auth].details;
+                                    if(!d.mid){
+                                        if(permissions.sub&&permissions.monitors&&permissions.allmonitors!=='1'){
+                                            try{permissions.monitors=JSON.parse(permissions.monitors);}catch(er){}
+                                            var or = [];
+                                            permissions.monitors.forEach(function(v,n){
+                                                or.push('mid=?');
+                                                monitorValues.push(v)
+                                            })
+                                            monitorQuery += ' AND ('+or.join(' OR ')+')'
+                                        }
+                                    }else if(!permissions.sub||permissions.allmonitors!=='0'||permissions.monitors.indexOf(d.mid)>-1){
+                                        monitorQuery += ' and mid=?';
+                                        monitorValues.push(d.mid)
+                                    }
                                     var getEvents = function(callback){
                                         var eventQuery = 'SELECT * FROM Events WHERE ke=?';
                                         var eventQueryValues = [cn.ke];
@@ -3286,6 +3303,10 @@ var tx;
                                                 eventQuery+=' AND `time` >= ?';
                                                 eventQueryValues.push(decodeURIComponent(d.eventStartDate))
                                             }
+                                        }
+                                        if(monitorValues.length>0){
+                                            eventQuery += monitorQuery;
+                                            eventQueryValues = eventQueryValues.concat(monitorValues);
                                         }
                                         eventQuery+=' ORDER BY `time` DESC LIMIT '+d.eventLimit+'';
                                         s.sqlQuery(eventQuery,eventQueryValues,function(err,r){
@@ -3344,6 +3365,10 @@ var tx;
                                                 break;
                                             }
                                         }
+                                        if(monitorValues.length>0){
+                                            videoQuery += monitorQuery;
+                                            videoQueryValues = videoQueryValues.concat(monitorValues);
+                                        }
                                         videoQuery+=' ORDER BY `time` DESC';
                                         if(!d.videoLimit||d.videoLimit==''){
                                             d.videoLimit='100'
@@ -3368,11 +3393,6 @@ var tx;
                                     }
                                     getVideos(function(videos){
                                         getEvents(function(events){
-                                            console.log({
-                                                f:'drawPowerVideoMainTimeLine',
-                                                videos:videos,
-                                                events:events
-                                            })
                                             tx({
                                                 f:'drawPowerVideoMainTimeLine',
                                                 videos:videos,
