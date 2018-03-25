@@ -198,6 +198,14 @@
                     </label>
                 </div>
                 <div class="form-group">
+                    <label><div><span><%-lang['Force Monitors Per Row']%></span></div>
+                            <div><select class="form-control" localStorage="montage_use" selector="st_force_mon_rows">
+                                <option value="1"><%-lang.Yes%></option>  
+                                <option value="0" selected><%-lang.No%></option>
+                            </select></div>
+                    </label>
+                </div>
+                <div class="form-group st_force_mon_rows_input st_force_mon_rows_1">
                     <label><div><span><%-lang['Monitors per row']%></span></div>
                         <div><input class="form-control" placeholder="3" localStorage="montage"></div>
                     </label>

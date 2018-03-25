@@ -368,41 +368,17 @@ switch($user.details.lang){
                 }
             break;
             case'montage':
-                console.log('Deprecated : montage')
-//                k.dimensions=$.ccio.op().montage
+                console.log('Deprecated? : $.ccio.init("montage"); // it not work :(')
+//                k.useMontage = $.ccio.op().montage_use
+//                if(k.useMontage !== '1'){
+//                    //don't use montage row enforcer
+//                    return
+//                }
 //                k.monitors=$('.monitor_item');
-//                $.each([1,2,3,4,5,'5ths',6,7,8,9,10,11,12],function(n,v){
-//                    k.monitors.removeClass('col-md-'+v)
+//                k.class = $.grid.getMonitorsPerRow()
+//                $('.monitor_item').each(function(n,v){
+//                    $.grid.data().resize(v,k.class,k.class)
 //                })
-//                if(!$('#monitors_live').hasClass('montage')){
-//                    k.dimensions='2'
-//                }else{
-//                    if(!k.dimensions){
-//                        k.dimensions='3'
-//                    }
-//                }
-//                switch((k.dimensions).toString()){
-//                    case'1':
-//                        k.class='12'
-//                    break;
-//                    case'2':
-//                        k.class='6'
-//                    break;
-//                    case'4':
-//                        k.class='3'
-//                    break;
-//                    case'5':
-//                        k.class='5ths'
-//                    break;
-//                    case'6':
-//                        k.class='2'
-//                    break;
-//                   default://3
-//                        k.class='4'
-//                    break;
-//                }
-//                k.class='col-md-'+k.class;
-//                k.monitors.addClass(k.class)
             break;
             case'monitorOrder':
                 console.log('Deprecated? : monitorOrder')
@@ -1447,9 +1423,13 @@ switch($user.details.lang){
                 var y = 0;
                 var width = 4;
                 var height = 4;
+                if($.ccio.op().montage_use === '1'){
+                    width = $.grid.getMonitorsPerRow()
+                    height = width;
+                }
                 var savedGrids = $.grid.getGrids();
                 var saved = savedGrids['$$'][d.mid];
-                if(savedGrids['$$'][d.mid]){
+                if(savedGrids['$$'][d.mid] && $.ccio.op().montage_use !== '1'){
                     x = saved.x;
                     y = saved.y;
                     width = saved.width;
@@ -1746,7 +1726,7 @@ $.ccio.globalWebsocket=function(d,user){
                 $.ccio.mon[d.ke+d.id+user.auth_token].watch=0;
                 if($.ccio.mon[d.ke+d.id+user.auth_token].hls){$.ccio.mon[d.ke+d.id+user.auth_token].hls.destroy()}
                 if($.ccio.mon[d.ke+d.id+user.auth_token].dash){$.ccio.mon[d.ke+d.id+user.auth_token].dash.reset()}
-                $.grid.e.data('gridstack').removeWidget($('#monitor_live_'+d.id+user.auth_token))
+                $.grid.data().removeWidget($('#monitor_live_'+d.id+user.auth_token))
             }
         break;
         case'monitor_watch_on':
@@ -1909,7 +1889,6 @@ $.ccio.globalWebsocket=function(d,user){
                     $.ccio.pm(0,{videos:f.videos,ke:d.ke,mid:d.id},null,user)
                 })
             }
-            $.ccio.init('montage');
             setTimeout(function(){
                 if($.ccio.mon[d.ke+d.id+user.auth_token].motionDetectionRunning===true){
                     $.ccio.init('streamMotionDetectRestart',{mid:d.id,ke:d.ke,mon:$.ccio.mon[d.ke+d.id+user.auth_token]},user);
@@ -4347,6 +4326,36 @@ $.pwrvid.e.on('hidden.bs.modal',function(e){
 })
 //monitor grid
 $.grid={e:$('#monitors_live')}
+$.grid.data = function(){
+    return $.grid.e.data('gridstack')
+}
+$.grid.getMonitorsPerRow = function(){
+    var x
+    switch($.ccio.op().montage){
+        case'1':
+            x = '12'
+        break;
+        case'2':
+            x = '6'
+        break;
+        case'3':
+            x = '4'
+        break;
+        case'4':
+            x = '3'
+        break;
+        case'5':
+            x = '5'
+        break;
+        case'6':
+            x = '2'
+        break;
+       default://3
+            x = '4'
+        break;
+    }
+    return x
+}
 $.grid.getGrids = function(){
     var savedGrids = $.ccio.op().savedGrids;
     if(!savedGrids)savedGrids = {};
@@ -4484,26 +4493,12 @@ $('body')
 .on('change','[localStorage]',function(e){
     e.e=$(this)
     e.localStorage=e.e.attr('localStorage')
-    //pre-event
-    switch(e.localStorage){
-        case'montage':
-            if($('#monitors_live').hasClass('montage')){
-                e.montageClick=$('[system="montage"]').first();
-                e.montageClick.click()
-            }
-        break;
-    }
     e.value=e.e.val()
     $.ccio.op(e.localStorage,e.value)
     //finish event
     switch(e.localStorage){
         case'montage':
-            if(e.montageClick){
-                $.ccio.init('montage');
-                setTimeout(function(){
-                    e.montageClick.click()
-                },500)
-            }
+            $.ccio.init('montage');
         break;
     }
 })
@@ -4513,16 +4508,15 @@ $('body')
     e.a=e.e.attr('system');//the function
     switch(e.a){
         case'montage':
-            e.startup=$.ccio.op().startup
-            if(!e.startup){e.startup={}}
-            e.container=$('#monitors_live').toggleClass('montage')
-            if(!e.container.hasClass('montage')){
-                e.startup.montage="0"
+            var selector = $.sM.e.find('[localStorage="montage_use"]')
+            var useMontage = selector.val()
+            var value
+            if(useMontage === '1'){
+                value = '0'
             }else{
-                e.startup.montage=1
+                value = '1'
             }
-            $.ccio.init('montage')
-            $.ccio.op('startup',e.startup)
+            selector.val(value).change()
         break;
         case'switch':
             e.switch=e.e.attr('switch');
