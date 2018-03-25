@@ -3136,6 +3136,16 @@ $.aM.import=function(e){
     setTimeout(function(){$.aM.drawList()},1000)
 }
 //parse "Automatic" field in "Input" Section
+$.aM.e.on('change','.auto_host_fill input,.auto_host_fill select',function(e){
+    var theSwitch = $.aM.e.find('[detail="auto_host_enable"]').val()
+    if(!theSwitch||theSwitch===''){
+        theSwitch='1'
+    }
+    if(theSwitch==='1'){
+        return
+    }
+    $.aM.e.find('[detail="auto_host"]').val($.aM.buildMonitorURL())
+})
 $.aM.e.on('change','[detail="auto_host"]',function(e){
     var isRTSP = false;
     var url = $(this).val()
@@ -3369,6 +3379,24 @@ $.aM.channelPlacementInit = function(){
         $.aM.mapSave()
     })
 }
+$.aM.buildMonitorURL = function(){
+    var e={};
+    e.user=$.aM.e.find('[detail="muser"]').val();
+    e.pass=$.aM.e.find('[detail="mpass"]').val();
+    e.host=$.aM.e.find('[name="host"]').val();
+    e.protocol=$.aM.e.find('[name="protocol"]').val();
+    e.port=$.aM.e.find('[name="port"]').val();
+    e.path=$.aM.e.find('[name="path"]').val();
+    if($.aM.e.find('[name="type"]').val()==='local'){
+        e.url=e.path;
+    }else{
+        if(e.host.indexOf('@')===-1&&e.user!==''){
+            e.host=e.user+':'+e.pass+'@'+e.host;
+        }
+        e.url=$.ccio.init('url',e)+e.path;
+    }
+    return e.url
+}
 $.aM.channels.on('click','.delete',function(){
     $(this).parents('.stream-channel').remove()
     $.aM.channelSave()
@@ -3412,22 +3440,7 @@ $.aM.e.on('change','.detector_cascade_selection',function(){
 //    e.details.val(JSON.stringify(e.detailsVal))
 //})
 $.aM.e.find('.probe_config').click(function(){
-  var e={};
-    e.user=$.aM.e.find('[detail="muser"]').val();
-    e.pass=$.aM.e.find('[detail="mpass"]').val();
-    e.host=$.aM.e.find('[name="host"]').val();
-    e.protocol=$.aM.e.find('[name="protocol"]').val();
-    e.port=$.aM.e.find('[name="port"]').val();
-    e.path=$.aM.e.find('[name="path"]').val();
-    if($.aM.e.find('[name="type"]').val()==='local'){
-        e.url=e.path;
-    }else{
-        if(e.host.indexOf('@')===-1&&e.user!==''){
-            e.host=e.user+':'+e.pass+'@'+e.host;
-        }
-        e.url=$.ccio.init('url',e)+e.path;
-    }
-    $.pB.e.find('[name="url"]').val(e.url);
+    $.pB.e.find('[name="url"]').val($.aM.buildMonitorURL());
     $.pB.f.submit();
     $.pB.e.modal('show');
 })
@@ -3741,7 +3754,7 @@ $.vidview.e.find('.delete_selected').click(function(e){
     $.confirm.body.html(e.html)
     $.confirm.click({title:'Delete Video',class:'btn-danger'},function(){
         $.each(e.s,function(n,v){
-            $.getJSON($.ccio.init('location',$.users[v.auth])+v.auth+'/videos/'+v.ke+'/'+v.mid+'/'+n+'/delete',function(d){
+            $.getJSON($.ccio.init('location',$.users[v.auth])+v.auth+'/videos/'+$user.ke+'/'+v.mid+'/'+n+'/delete',function(d){
                 $.ccio.log(d)
             })
         })
@@ -4904,6 +4917,15 @@ $('body')
             $('#add_monitor').modal('show')
         break;
     }
+})
+.on('dblclick','[type="password"],.password_field',function(){
+    var _this = $(this)
+    var type = 'password'
+    _this.addClass('password_field')
+    if(_this.attr('type') === 'password'){
+        type = 'text'
+    }
+    _this.attr('type',type)
 })
 
 $('.modal').on('hidden.bs.modal',function(){
