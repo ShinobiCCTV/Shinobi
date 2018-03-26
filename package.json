@@ -12,7 +12,6 @@
     "url": "git+https://github.com/moeiscool/Shinobi.git"
   },
   "author": "Moe Alam",
-  "license": "GPLv3",
   "bugs": {
     "url": "https://github.com/ShinobiCCTV/Shinobi/issues"
   },
@@ -21,7 +20,7 @@
     "body-parser": "^1.15.2",
     "circular-json": "0.3.1",
     "connection-tester": "^0.1.1",
-    "crypto": "^0.0.3",
+    "chokidar": "^2.0.3",
     "mp4frag": "^0.0.15",
     "ejs": "^2.5.5",
     "express": "^4.14.0",
@@ -31,8 +30,8 @@
     "sqlite3": "^3.1.13",
     "knex": "^0.14.2",
     "ffmpeg-static": "^2.1.0",
-    "pam-diff": "0.10.2",
-    "pipe2pam": "0.6.2",
+    "pam-diff": "^0.10.2",
+    "pipe2pam": "^0.6.2",
     "nodemailer": "^4.0.1",
     "onvif": "^0.5.3",
     "path": "^0.12.7",
