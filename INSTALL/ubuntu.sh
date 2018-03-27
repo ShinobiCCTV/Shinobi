@@ -9,9 +9,18 @@ if [ ! -e "./conf.json" ]; then
     sudo cp conf.sample.json conf.json
 fi
 if [ ! -e "./super.json" ]; then
-    echo "Default Superuser : admin@shinobi.video"
-    echo "Default Password : admin"
-    sudo cp super.sample.json super.json
+    echo "Shinobi - Do you want to enable superuser access?"
+    echo "This may be useful if passwords are forgotten or"
+    echo "if you would like to limit accessibility of an"
+    echo "account for business scenarios."
+    echo "(y)es or (N)o"
+    read createSuperJson
+    if [ "$createSuperJson" = "y" ] || [ "$createSuperJson" = "Y" ]; then
+        echo "Default Superuser : admin@shinobi.video"
+        echo "Default Password : admin"
+        echo "* You can edit these settings in \"super.json\" located in the Shinobi directory."
+        sudo cp super.sample.json super.json
+    fi
 fi
 echo "Shinobi - Do you want to Install Node.js?"
 echo "(y)es or (N)o"
@@ -27,25 +36,33 @@ echo "Shinobi - Do you want to Install FFMPEG?"
 echo "(y)es or (N)o"
 read ffmpeginstall
 if [ "$ffmpeginstall" = "y" ] || [ "$ffmpeginstall" = "Y" ]; then
-    #Detect Ubuntu Version
-    echo "============="
-    echo " Detecting Ubuntu Version"
-    echo "============="
-    declare -i getubuntuversion=$(lsb_release -r | awk '{print $2}' | cut -d . -f1)
-    echo "============="
-    echo " Ubuntu Version: $getubuntuversion"
-    echo "============="
-    if [[ "$getubuntuversion" == "16" || "$getubuntuversion" < "16" ]]; then
+    echo "Shinobi - Do you want to Install FFMPEG with `apt` or download a static version provided with `npm`?"
+    echo "(a)pt or (N)pm"
+    echo "Press [ENTER] for default (npm)"
+    read ffmpegstaticinstall
+    if [ "$ffmpegstaticinstall" = "a" ] || [ "$ffmpegstaticinstall" = "A" ]; then
+        #Detect Ubuntu Version
         echo "============="
-        echo "Shinobi - Get FFMPEG 3.x from ppa:jonathonf/ffmpeg-3"
-        sudo add-apt-repository ppa:jonathonf/ffmpeg-3 -y
-        sudo apt update -y && sudo apt install ffmpeg libav-tools x264 x265 -y
+        echo " Detecting Ubuntu Version"
         echo "============="
+        declare -i getubuntuversion=$(lsb_release -r | awk '{print $2}' | cut -d . -f1)
+        echo "============="
+        echo " Ubuntu Version: $getubuntuversion"
+        echo "============="
+        if [[ "$getubuntuversion" == "16" || "$getubuntuversion" < "16" ]]; then
+            echo "============="
+            echo "Shinobi - Get FFMPEG 3.x from ppa:jonathonf/ffmpeg-3"
+            sudo add-apt-repository ppa:jonathonf/ffmpeg-3 -y
+            sudo apt update -y && sudo apt install ffmpeg libav-tools x264 x265 -y
+            echo "============="
+        else
+            echo "============="
+            echo "Shinobi - Installing FFMPEG"
+            sudo apt install ffmpeg libav-tools x264 x265 -y
+            echo "============="
+        fi
     else
-        echo "============="
-        echo "Shinobi - Installing FFMPEG"
-        sudo apt install ffmpeg libav-tools x264 x265 -y
-        echo "============="
+        sudo npm install ffmpeg-static
     fi
 fi
 echo "============="
@@ -58,6 +75,7 @@ read sqliteormariadb
 if [ "$sqliteormariadb" = "S" ] || [ "$sqliteormariadb" = "s" ]; then
     sudo npm install jsonfile
     sudo apt-get install sqlite3 libsqlite3-dev -y
+    sudo npm install sqlite3
     node ./tools/modifyConfiguration.js databaseType=sqlite3
     if [ ! -e "./shinobi.sqlite" ]; then
         echo "Creating shinobi.sqlite for SQLite3..."
