@@ -4636,6 +4636,7 @@ app.get(['/:auth/grid/:ke','/:auth/grid/:ke/:group'], function(req,res) {
             res.end(user.lang['Not Permitted'])
             return
         }
+        
         req.params.protocol=req.protocol;
         req.sql='SELECT * FROM Monitors WHERE mode!=? AND mode!=? AND ke=?';req.ar=['stop','idle',req.params.ke];
         if(!req.params.id){
@@ -4715,7 +4716,7 @@ app.get(['/:auth/grid/:ke','/:auth/grid/:ke/:group'], function(req,res) {
                 }
             })
             res.render('grid',{
-                data:req.params,
+                data:Object.assign(req.params,req.query),
                 baseUrl:req.protocol+'://'+req.hostname,
                 config:config,
                 lang:user.lang,
