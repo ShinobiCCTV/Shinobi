@@ -84,7 +84,6 @@ s.sqlQuery = function(query,values,onMoveOn,hideLog){
     }else{
         newQuery = query
     }
-    console.log(newQuery)
     return s.databaseEngine.raw(newQuery)
         .asCallback(function(err,r){
             if(err&&config.databaseLogs){
