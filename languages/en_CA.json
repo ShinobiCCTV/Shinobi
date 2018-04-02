@@ -289,6 +289,7 @@
    "RecordingText": "It is recommended that you set <b>Record File Type</b> to <b class=\"h_t_input h_t_jpeg h_t_socket\">WebM</b><b class=\"h_t_input h_t_mjpeg h_t_h264 h_t_hls h_t_mp4 h_t_local\">MP4</b> and <b>Video Codec</b> to <b class=\"h_t_input h_t_jpeg h_t_socket\">libvpx</b><b class=\"h_t_input h_t_h264 h_t_hls h_t_mp4\">copy or </b><b class=\"h_t_input h_t_mjpeg h_t_h264 h_t_hls h_t_mp4 h_t_local\">libx264</b> because your <b>Input Type</b> is set to <b class=\"h_t_text\"></b>.",
    "Mode": "Mode",
    "Name": "Name",
+   "Skip Ping": "Skip Ping",
    "Retry Connection": "Retry Connection <small>Number of times allowed to fail</small>",
    "Notes": "Notes",
    "Input Type": "Input Type",
