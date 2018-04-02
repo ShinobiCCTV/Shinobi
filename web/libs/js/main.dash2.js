@@ -3632,7 +3632,7 @@ $.sM.g.change(function(e){
         $.sM.f.find('[group="'+n+'"]').val(v)
     })
 });
-$.sM.f.find('[groups]').change(function(e){
+$.sM.f.find('[group]').change(function(e){
     e.v=$.sM.g.val();
     if(!e.v||e.v==''){
         e.e=$.sM.f.find('[group="name"]')
@@ -3642,9 +3642,9 @@ $.sM.f.find('[groups]').change(function(e){
         e.e.val(e.name)
     }
     e.group=$user.mon_groups[e.v];
-    $.sM.f.find('[groups]').each(function(n,v){
+    $.sM.f.find('[group]').each(function(n,v){
         v=$(v)
-        e.group[v.attr('groups')]=v.val()
+        e.group[v.attr('group')]=v.val()
     });
     $user.mon_groups[e.v]=e.group;
     $.sM.g.find('option[value="'+$.sM.g.val()+'"]').text(e.group.name)
