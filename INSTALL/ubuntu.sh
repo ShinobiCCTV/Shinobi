@@ -19,7 +19,7 @@ read nodejsinstall
 if [ "$nodejsinstall" = "y" ] || [ "$nodejsinstall" = "Y" ]; then
     wget https://deb.nodesource.com/setup_8.x
     chmod +x setup_8.x
-    ./setup_8.x
+    sudo ./setup_8.x
     sudo apt install nodejs -y
 fi
 echo "============="
