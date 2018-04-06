@@ -2087,18 +2087,14 @@ s.camera=function(x,e,cn,tx){
                     }
                 });
             }
-            switch(x){
-                case'start':
-                    switch(e.details.stream_type){
-                        case'jpeg':case'hls':
-                            if(s.platform!=='darwin'){
-                                s.group[e.ke].mon[e.id].fswatchStream = chokidar.watch(e.sdir, {ignored: /(^|[\/\\])\../,ignoreInitial:true}).on('all', (event, filePath) => {
-                                    resetStreamCheck()
-                                })
-                            }
-                        break;
-                    }
-                break;
+            if(
+                s.platform !== 'darwin' &&
+                (x === 'start' || x === 'record') &&
+                (e.details.stream_type === 'jpeg' || e.details.stream_type === 'hls' || e.details.snap === '1')
+            ){
+                s.group[e.ke].mon[e.id].fswatchStream = chokidar.watch(e.sdir, {ignored: /(^|[\/\\])\../,ignoreInitial:true}).on('all', (event, filePath) => {
+                    resetStreamCheck()
+                })
             }
             s.camera('snapshot',{mid:e.id,ke:e.ke,mon:e})
             //check host to see if has password and user in it
