@@ -1,18 +1,18 @@
 <% var details=JSON.parse($user.details) %>
 <% include blocks/header %>
 <script>var $user=<%- JSON.stringify($user) %>;</script>
-<link rel="stylesheet" href="/libs/css/pnotify.custom.min.css">
-<link rel="stylesheet" href="/libs/css/vbox.css">
-<link rel="stylesheet" href="/libs/css/daterangepicker.css">
-<link rel="stylesheet" href="/libs/css/circles.css">
-<!--<link rel="stylesheet" href="/libs/css/poseidon.css">-->
-<link rel="stylesheet" href="/libs/css/bootstrap.min.css">
-<link rel="stylesheet" href="/libs/css/font-awesome.min.css">
-<link rel="stylesheet" href="/libs/css/fullcalendar.min.css">
-<link rel="stylesheet" href="/libs/css/gridstack.min.css">
-<link rel="stylesheet" href="/libs/css/gridstack-extra.min.css">
-<link rel="stylesheet" href="/libs/css/bootstrap-table.min.css">
-<link rel="stylesheet" href="/libs/css/main.dash2.css">
+<link rel="stylesheet" href="libs/css/pnotify.custom.min.css">
+<link rel="stylesheet" href="libs/css/vbox.css">
+<link rel="stylesheet" href="libs/css/daterangepicker.css">
+<link rel="stylesheet" href="libs/css/circles.css">
+<!--<link rel="stylesheet" href="libs/css/poseidon.css">-->
+<link rel="stylesheet" href="libs/css/bootstrap.min.css">
+<link rel="stylesheet" href="libs/css/font-awesome.min.css">
+<link rel="stylesheet" href="libs/css/fullcalendar.min.css">
+<link rel="stylesheet" href="libs/css/gridstack.min.css">
+<link rel="stylesheet" href="libs/css/gridstack-extra.min.css">
+<link rel="stylesheet" href="libs/css/bootstrap-table.min.css">
+<link rel="stylesheet" href="libs/css/main.dash2.css">
 <style id="theme">
 <% if(details.theme&&details.theme!==''){ %><%- include(__dirname+'/web/libs/themes/'+details.theme+'/style.css'); %><% } %>
 </style>
