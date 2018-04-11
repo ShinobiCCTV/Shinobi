@@ -20,6 +20,7 @@ try{
 	    throw "file doesn't exist!"
     }
 }catch(err){
+    ffmpegPath = false;
     console.log('No Static FFmpeg. Continuing.')
     //no static ffmpeg
 }
