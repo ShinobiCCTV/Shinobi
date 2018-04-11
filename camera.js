@@ -17,7 +17,7 @@ var ffmpegPath = false;
 try{
     ffmpegPath = require('ffmpeg-static').path;
     if (!fs.existsSync(ffmpegPath)) {
-	    throw "file doesn't exist!"
+	    throw "FFMpeg doesn't exist!"
     }
 }catch(err){
     ffmpegPath = false;
