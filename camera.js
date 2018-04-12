@@ -2069,14 +2069,14 @@ s.camera=function(x,e,cn,tx){
                             if(s.group[e.ke].mon[e.id].open){
                                 s.video('close',e);
                                 var row = Object.assign({},s.init('noReference',e));
-                                setTimeout(function(){
-                                    if(row.details.detector==='1'&&s.group[row.ke].mon[row.id].started===1&&row.details&&row.details.detector_record_method==='del'&&row.details.detector_delete_motionless_videos==='1'&&s.group[row.ke].mon[row.id].detector_motion_count===0){
+                                if(row.details.detector==='1'&&s.group[row.ke].mon[row.id].started===1&&row.details&&row.details.detector_record_method==='del'&&row.details.detector_delete_motionless_videos==='1'&&s.group[row.ke].mon[row.id].detector_motion_count===0){
+                                    setTimeout(function(){
                                         if(row.details.loglevel!=='quiet'){
                                             s.log(row,{type:lang['Delete Motionless Video'],msg:row.filename+'.'+row.ext});
                                         }
                                         s.video('delete',row)
-                                    }
-                                },2000)
+                                    },2000)
+                                }
                             }
                             e.filename=filename.split('.')[0];
                             s.video('open',e);
