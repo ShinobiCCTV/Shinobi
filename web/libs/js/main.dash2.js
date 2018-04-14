@@ -4873,11 +4873,11 @@ $('body')
             e.m=$('#confirm_window').modal('show');e.f=e.e.attr('file');
             $.confirm.title.text('<%-cleanLang(lang['Delete Monitor'])%> : '+e.mon.name)
             e.html='<%-cleanLang(lang.DeleteMonitorText)%>'
-            e.html+='<table class="info-table"><tr>';
-            $.each(e.mon,function(n,v,g){
+            e.html+='<table class="info-table table table-striped"><tr>';
+            $.each($.ccio.init('cleanMon',e.mon),function(n,v,g){
                 if(n==='host'&&v.indexOf('@')>-1){g=v.split('@')[1]}else{g=v};
                 try{JSON.parse(g);return}catch(err){}
-                e.html+='<tr><td>'+n+'</td><td>'+g+'</td></tr>';
+                e.html+='<tr><td><b>'+n+'</b></td><td>'+g+'</td></tr>';
             })
             e.html+='</tr></table>';
             $.confirm.body.html(e.html)
