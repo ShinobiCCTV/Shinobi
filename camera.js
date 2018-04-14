@@ -2069,14 +2069,12 @@ s.camera=function(x,e,cn,tx){
                             if(s.group[e.ke].mon[e.id].open){
                                 s.video('close',e);
                                 var row = Object.assign({},s.init('noReference',e));
-                                setTimeout(function(){
-                                    if(row.details.detector==='1'&&s.group[row.ke].mon[row.id].started===1&&row.details&&row.details.detector_record_method==='del'&&row.details.detector_delete_motionless_videos==='1'&&s.group[row.ke].mon[row.id].detector_motion_count===0){
-                                        if(row.details.loglevel!=='quiet'){
-                                            s.log(row,{type:lang['Delete Motionless Video'],msg:row.filename+'.'+row.ext});
-                                        }
-                                        s.video('delete',row)
+                                if(row.details.detector==='1'&&s.group[row.ke].mon[row.id].started===1&&row.details&&row.details.detector_record_method==='del'&&row.details.detector_delete_motionless_videos==='1'&&s.group[row.ke].mon[row.id].detector_motion_count===0){
+                                    if(row.details.loglevel!=='quiet'){
+                                        s.log(row,{type:lang['Delete Motionless Video'],msg:row.filename+'.'+row.ext});
                                     }
-                                },2000)
+                                    s.video('delete',row)
+                                }
                             }
                             e.filename=filename.split('.')[0];
                             s.video('open',e);
@@ -2482,6 +2480,7 @@ s.camera=function(x,e,cn,tx){
                                             e.fn()
                                         break;
                                         case /T[0-9][0-9]-[0-9][0-9]-[0-9][0-9]./.test(d):
+                                            //can replace fs.watch and chokidar with fs.stat.ctime
                                             return s.log(e,{type:lang['Video Finished'],msg:{filename:d}})
                                         break;
                                     }
@@ -3164,7 +3163,7 @@ var tx;
                     s.ocvTx(d.data)
                 break;
                 case'monitorOrder':
-                    if(d.monitorOrder&&d.monitorOrder instanceof Array){
+                    if(d.monitorOrder&&d.monitorOrder instanceof Object){
                         s.sqlQuery('SELECT details FROM Users WHERE uid=? AND ke=?',[cn.uid,cn.ke],function(err,r){
                             if(r&&r[0]){
                                 r=JSON.parse(r[0].details);

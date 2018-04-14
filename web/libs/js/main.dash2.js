@@ -367,57 +367,6 @@ switch($user.details.lang){
                     new PNotify(d)
                 }
             break;
-            case'montage':
-                console.log('Deprecated? : $.ccio.init("montage"); // it not work :(')
-//                k.useMontage = $.ccio.op().montage_use
-//                if(k.useMontage !== '1'){
-//                    //don't use montage row enforcer
-//                    return
-//                }
-//                k.monitors=$('.monitor_item');
-//                k.class = $.grid.getMonitorsPerRow()
-//                $('.monitor_item').each(function(n,v){
-//                    $.grid.data().resize(v,k.class,k.class)
-//                })
-            break;
-            case'monitorOrder':
-                console.log('Deprecated? : monitorOrder')
-                k.order = user.details.monitorOrder;
-                if(!k.order){
-                    k.order=[];
-                    $('#monitors_list .link-monitors-list[auth="'+user.auth_token+'"][ke="'+user.ke+'"] .monitor_block').each(function(n,v){
-                        v=$(v).attr('mid')
-                        if(v){
-                            k.order.push(v)
-                        }
-                    })
-                }
-                k.switches=$.ccio.op().switches
-                k.lists = ['#monitors_list .link-monitors-list[auth="'+user.auth_token+'"][ke="'+user.ke+'"]']
-                if(k.switches&&k.switches.monitorOrder===1){
-                    k.lists.push('#monitors_live')
-                }
-                if(d&&d.no&&d.no instanceof Array){
-                    k.arr=[]
-                    $.each(k.lists,function(n,v){
-                        if(d.no.indexOf(v)===-1){
-                            k.arr.push(v)
-                        }
-                    })
-                    k.lists=k.arr;
-                }
-                $.each(k.lists,function(n,v){
-                    v = $(v);
-                    for(var i = 0, len = k.order.length; i < len; ++i) {
-                        v.children('[mid=' + k.order[i] + '][auth="'+user.auth_token+'"]').appendTo(v);
-                    }
-                    v.find('video').each(function(m,b){
-                        b=$(b).parents('.monitor_item')
-                        $.ccio.cx({f:'monitor',ff:'watch_on',id:b.attr('mid')},user);
-                    })
-                })
-                return k.order
-            break;
             case'monGroup':
                 $.ccio.mon_groups={};
                 $.each($.ccio.mon,function(n,v,x){
@@ -1397,21 +1346,22 @@ switch($user.details.lang){
                     };
                     //monitor="watch_off"
                     $(z).gridstack(options);
-//                    $(z).sortable({
-//                        handle:'.title',
-//                        update: function(event, ui) {
-//                            var arr=[]
-//                            $(z+" .monitor_block").each(function(n,v){
-//                                arr.push($(this).attr('mid'))
-//                            })
-//                            $user.details.monitorOrder=arr;
-//                            $.ccio.cx({f:'monitorOrder',monitorOrder:arr})
-//                            event.o=$.ccio.op().switches;
-//                            if(event.o&&event.o.monitorOrder===1){
-//                                $.ccio.init('monitorOrder',{no:['#monitors_list .link-monitors-list[auth="'+user.auth_token+'"][ke="'+d.ke+'"]']},user)
-//                            }
-//                        }
-//                    });
+                    $(z).on('change', function(event, ui) {
+                        var monitors = {}
+                        $.grid.e.find(" .monitor_item").each(function(n,v){
+                            var el = $(v)
+                            var item = {}
+                            item.ke = el.attr('ke')
+                            item.mid = el.attr('mid')
+                            item.x = el.attr('data-gs-x')
+                            item.y = el.attr('data-gs-y')
+                            item.height = el.attr('data-gs-height')
+                            item.width = el.attr('data-gs-width')
+                            monitors[item.ke+item.mid] = item
+                        })
+                        user.details.monitorOrder=monitors;
+                        $.ccio.cx({f:'monitorOrder',monitorOrder:monitors},user)
+                    });
                 }
                 $(z).prepend(tmp)
             break;
@@ -1421,21 +1371,20 @@ switch($user.details.lang){
             case 2:
                 var x = 0;
                 var y = 0;
-                var width = 4;
-                var height = 4;
-                if($.ccio.op().montage_use === '1'){
-                    width = $.grid.getMonitorsPerRow()
-                    height = width;
-                }
-                var savedGrids = $.grid.getGrids();
-                var saved = savedGrids['$$'][d.mid];
-                if(savedGrids['$$'][d.mid] && $.ccio.op().montage_use !== '1'){
+                var width = $.grid.getMonitorsPerRow()
+                var height = width;
+                var saved = user.details.monitorOrder[d.ke+d.mid];
+                if(saved){
                     x = saved.x;
                     y = saved.y;
                     width = saved.width;
                     height = saved.height;
                 }
-                $(z).data('gridstack').addWidget($(tmp), x, y, width, height, true);
+                var autoPlacement = false
+                if($.ccio.op().switches.monitorOrder === 1){
+                    autoPlacement = true
+                }
+                $(z).data('gridstack').addWidget($(tmp), x, y, width, height, autoPlacement);
                 k.e=$('#monitor_live_'+d.mid+user.auth_token);
                 try{
                     if(JSON.parse(d.details).control=="1"){
@@ -1620,7 +1569,6 @@ $.ccio.globalWebsocket=function(d,user){
                     $.ccio.cx({f:'monitor',ff:'jpeg_on'},user)
                 }
                 $.gR.drawList();
-                setTimeout(function(){$.ccio.init('monitorOrder',null,user)},300)
             })
             $.ccio.pm(3,d.apis,null,user);
             $('.os_platform').html(d.os.platform)
@@ -4364,32 +4312,33 @@ $.grid.getMonitorsPerRow = function(){
     }
     return x
 }
-$.grid.getGrids = function(){
-    var savedGrids = $.ccio.op().savedGrids;
-    if(!savedGrids)savedGrids = {};
-    if(!savedGrids['$$'])savedGrids['$$'] = {};
-    return savedGrids;
+$.grid.saveElementPositions = function() {
+    var monitors = {}
+    $.grid.e.find(" .monitor_item").each(function(n,v){
+        var el = $(v)
+        var item = {}
+        item.ke = el.attr('ke')
+        item.mid = el.attr('mid')
+        item.x = el.attr('data-gs-x')
+        item.y = el.attr('data-gs-y')
+        item.height = el.attr('data-gs-height')
+        item.width = el.attr('data-gs-width')
+        monitors[item.ke+item.mid] = item
+    })
+    $user.details.monitorOrder=monitors;
+    $.ccio.cx({f:'monitorOrder',monitorOrder:monitors})
 }
 $.grid.e
 .gridstack({
     cellHeight: 80,
     verticalMargin: 0,
 })
-.on('change', function (event, ui) {
-    var savedGrids = $.grid.getGrids();
-    $.grid.e.find('.grid-stack-item').each(function(n,v){
-        var el = $(v);
-        var mid = el.attr('mid')
-        savedGrids['$$'][mid] = {
-            mid:mid,
-            x:el.attr('data-gs-x'),
-            y:el.attr('data-gs-y'),
-            width:el.attr('data-gs-width'),
-            height:el.attr('data-gs-height')
-        };
-    })
-    $.ccio.op('savedGrids',savedGrids)
-});
+.on('dragstop', function(event,ui){
+    setTimeout(function(){
+        $.grid.saveElementPositions()
+    },700)
+})
+.on('gsresizestop', $.grid.saveElementPositions);
 //open all monitors
 $('[class_toggle="list-blocks"][data-target="#left_menu"]').dblclick(function(){
     $('#monitors_list [monitor="watch"]').click()
@@ -4503,12 +4452,6 @@ $('body')
     e.localStorage=e.e.attr('localStorage')
     e.value=e.e.val()
     $.ccio.op(e.localStorage,e.value)
-    //finish event
-    switch(e.localStorage){
-        case'montage':
-            $.ccio.init('montage');
-        break;
-    }
 })
 .on('click','[system]',function(e){
   var e={}; 
@@ -4543,11 +4486,10 @@ $('body')
             $.ccio.op('switches',e.o)
             switch(e.switch){
                 case'monitorOrder':
-                    $.ccio.init('monitorOrder',{no:['#monitors_list .link-monitors-list[auth="'+$user.auth_token+'"][ke="'+$user.ke+'"]']},$user)
-                    if($user.details.links){
-                        $.each($user.details.links,function(n,v){
-                            $.ccio.init('monitorOrder',{no:['#monitors_list .link-monitors-list[auth="'+v.auth_token+'"][ke="'+v.ke+'"]']},v)
-                        })
+                    if(e.o[e.switch] === 1){
+                        $('.monitor_item').attr('data-gs-auto-position','yes')
+                    }else{
+                        $('.monitor_item').attr('data-gs-auto-position','no')
                     }
                 break;
             }
@@ -5013,20 +4955,6 @@ $('body')
     if(e.o){
         $.each(e.o,function(n,v){
             $('[dropdown_toggle="'+n+'"]').val(v).change()
-        })
-    }
-    //set startup preferences
-    e.o=$.ccio.op().startup;
-    if(e.o){
-        $.each(e.o,function(n,v){
-            switch(n){
-                case'montage':
-                    if(v===1){
-                        $('#monitors_live').addClass('montage')
-                        $.ccio.init('montage')
-                    }
-                break;
-            }
         })
     }
     //set localStorage input values
