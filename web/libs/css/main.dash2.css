@@ -95,7 +95,7 @@ img{max-width:100%}
 .monitor_item .data-menu.logs{list-style:none;}
 .monitor_item .motionVision{display:none}
 
-.monitor_item .grid-stack-item-content{width:100%!important}
+.monitor_item .grid-stack-item-content{width:100%!important;left:0;right:0}
 .monitor_item .stream-block{position: relative;text-align: center}
 .monitor_item .mdl-data_window{position: absolute;width:90%;height:80%;overflow-x: auto;z-index:10;display:none;background:rgba(0,0,0,0.7);color:#fff;box-shadow:0 0 15px #333;border-radius: 0 0 15px 15px;margin:auto;left:0;right:0}
 
@@ -108,7 +108,7 @@ img{max-width:100%}
 .monitor_item .mdl-card__media{position:relative;padding:0!important;display:block!important;background:#000;min-height:250px;}
 .monitor_item.selected .stream-element{height:600px}
 .monitor_item.selected .fa-expand:before{content:"\f066"}
-.monitor_item .mdl-card__supporting-text{background:#222;color:#fff!important;display:block;min-height:auto}
+.monitor_item .mdl-card__supporting-text{background:#222;color:#fff!important;display:block;min-height:auto!important}
 .monitor_item.detector_triggered .detector-fade{opacity:1}
 .monitor_item .detector-fade{opacity:0}
 .monitor_item .indifference{position:absolute;width:100%;left:0;top:0;transition:0.2s;}
@@ -134,10 +134,12 @@ img{max-width:100%}
 #monitors_live .monitor_item .indifference{top:-5px}
 #monitors_live .monitor_item .mdl-cell--8-col{width:100%;border:0;border-radius:0;margin:0;position:relative}
 #monitors_live .monitor_item .mdl-cell--4-col-desktop,.monitor_item .mdl-card__supporting-text{display:none}
-#monitors_live .monitor_item .mdl-card .mdl-card__supporting-text .monitor_details{display:block}
-#monitors_live .monitor_item .mdl-card__supporting-text:not(.meta){display:block;position:absolute;bottom:0;left:0;padding:15px;opacity:0}
+#monitors_live .monitor_item .mdl-card__supporting-text .monitor_details,#monitors_live .monitor_item .mdl-card__supporting-text .btn-group{display:none;text-align:center}
+#monitors_live .monitor_item .mdl-card__supporting-text:not(.meta){display:block;position:absolute;bottom:0;left:0;height:0;padding:0;}
 #monitors_live .monitor_item.detector_triggered .mdl-card__supporting-text:not(.meta) .indifference{opacity:0.5;}
-#monitors_live .monitor_item:hover .mdl-card__supporting-text:not(.meta){opacity:1;z-index:15;}
+#monitors_live .monitor_item:hover .mdl-card__supporting-text:not(.meta){padding:15px;z-index:15;height:auto;}
+#monitors_live .monitor_item:hover .mdl-card__supporting-text .monitor_details{display:block}
+#monitors_live .monitor_item:hover .mdl-card__supporting-text .btn-group{display:inline-block}
 
 
 
