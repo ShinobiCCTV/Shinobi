@@ -2009,7 +2009,11 @@ $.ccio.globalWebsocket=function(d,user){
                 endTime = moment(b.endTime).format();
                 var newSetOfEventsWithoutChecked = {};
                 $.each(eventsToCheck,function(n,v){
-                    var eventTime = v.details.videoTime.split('T');
+                    try{
+                        var eventTime = v.details.videoTime.split('T');
+                    }catch(err){
+                        var eventTime = v.time.split('T');
+                    }
                     eventTime[1] = eventTime[1].replace(/-/g,':'),eventTime = eventTime.join(' ');
                     if(eventTime === startTimeFormatted){
                         data[m].motion.push(v)
