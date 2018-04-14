@@ -2703,16 +2703,20 @@ $.multimon.e.find('.import_config').click(function(){
 //        });
     });
 })
-$.multimon.getSelectedMonitors = function(){
+$.multimon.getSelectedMonitors = function(unclean){
     var arr=[];
-    var monitors = $.ccio.init('cleanMons','object')
+    if(unclean === true){
+        var monitors = $.ccio.mon
+    }else{
+        var monitors = $.ccio.init('cleanMons','object')
+    }
     $.each($.multimon.f.serializeObject(),function(n,v){
         arr.push(monitors[n])
     })
     return arr;
 }
 $.multimon.e.find('.delete').click(function(){
-    var arr=$.multimon.getSelectedMonitors();
+    var arr=$.multimon.getSelectedMonitors(true);
     if(arr.length===0){
         $.ccio.init('note',{title:'No Monitors Selected',text:'Select atleast one monitor to delete.',type:'error'});
         return
