@@ -260,7 +260,7 @@ form.modal-body{margin:0}
 .dark .output_data{background:#222;}
 #probe .output_data div>div{margin-left:10px}
 .side-menu.list-blocks .monitor_block .icons,.side-menu.list-blocks .monitor_block .title{position:inherit;opacity:1;background:none}
-.side-menu.list-blocks .monitor_block .title{padding:5px;border-radius:5px;background:#222;cursor: n-resize}
+.side-menu.list-blocks .monitor_block .title{padding:5px;border-radius:5px;background:#222;}
 .side-menu.list-blocks .monitor_block:not(:last-child){border-bottom: 1px solid #54502d;}
 .side-menu.list-blocks .monitor_block:first-child{border-top: 1px solid #54502d;}
 .side-menu.list-blocks .monitor_block{float:none;width:100%;padding: 10px}

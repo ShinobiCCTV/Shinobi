@@ -1373,8 +1373,8 @@ switch($user.details.lang){
                 var y = 0;
                 var width = $.grid.getMonitorsPerRow()
                 var height = width;
-                var saved = user.details.monitorOrder[d.ke+d.mid];
-                if(saved){
+                if(user.details && user.details.monitorOrder && user.details.monitorOrder[d.ke+d.mid]){
+                    var saved = user.details.monitorOrder[d.ke+d.mid];
                     x = saved.x;
                     y = saved.y;
                     width = saved.width;
@@ -4458,17 +4458,6 @@ $('body')
     e.e=$(this),
     e.a=e.e.attr('system');//the function
     switch(e.a){
-        case'montage':
-            var selector = $.sM.e.find('[localStorage="montage_use"]')
-            var useMontage = selector.val()
-            var value
-            if(useMontage === '1'){
-                value = '0'
-            }else{
-                value = '1'
-            }
-            selector.val(value).change()
-        break;
         case'switch':
             e.switch=e.e.attr('switch');
             e.o=$.ccio.op().switches
