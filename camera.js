@@ -1259,6 +1259,8 @@ s.ffmpeg=function(e){
     x.stream_video_filters=[]
     x.hwaccel=''
     x.pipe=''
+    //input - frame rate (capture rate)
+    if(e.details.sfps!==''){x.input_fps=' -r '+e.details.sfps}else{x.input_fps=''}
     //input - analyze duration
     if(e.details.aduration&&e.details.aduration!==''){x.cust_input+=' -analyzeduration '+e.details.aduration};
     //input - probe size
@@ -1325,12 +1327,9 @@ s.ffmpeg=function(e){
         x.acodec=' -an'
     }
     if(x.vcodec.indexOf('none')>-1){x.vcodec=''}else{x.vcodec=' -vcodec '+x.vcodec}
-    //stream - frames per second
-    if(!e.details.sfps||e.details.sfps===''){
-        e.details.sfps=parseFloat(e.details.sfps);
-        if(isNaN(e.details.sfps)){e.details.sfps=1}
-    }
+    //record - frames per second (fps)
     if(e.fps&&e.fps!==''){x.record_fps=' -r '+e.fps}else{x.record_fps=''}
+    //stream - frames per second (fps)
     if(e.details.stream_fps&&e.details.stream_fps!==''){x.stream_fps=' -r '+e.details.stream_fps}else{x.stream_fps=''}
     //record - timestamp options for -vf
     if(e.details.timestamp&&e.details.timestamp=="1"&&e.details.vcodec!=='copy'){
@@ -1486,6 +1485,7 @@ s.ffmpeg=function(e){
         //add input feed map
         x.pipe += createFFmpegMap(e.details.input_map_choices.stream)
     }
+    
     x.cust_stream+=x.stream_fps
     switch(e.details.stream_type){
         case'mp4':
@@ -1650,7 +1650,7 @@ s.ffmpeg=function(e){
         x.record_string+=x.vcodec+x.record_fps+x.record_video_filters+x.record_dimensions+x.segment;
     }
     //create executeable FFMPEG command
-    x.ffmpegCommandString = x.loglevel;
+    x.ffmpegCommandString = x.loglevel+x.input_fps;
     //progress pipe
 //    x.ffmpegCommandString += ' -progress pipe:5';
     //add main input
@@ -1665,7 +1665,11 @@ s.ffmpeg=function(e){
             x.ffmpegCommandString += ' -pattern_type glob -f image2pipe'+x.record_fps+' -vcodec mjpeg'+x.cust_input+' -i -';
         break;
         case'mjpeg':
-            x.ffmpegCommandString += ' -reconnect 1 -r '+e.details.sfps+' -f mjpeg'+x.cust_input+' -i "'+e.url+'"';
+            if(!e.details.sfps||e.details.sfps===''){
+                x.capture_fps=parseFloat(e.details.sfps);
+                if(isNaN(x.capture_fps)){x.capture_fps=1}
+            }
+            x.ffmpegCommandString += ' -reconnect 1 -r '+x.capture_fps+' -f mjpeg'+x.cust_input+' -i "'+e.url+'"';
         break;
         case'h264':case'hls':case'mp4':
             x.ffmpegCommandString += x.cust_input+x.hwaccel+' -i "'+e.url+'"';
@@ -2160,8 +2164,8 @@ s.camera=function(x,e,cn,tx){
                             //start workers
                             if(e.type==='jpeg'){
                                 if(!e.details.sfps||e.details.sfps===''){
-                                    e.details.sfps=parseFloat(e.details.sfps);
-                                    if(isNaN(e.details.sfps)){e.details.sfps=1}
+                                    var capture_fps=parseFloat(e.details.sfps);
+                                    if(isNaN(capture_fps)){capture_fps=1}
                                 }
                                 if(s.group[e.ke].mon[e.id].spawn){
                                     s.group[e.ke].mon[e.id].spawn.stdin.on('error',function(err){
@@ -2195,7 +2199,7 @@ s.camera=function(x,e,cn,tx){
                                             if(s.group[e.ke].mon[e.id].started===1){
                                                 s.group[e.ke].mon[e.id].record.capturing=setTimeout(function(){
                                                    e.captureOne()
-                                                },1000/e.details.sfps);
+                                                },1000/capture_fps);
                                             }
                                               e.buffer0=null;
                                         }
