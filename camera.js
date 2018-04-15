@@ -8,6 +8,7 @@
 // If you like what I am doing here and want me to continue please consider donating :)
 // PayPal : paypal@m03.ca
 //
+var fs = require('fs');
 process.on('uncaughtException', function (err) {
     console.error('Uncaught Exception occured!');
     console.error(err.stack);
@@ -15,11 +16,15 @@ process.on('uncaughtException', function (err) {
 var ffmpegPath = false;
 try{
     ffmpegPath = require('ffmpeg-static').path;
+    if (!fs.existsSync(ffmpegPath)) {
+	 console.log('"ffmpeg-static" from NPM has failed to provide a compatible library or has been corrupted.')
+	 console.log('You may need to install FFmpeg manually or you can try running "npm uninstall ffmpeg-static && npm install ffmpeg-static".')
+    }
 }catch(err){
+    ffmpegPath = false;
     console.log('No Static FFmpeg. Continuing.')
     //no static ffmpeg
 }
-var fs = require('fs');
 var os = require('os');
 var URL = require('url');
 var path = require('path');
