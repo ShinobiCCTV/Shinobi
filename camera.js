@@ -1170,12 +1170,12 @@ s.ffmpeg=function(e){
             //add input feed map
             x.pipe += createFFmpegMap(e.details.input_map_choices['stream_channel-'+(number-config.pipeAddition)])
         }
+        x.cust_stream+=x.stream_fps
         switch(channel.stream_type){
             case'mp4':
                 x.cust_stream+=' -movflags +frag_keyframe+empty_moov+default_base_moof -metadata title="Poseidon Stream" -reset_timestamps 1'
                 if(channel.stream_vcodec!=='copy'){
                     if(x.cust_stream.indexOf('-s ')===-1){x.cust_stream+=' -s '+x.ratio}
-                    x.cust_stream+=x.stream_fps
                     if(x.stream_quality&&x.stream_quality!=='')x.stream_quality=' -crf '+x.stream_quality;
                     x.cust_stream+=x.stream_quality
                     x.cust_stream+=x.preset_stream
@@ -1189,7 +1189,6 @@ s.ffmpeg=function(e){
                     if(channel.stream_vcodec==='libx264'){
                         channel.stream_vcodec = 'h264'
                     }
-                    x.cust_stream+=x.stream_fps
                     if(x.stream_quality&&x.stream_quality!=='')x.stream_quality=' -crf '+x.stream_quality;
                     x.cust_stream+=x.stream_quality
                     x.cust_stream+=x.preset_stream
@@ -1213,7 +1212,6 @@ s.ffmpeg=function(e){
             case'h264':
                 if(channel.stream_vcodec!=='copy'){
                     if(x.cust_stream.indexOf('-s ')===-1&&x.ratio){x.cust_stream+=' -s '+x.ratio}
-                    x.cust_stream+=x.stream_fps
                     if(x.stream_quality&&x.stream_quality!=='')x.stream_quality=' -crf '+x.stream_quality;
                     x.cust_stream+=x.stream_quality
                     x.cust_stream+=x.preset_stream
@@ -1224,7 +1222,6 @@ s.ffmpeg=function(e){
             case'flv':
                 if(channel.stream_vcodec!=='copy'){
                     if(x.cust_stream.indexOf('-s ')===-1&&x.ratio){x.cust_stream+=' -s '+x.ratio}
-                    x.cust_stream+=x.stream_fps
                     if(x.stream_quality&&x.stream_quality!=='')x.stream_quality=' -crf '+x.stream_quality;
                     x.cust_stream+=x.stream_quality
                     x.cust_stream+=x.preset_stream
@@ -1240,11 +1237,11 @@ s.ffmpeg=function(e){
                     if(x.cust_stream.indexOf('-s ')===-1&&x.ratio){x.cust_stream+=' -s '+x.ratio}
                     x.cust_stream+=x.stream_video_filters
                 }
-                x.pipe+=x.preset_stream+x.stream_quality+x.stream_acodec+x.stream_vcodec+x.stream_fps+' -f hls'+x.cust_stream+' -hls_time '+x.hls_time+' -hls_list_size '+x.hls_list_size+' -start_number 0 -hls_allow_cache 0 -hls_flags +delete_segments+omit_endlist "'+x.channel_sdir+'s.m3u8"';
+                x.pipe+=x.preset_stream+x.stream_quality+x.stream_acodec+x.stream_vcodec+' -f hls'+x.cust_stream+' -hls_time '+x.hls_time+' -hls_list_size '+x.hls_list_size+' -start_number 0 -hls_allow_cache 0 -hls_flags +delete_segments+omit_endlist "'+x.channel_sdir+'s.m3u8"';
             break;
             case'mjpeg':
                 if(x.stream_quality&&x.stream_quality!=='')x.stream_quality=' -q:v '+x.stream_quality;
-                x.pipe+=' -c:v mjpeg -f mpjpeg -boundary_tag shinobi'+x.cust_stream+x.stream_video_filters+x.stream_quality+x.stream_fps+' -s '+x.ratio+' pipe:'+number;
+                x.pipe+=' -c:v mjpeg -f mpjpeg -boundary_tag shinobi'+x.cust_stream+x.stream_video_filters+x.stream_quality+' -s '+x.ratio+' pipe:'+number;
             break;
             default:
                 x.pipe=''
@@ -1333,7 +1330,7 @@ s.ffmpeg=function(e){
         e.details.sfps=parseFloat(e.details.sfps);
         if(isNaN(e.details.sfps)){e.details.sfps=1}
     }
-    if(e.fps&&e.fps!==''){x.framerate=' -r '+e.fps}else{x.framerate=''}
+    if(e.fps&&e.fps!==''){x.record_fps=' -r '+e.fps}else{x.record_fps=''}
     if(e.details.stream_fps&&e.details.stream_fps!==''){x.stream_fps=' -r '+e.details.stream_fps}else{x.stream_fps=''}
     //record - timestamp options for -vf
     if(e.details.timestamp&&e.details.timestamp=="1"&&e.details.vcodec!=='copy'){
@@ -1489,12 +1486,12 @@ s.ffmpeg=function(e){
         //add input feed map
         x.pipe += createFFmpegMap(e.details.input_map_choices.stream)
     }
+    x.cust_stream+=x.stream_fps
     switch(e.details.stream_type){
         case'mp4':
             x.cust_stream+=' -movflags +frag_keyframe+empty_moov+default_base_moof -metadata title="Poseidon Stream" -reset_timestamps 1'
             if(e.details.stream_vcodec!=='copy'){
                 if(x.cust_stream.indexOf('-s ')===-1){x.cust_stream+=' -s '+x.ratio}
-                x.cust_stream+=x.stream_fps
                 if(x.stream_quality&&x.stream_quality!=='')x.stream_quality=' -crf '+x.stream_quality;
                 x.cust_stream+=x.stream_quality
                 x.cust_stream+=x.preset_stream
@@ -1505,7 +1502,6 @@ s.ffmpeg=function(e){
         case'flv':
             if(e.details.stream_vcodec!=='copy'){
                 if(x.cust_stream.indexOf('-s ')===-1&&x.ratio){x.cust_stream+=' -s '+x.ratio}
-                x.cust_stream+=x.stream_fps
                 if(x.stream_quality&&x.stream_quality!=='')x.stream_quality=' -crf '+x.stream_quality;
                 x.cust_stream+=x.stream_quality
                 x.cust_stream+=x.preset_stream
@@ -1521,15 +1517,15 @@ s.ffmpeg=function(e){
                 if(x.cust_stream.indexOf('-s ')===-1&&x.ratio){x.cust_stream+=' -s '+x.ratio}
                 x.cust_stream+=x.stream_video_filters
             }
-            x.pipe+=x.preset_stream+x.stream_quality+x.stream_acodec+x.stream_vcodec+x.stream_fps+' -f hls'+x.cust_stream+' -hls_time '+x.hls_time+' -hls_list_size '+x.hls_list_size+' -start_number 0 -hls_allow_cache 0 -hls_flags +delete_segments+omit_endlist "'+e.sdir+'s.m3u8"';
+            x.pipe+=x.preset_stream+x.stream_quality+x.stream_acodec+x.stream_vcodec+' -f hls'+x.cust_stream+' -hls_time '+x.hls_time+' -hls_list_size '+x.hls_list_size+' -start_number 0 -hls_allow_cache 0 -hls_flags +delete_segments+omit_endlist "'+e.sdir+'s.m3u8"';
         break;
         case'mjpeg':
             if(x.stream_quality&&x.stream_quality!=='')x.stream_quality=' -q:v '+x.stream_quality;
-            x.pipe+=' -c:v mjpeg -f mpjpeg -boundary_tag shinobi'+x.cust_stream+x.stream_video_filters+x.stream_quality+x.stream_fps+' -s '+x.ratio+' pipe:1';
+            x.pipe+=' -c:v mjpeg -f mpjpeg -boundary_tag shinobi'+x.cust_stream+x.stream_video_filters+x.stream_quality+' -s '+x.ratio+' pipe:1';
         break;
         case'b64':case'':case undefined:case null://base64
             if(x.stream_quality&&x.stream_quality!=='')x.stream_quality=' -q:v '+x.stream_quality;
-            x.pipe+=' -c:v mjpeg -f image2pipe'+x.cust_stream+x.stream_video_filters+x.stream_quality+x.stream_fps+' -s '+x.ratio+' pipe:1';
+            x.pipe+=' -c:v mjpeg -f image2pipe'+x.cust_stream+x.stream_video_filters+x.stream_quality+' -s '+x.ratio+' pipe:1';
         break;
         default:
             x.pipe=''
@@ -1651,7 +1647,7 @@ s.ffmpeg=function(e){
         //preset flag
         if(e.details.preset_record&&e.details.preset_record!==''){x.record_string+=' -preset '+e.details.preset_record;}
         //main string write
-        x.record_string+=x.vcodec+x.framerate+x.record_video_filters+x.record_dimensions+x.segment;
+        x.record_string+=x.vcodec+x.record_fps+x.record_video_filters+x.record_dimensions+x.segment;
     }
     //create executeable FFMPEG command
     x.ffmpegCommandString = x.loglevel;
@@ -1666,7 +1662,7 @@ s.ffmpeg=function(e){
             x.ffmpegCommandString += ' -i -';
         break;
         case'socket':case'jpeg':case'pipe':
-            x.ffmpegCommandString += ' -pattern_type glob -f image2pipe'+x.framerate+' -vcodec mjpeg'+x.cust_input+' -i -';
+            x.ffmpegCommandString += ' -pattern_type glob -f image2pipe'+x.record_fps+' -vcodec mjpeg'+x.cust_input+' -i -';
         break;
         case'mjpeg':
             x.ffmpegCommandString += ' -reconnect 1 -r '+e.details.sfps+' -f mjpeg'+x.cust_input+' -i "'+e.url+'"';
