@@ -3079,10 +3079,13 @@ $.aM.e.on('change','.auto_host_fill input,.auto_host_fill select',function(e){
     if(theSwitch==='1'){
         return
     }
-    $.aM.e.find('[detail="auto_host"]').val($.aM.buildMonitorURL())
+    if($.aM.e.find('[name="host"]').val() !== ''){
+        $.aM.e.find('[detail="auto_host"]').val($.aM.buildMonitorURL())
+    }
 })
 $.aM.e.on('change','[detail="auto_host"]',function(e){
-    var isRTSP = false;
+    var isRTSP = false
+    var inputType = $.aM.e.find('[name="type"]').val()
     var url = $(this).val()
     var theSwitch = $.aM.e.find('[detail="auto_host_enable"]')
     var disabled = theSwitch.val()
@@ -3094,31 +3097,35 @@ $.aM.e.on('change','[detail="auto_host"]',function(e){
     if(disabled==='0'){
         return
     }
-    var urlSplitByDots = url.split('.')
-    var has = function(query,searchIn){if(!searchIn){searchIn=url;};return url.indexOf(query)>-1}
-    //switch RTSP to parse URL
-    if(has('rtsp://')){
-        isRTSP = true;
-        url = url.replace('rtsp://','http://')
-    }
-    //parse URL
-    var parsedURL = document.createElement('a');
-    parsedURL.href = url;
-    if(isRTSP){
-        $.aM.e.find('[name="protocol"]').val('rtsp').change()
-        $.aM.e.find('[detail="rtsp_transport"]').val('tcp').change()
-        $.aM.e.find('[detail="aduration"]').val(1000000).change()
-        $.aM.e.find('[detail="probesize"]').val(1000000).change()
+    if(inputType === 'local'){
+        $.aM.e.find('[name="path"]').val(url).change()
     }else{
-        //not RTSP
-        $.aM.e.find('[name="protocol"]').val(parsedURL.protocol.replace(/:/g,'').replace(/\//g,'')).change()
+        var urlSplitByDots = url.split('.')
+        var has = function(query,searchIn){if(!searchIn){searchIn=url;};return url.indexOf(query)>-1}
+        //switch RTSP to parse URL
+        if(has('rtsp://')){
+            isRTSP = true;
+            url = url.replace('rtsp://','http://')
+        }
+        //parse URL
+        var parsedURL = document.createElement('a');
+        parsedURL.href = url;
+        if(isRTSP){
+            $.aM.e.find('[name="protocol"]').val('rtsp').change()
+            $.aM.e.find('[detail="rtsp_transport"]').val('tcp').change()
+            $.aM.e.find('[detail="aduration"]').val(1000000).change()
+            $.aM.e.find('[detail="probesize"]').val(1000000).change()
+        }else{
+            //not RTSP
+            $.aM.e.find('[name="protocol"]').val(parsedURL.protocol.replace(/:/g,'').replace(/\//g,'')).change()
+        }
+        $.aM.e.find('[detail="muser"]').val(parsedURL.username).change()
+        $.aM.e.find('[detail="mpass"]').val(parsedURL.password).change()
+        $.aM.e.find('[name="host"]').val(parsedURL.hostname).change()
+        $.aM.e.find('[name="port"]').val(parsedURL.port).change()
+        $.aM.e.find('[name="path"]').val(parsedURL.pathname).change()
+        delete(parsedURL)
     }
-    $.aM.e.find('[detail="muser"]').val(parsedURL.username).change()
-    $.aM.e.find('[detail="mpass"]').val(parsedURL.password).change()
-    $.aM.e.find('[name="host"]').val(parsedURL.hostname).change()
-    $.aM.e.find('[name="port"]').val(parsedURL.port).change()
-    $.aM.e.find('[name="path"]').val(parsedURL.pathname).change()
-    delete(parsedURL)
 })
 $.aM.e.find('.refresh_cascades').click(function(e){
     $.ccio.cx({f:'ocv_in',data:{f:'refreshPlugins',ke:$user.ke}})

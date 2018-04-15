@@ -121,17 +121,17 @@
                         </select></div>
                     </label>
                   </div>
-                  <div class="form-group h_p_input h_p_rtsp">
-                    <label><div><span><%-lang['RTSP Transport']%></span></div>
-                        <div><select class="form-control" detail="rtsp_transport">
-                            <option value="no" selected><%-lang['Auto']%></option>  
-                            <option value="tcp"><%-lang['TCP']%></option>  
-                            <option value="udp"><%-lang['UDP']%></option>  
-                            <option value="http"><%-lang['HTTP']%></option>  
-                        </select></div>
-                    </label>
-                  </div>
                   <div class="h_t_input h_t_h264 h_t_hls h_t_mp4 h_t_jpeg h_t_mjpeg">
+                      <div class="form-group h_p_input h_p_rtsp">
+                        <label><div><span><%-lang['RTSP Transport']%></span></div>
+                            <div><select class="form-control" detail="rtsp_transport">
+                                <option value="no" selected><%-lang['Auto']%></option>  
+                                <option value="tcp"><%-lang['TCP']%></option>  
+                                <option value="udp"><%-lang['UDP']%></option>  
+                                <option value="http"><%-lang['HTTP']%></option>  
+                            </select></div>
+                        </label>
+                      </div>
                       <div class="form-group">
                         <label><div><span><%-lang['Username']%></span></div>
                         <div><input class="form-control" detail="muser" placeholder=""></div>
@@ -142,8 +142,6 @@
                         <div><input class="form-control" type="password" detail="mpass" placeholder=""></div>
                         </label>
                       </div>
-                  </div>
-                  <div class="h_t_input h_t_h264 h_t_hls h_t_mp4 h_t_jpeg h_t_mjpeg">
                       <div class="form-group">
                         <label><div><span><%-lang['Host']%></span></div>
                         <div><input class="form-control" name="host" placeholder=""></div>
@@ -279,7 +277,7 @@
               </div>
               <div class="form-group">
                 <label><div><span><%-lang['Stream Type']%></span></div>
-                    <div><select class="form-control" detail="stream_type" selector="h_st">
+                    <div><select class="form-control" detail="stream_type" selector="h_st" triggerChange="#add_monitor [detail=stream_vcodec]">
                         <option value="mp4"><%-lang['Poseidon']%></option>
                         <option value="b64" selected><%-lang['Base64 over Websocket']%></option>
                         <option value="jpeg"><%-lang['JPEG (Auto Enables JPEG API)']%></option>
@@ -664,7 +662,7 @@
               </div>
               <div class="form-group">
                 <label><div><span><%-lang['Recording Segment Interval']%></span></div>
-                <div><input class="form-control" detail="cutoff" placeholder="15"></div>
+                <div><input class="form-control" detail="cutoff" placeholder="15" triggerChange="#add_monitor [detail=vcodec]"></div>
                 </label>
               </div>
               <div class="h_vc_input h_vc_libvpx h_vc_libvpx-vp9 h_vc_libx264 h_vc_libx265 h_vc_hevc_nvenc h_vc_h264_nvenc h_vc_h264_vaapi h_vc_hevc_vaapi h_vc_h264_qsv h_vc_hevc_qsv h_vc_mpeg2_qsv h_vc_default h_vc_none">
