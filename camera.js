@@ -1268,6 +1268,7 @@ s.ffmpeg=function(e){
         case'h264':
             switch(e.protocol){
                 case'rtsp':
+                    if(e.details.cust_input.indexOf('-fflags') === -1){x.cust_input+=' -fflags +nobuffer+igndts'}
                     if(e.details.rtsp_transport&&e.details.rtsp_transport!==''&&e.details.rtsp_transport!=='no'){x.cust_input+=' -rtsp_transport '+e.details.rtsp_transport;}
                 break;
             }
