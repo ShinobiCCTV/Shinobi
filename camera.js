@@ -1952,7 +1952,7 @@ s.camera=function(x,e,cn,tx){
             if(!s.group[e.ke].mon_conf[e.id]){s.group[e.ke].mon_conf[e.id]=s.init('noReference',e);}
             e.url=s.init('url',e);
             if(s.group[e.ke].mon[e.id].started===1){return}
-            if(x==='start'&&e.details.detector_trigger=='1'){
+            if(e.details.detector_trigger=='1'){
                 s.group[e.ke].mon[e.id].motion_lock=setTimeout(function(){
                     clearTimeout(s.group[e.ke].mon[e.id].motion_lock);
                     delete(s.group[e.ke].mon[e.id].motion_lock);
