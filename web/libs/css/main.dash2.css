@@ -178,7 +178,7 @@ img.circle-img,div.circle-img{border-radius:50%;height:50px;width:50px}
     .modal.full,.modal.medium{padding-left:0!important;}
     .modal.full .modal-dialog{width:calc(100% - 10px)!important;margin: 30px auto;}
     .modal.medium .modal-dialog{width:calc(70% - 10px)!important;margin: 30px auto;}
-    .full.modal .modal-body,.medium.modal .modal-body{max-height:calc(100% - 200px);overflow:auto}
+    .full.modal .modal-body,.medium.modal .modal-body{height:calc(100% - 200px);overflow:auto}
 }
 
 .flex-container-modal-body{overflow: auto}
