@@ -117,6 +117,36 @@ if(config.pluginKeys===undefined)config.pluginKeys={};
 if(config.databaseType===undefined){config.databaseType='mysql'}
 if(config.databaseLogs===undefined){config.databaseLogs=false}
 if(config.pipeAddition===undefined){config.pipeAddition=7}else{config.pipeAddition=parseInt(config.pipeAddition)}
+//Web Paths
+if(config.webPaths===undefined){config.webPaths={}}
+    //main access URI
+    if(config.webPaths.home===undefined){config.webPaths.index='/'}
+    //Super User URI
+    if(config.webPaths.super===undefined){config.webPaths.super='/super'}
+    //Admin URI
+    if(config.webPaths.admin===undefined){config.webPaths.admin='/admin'}
+//Page Rander Paths
+if(config.renderPaths===undefined){config.renderPaths={}}
+    //login page
+    if(config.renderPaths.index===undefined){config.renderPaths.index='pages/index'}
+    //dashboard page
+    if(config.renderPaths.home===undefined){config.renderPaths.home='pages/home'}
+    //sub-account administration page
+    if(config.renderPaths.admin===undefined){config.renderPaths.admin='pages/admin'}
+    //superuser page
+    if(config.renderPaths.super===undefined){config.renderPaths.super='pages/super'}
+    //2-Factor Auth page
+    if(config.renderPaths.factorAuth===undefined){config.renderPaths.factorAuth='pages/factor'}
+    //Streamer (Dashbcam Prototype) page
+    if(config.renderPaths.streamer===undefined){config.renderPaths.streamer='pages/streamer'}
+    //Streamer v2 (Dashbcam) page
+    if(config.renderPaths.dashcam===undefined){config.renderPaths.dashcam='pages/dashcam'}
+    //embeddable widget page
+    if(config.renderPaths.embed===undefined){config.renderPaths.embed='pages/embed'}
+    //mjpeg full screen page
+    if(config.renderPaths.mjpeg===undefined){config.renderPaths.mjpeg='pages/mjpeg'}
+    //gridstack only page
+    if(config.renderPaths.grid===undefined){config.renderPaths.grid='pages/grid'}
 
 s={factorAuth:{},child_help:false,totalmem:os.totalmem(),platform:os.platform(),s:JSON.stringify,isWin:(process.platform==='win32')};
 //load languages dynamically
@@ -4110,8 +4140,11 @@ app.enable('trust proxy');
 app.use('/libs',express.static(__dirname + '/web/libs'));
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({extended: true}));
-app.set('views', __dirname + '/web/pages');
+app.set('views', __dirname + '/web');
 app.set('view engine','ejs');
+//add template handler
+if(config.renderPaths.handler!==undefined){require(__dirname+'/web/'+config.renderPaths.handler+'.js').addHandlers(s,app,io)}
+
 //readme
 app.get('/:auth/logout/:ke/:id', function (req,res){
     if(s.group[req.params.ke]&&s.group[req.params.ke].users[req.params.auth]){
@@ -4123,13 +4156,9 @@ app.get('/:auth/logout/:ke/:id', function (req,res){
         res.end(s.s({ok:false,msg:'This group key does not exist or this user is not logged in.'}, null, 3))
     }
 });
-//readme
-app.get('/info', function (req,res){
-    res.sendFile(__dirname+'/index.html');
-});
 //main page
-app.get('/', function (req,res){
-    res.render('index',{lang:lang,config:config,screen:'dashboard'},function(err,html){
+app.get(config.webPaths.index, function (req,res){
+    res.render(config.renderPaths.index,{lang:lang,config:config,screen:'dashboard'},function(err,html){
         if(err){
             s.systemLog(err)
         }
@@ -4137,8 +4166,8 @@ app.get('/', function (req,res){
     })
 });
 //admin page
-app.get('/admin', function (req,res){
-    res.render('index',{lang:lang,config:config,screen:'admin'},function(err,html){
+app.get(config.webPaths.admin, function (req,res){
+    res.render(config.renderPaths.index,{lang:lang,config:config,screen:'admin'},function(err,html){
         if(err){
             s.systemLog(err)
         }
@@ -4146,8 +4175,8 @@ app.get('/admin', function (req,res){
     })
 });
 //super page
-app.get('/super', function (req,res){
-    res.render('index',{lang:lang,config:config,screen:'super'},function(err,html){
+app.get(config.webPaths.super, function (req,res){
+    res.render(config.renderPaths.index,{lang:lang,config:config,screen:'super'},function(err,html){
         if(err){
             s.systemLog(err)
         }
@@ -4253,7 +4282,7 @@ app.post(['/','/:screen'],function (req,res){
             res.setHeader('Content-Type', 'application/json');
             res.end(s.s({ok:false}, null, 3))
         }else{
-            res.render('index',{failedLogin:true,lang:lang,config:config,screen:req.params.screen},function(err,html){
+            res.render(config.renderPaths.index,{failedLogin:true,lang:lang,config:config,screen:req.params.screen},function(err,html){
                 if(err){
                     s.systemLog(err)
                 }
@@ -4283,29 +4312,29 @@ app.post(['/','/:screen'],function (req,res){
             case'cam':
                 s.sqlQuery('SELECT * FROM Monitors WHERE ke=? AND type=?',[r.ke,"dashcam"],function(err,rr){
                     req.resp.mons=rr;
-                    req.renderFunction("dashcam",{$user:req.resp,lang:r.lang,define:s.getDefinitonFile(r.details.lang)});
+                    req.renderFunction(config.renderPaths.dashcam,{$user:req.resp,lang:r.lang,define:s.getDefinitonFile(r.details.lang)});
                 })
             break;
             case'streamer':
                 s.sqlQuery('SELECT * FROM Monitors WHERE ke=? AND type=?',[r.ke,"socket"],function(err,rr){
                     req.resp.mons=rr;
-                    req.renderFunction("streamer",{$user:req.resp,lang:r.lang,define:s.getDefinitonFile(r.details.lang)});
+                    req.renderFunction(config.renderPaths.streamer,{$user:req.resp,lang:r.lang,define:s.getDefinitonFile(r.details.lang)});
                 })
             break;
             case'admin':
                 if(!r.details.sub){
                     s.sqlQuery('SELECT uid,mail,details FROM Users WHERE ke=? AND details LIKE \'%"sub"%\'',[r.ke],function(err,rr) {
                         s.sqlQuery('SELECT * FROM Monitors WHERE ke=?',[r.ke],function(err,rrr) {
-                            req.renderFunction("admin",{$user:req.resp,$subs:rr,$mons:rrr,lang:r.lang,define:s.getDefinitonFile(r.details.lang)});
+                            req.renderFunction(config.renderPaths.admin,{$user:req.resp,$subs:rr,$mons:rrr,lang:r.lang,define:s.getDefinitonFile(r.details.lang)});
                         })
                     })
                 }else{
                     //not admin user
-                    req.renderFunction("home",{$user:req.resp,config:config,lang:r.lang,define:s.getDefinitonFile(r.details.lang),addStorage:s.dir.addStorage,fs:fs,__dirname:__dirname});
+                    req.renderFunction(config.renderPaths.home,{$user:req.resp,config:config,lang:r.lang,define:s.getDefinitonFile(r.details.lang),addStorage:s.dir.addStorage,fs:fs,__dirname:__dirname});
                 }
             break;
             default:
-                req.renderFunction("home",{$user:req.resp,config:config,lang:r.lang,define:s.getDefinitonFile(r.details.lang),addStorage:s.dir.addStorage,fs:fs,__dirname:__dirname});
+                req.renderFunction(config.renderPaths.home,{$user:req.resp,config:config,lang:r.lang,define:s.getDefinitonFile(r.details.lang),addStorage:s.dir.addStorage,fs:fs,__dirname:__dirname});
             break;
         }
         s.log({ke:r.ke,mid:'$USER'},{type:r.lang['New Authentication Token'],msg:{for:req.body.function,mail:r.mail,id:r.uid,ip:req.ip}})
@@ -4333,7 +4362,7 @@ app.post(['/','/:screen'],function (req,res){
                                     s.factorAuth[r.ke][r.uid].expireAuth=setTimeout(function(){
                                         s.deleteFactorAuth(r)
                                     },1000*60*15)
-                                    req.renderFunction("factor",{$user:req.resp,lang:r.lang})
+                                    req.renderFunction(config.renderPaths.factorAuth,{$user:req.resp,lang:r.lang})
                                 }
                                 if(!s.factorAuth[r.ke]){s.factorAuth[r.ke]={}}
                                 if(!s.factorAuth[r.ke][r.uid]){
@@ -4497,7 +4526,7 @@ app.post(['/','/:screen'],function (req,res){
                         data.Logs=r;
                         fs.readFile(location.config,'utf8',function(err,file){
                             data.plainConfig=JSON.parse(file)
-                            req.renderFunction("super",data);
+                            req.renderFunction(config.renderPaths.super,data);
                         })
                     })
                 })
@@ -4526,7 +4555,7 @@ app.post(['/','/:screen'],function (req,res){
                     req.resp=s.factorAuth[req.body.ke][req.body.id].info
                     req.fn(s.factorAuth[req.body.ke][req.body.id].user)
                 }else{
-                    req.renderFunction("factor",{$user:s.factorAuth[req.body.ke][req.body.id].info,lang:req.lang});
+                    req.renderFunction(config.renderPaths.factorAuth,{$user:s.factorAuth[req.body.ke][req.body.id].info,lang:req.lang});
                     res.end();
                 }
             }else{
@@ -4720,7 +4749,7 @@ app.get(['/:auth/grid/:ke','/:auth/grid/:ke/:group'], function(req,res) {
                     }
                 }
             })
-            res.render('grid',{
+            res.render(config.renderPaths.grid,{
                 data:Object.assign(req.params,req.query),
                 baseUrl:req.protocol+'://'+req.hostname,
                 config:config,
@@ -4736,7 +4765,7 @@ app.get(['/:auth/grid/:ke','/:auth/grid/:ke/:group'], function(req,res) {
 app.get(['/:auth/mjpeg/:ke/:id','/:auth/mjpeg/:ke/:id/:channel'], function(req,res) {
     res.header("Access-Control-Allow-Origin",req.headers.origin);
     if(req.query.full=='true'){
-        res.render('mjpeg',{url:'/'+req.params.auth+'/mjpeg/'+req.params.ke+'/'+req.params.id});
+        res.render(config.renderPaths.mjpeg,{url:'/'+req.params.auth+'/mjpeg/'+req.params.ke+'/'+req.params.id});
         res.end()
     }else{
         s.auth(req.params,function(user){
@@ -4790,7 +4819,7 @@ app.get(['/:auth/embed/:ke/:id','/:auth/embed/:ke/:id/:addon'], function (req,re
         if(s.group[req.params.ke]&&s.group[req.params.ke].mon[req.params.id]){
             if(s.group[req.params.ke].mon[req.params.id].started===1){
                 req.params.uid=user.uid;
-                res.render("embed",{data:req.params,baseUrl:req.protocol+'://'+req.hostname,config:config,lang:user.lang,mon:CircularJSON.parse(CircularJSON.stringify(s.group[req.params.ke].mon_conf[req.params.id]))});
+                res.render(config.renderPaths.embed,{data:req.params,baseUrl:req.protocol+'://'+req.hostname,config:config,lang:user.lang,mon:CircularJSON.parse(CircularJSON.stringify(s.group[req.params.ke].mon_conf[req.params.id]))});
                 res.end()
             }else{
                 res.end(user.lang['Cannot watch a monitor that isn\'t running.'])
