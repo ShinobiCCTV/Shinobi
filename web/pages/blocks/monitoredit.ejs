@@ -204,7 +204,7 @@
                     </select></div>
                 </label>
               </div>
-              <div class="form-group">
+              <div class="form-group h_t_input h_t_socket h_t_jpeg h_t_mjpeg">
                 <label><div><span><%-lang['Monitor Capture Rate']%></span></div>
                 <div><input class="form-control" detail="sfps"></div>
                 </label>
@@ -338,11 +338,6 @@
                     </label>
                   </div>
               </div>
-              <div class="form-group">
-                <label><div><span><%-lang['Rate']%></span></div>
-                <div><input class="form-control" detail="stream_fps" placeholder="1"></div>
-                </label>
-              </div>
               <div class="h_st_input h_st_mjpeg h_st_b64 h_st_hls h_st_flv h_st_mp4 h_hls_v_input h_hls_v_libx264 h_hls_v_libx265 h_hls_v_h264_nvenc h_hls_v_hevc_nvenc h_hls_v_no">
                   <div class="h_st_input h_st_hls">
                       <div class="form-group">
@@ -377,6 +372,11 @@
                   <div class="form-group">
                     <label><div><span><%-lang['Quality']%></span></div>
                     <div><input class="form-control" placeholder="23" detail="stream_quality"></div>
+                    </label>
+                  </div>
+                  <div class="form-group">
+                    <label><div><span><%-lang['Rate']%></span></div>
+                    <div><input class="form-control" detail="stream_fps" placeholder="1"></div>
                     </label>
                   </div>
                   <div class="form-group">
@@ -602,11 +602,6 @@
                     </select></div>
                 </label>
               </div>
-              <div class="form-group">
-                    <label><div><span><%-lang['Video Record Rate']%></span></div>
-                        <div><input class="form-control" name="fps"></div>
-                    </label>
-              </div>
               <div class="h_vc_input h_vc_libvpx h_vc_libvpx-vp9 h_vc_libx264 h_vc_libx265 h_vc_hevc_nvenc h_vc_h264_nvenc h_vc_h264_vaapi h_vc_hevc_vaapi h_vc_h264_qsv h_vc_hevc_qsv h_vc_mpeg2_qsv h_vc_default h_vc_none">
                   <div class="form-group">
                     <label><div><span><%-lang['Quality']%></span></div>
@@ -639,6 +634,11 @@
                 </label>
               </div>
               <div class="h_vc_input h_vc_libvpx h_vc_libvpx-vp9 h_vc_libx264 h_vc_libx265 h_vc_hevc_nvenc h_vc_h264_nvenc h_vc_h264_vaapi h_vc_hevc_vaapi h_vc_h264_qsv h_vc_hevc_qsv h_vc_mpeg2_qsv h_vc_default h_vc_none">
+                   <div class="form-group">
+                    <label><div><span><%-lang['Video Record Rate']%></span></div>
+                    <div><input class="form-control" name="fps"></div>
+                    </label>
+                  </div>
                   <div class="row">
                       <div class="form-group col-md-12">
                         <label><div><span><%-lang['Record Width']%></span></div>

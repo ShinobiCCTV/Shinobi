@@ -1358,7 +1358,7 @@ s.ffmpeg=function(e){
     }
     if(x.vcodec.indexOf('none')>-1){x.vcodec=''}else{x.vcodec=' -vcodec '+x.vcodec}
     //record - frames per second (fps)
-    if(e.fps&&e.fps!==''){x.record_fps=' -r '+e.fps}else{x.record_fps=''}
+    if(e.fps&&e.fps!==''&&e.details.vcodec!=='copy'){x.record_fps=' -r '+e.fps}else{x.record_fps=''}
     //stream - frames per second (fps)
     if(e.details.stream_fps&&e.details.stream_fps!==''){x.stream_fps=' -r '+e.details.stream_fps}else{x.stream_fps=''}
     //record - timestamp options for -vf
@@ -1515,8 +1515,9 @@ s.ffmpeg=function(e){
         //add input feed map
         x.pipe += createFFmpegMap(e.details.input_map_choices.stream)
     }
-    
-    x.cust_stream+=x.stream_fps
+    if(e.details.stream_vcodec!=='copy'){
+        x.cust_stream+=x.stream_fps
+    }
     switch(e.details.stream_type){
         case'mp4':
             x.cust_stream+=' -movflags +frag_keyframe+empty_moov+default_base_moof -metadata title="Poseidon Stream" -reset_timestamps 1'
