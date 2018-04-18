@@ -1079,7 +1079,7 @@ s.video=function(x,e,k){
                     f:'video_build_success',
                     hrefNoAuth:'/videos/'+e.ke+'/'+e.mid+'/'+k.file,
                     filename:k.file,
-                    mid:e.id,
+                    mid:e.mid,
                     ke:e.ke,
                     time:moment(e.startTime).format(),
                     size:e.filesize,
@@ -2730,9 +2730,10 @@ s.camera=function(x,e,cn,tx){
                     }
                     s.group[d.ke].mon[d.id].eventBasedRecording.allowEnd = false;
                     var runRecord = function(){
+                        var filename = s.moment()+'.mp4'
                         s.log(d,{type:"Traditional Recording",msg:"Started"})
                         //-t 00:'+moment(new Date(detector_timeout * 1000 * 60)).format('mm:ss')+'
-                        s.group[d.ke].mon[d.id].eventBasedRecording.process = spawn(config.ffmpegDir,s.splitForFFPMEG(('-loglevel warning -analyzeduration 1000000 -probesize 1000000 -re -i http://'+config.ip+':'+config.port+'/'+d.auth+'/hls/'+d.ke+'/'+d.id+'/detectorStream.m3u8 -t 00:'+moment(new Date(detector_timeout * 1000 * 60)).format('mm:ss')+' -c:v copy -c:a copy -strftime 1 "'+s.video('getDir',d.mon)+s.moment()+'.mp4"').replace(/\s+/g,' ').trim()))
+                        s.group[d.ke].mon[d.id].eventBasedRecording.process = spawn(config.ffmpegDir,s.splitForFFPMEG(('-loglevel warning -analyzeduration 1000000 -probesize 1000000 -re -i http://'+config.ip+':'+config.port+'/'+d.auth+'/hls/'+d.ke+'/'+d.id+'/detectorStream.m3u8 -t 00:'+moment(new Date(detector_timeout * 1000 * 60)).format('mm:ss')+' -c:v copy -c:a copy -strftime 1 "'+s.video('getDir',d.mon)+filename+'"').replace(/\s+/g,' ').trim()))
                         var ffmpegError='';
                         var error
                         s.group[d.ke].mon[d.id].eventBasedRecording.process.stderr.on('data',function(data){
@@ -2744,6 +2745,10 @@ s.camera=function(x,e,cn,tx){
                                 runRecord()
                                 return
                             }
+                            d.mid = d.id
+                            s.video('insertCompleted',d,{
+                                file : filename
+                            })
                             s.log(d,{type:"Traditional Recording",msg:"Detector Recording Complete"})
                             s.group[d.ke].mon[d.id].closeVideo()
                             delete(s.group[d.ke].users[d.auth])
