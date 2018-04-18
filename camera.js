@@ -111,9 +111,7 @@ if(config.cron.deleteEvents===undefined)config.cron.deleteEvents=true;
 if(config.cron.deleteFileBins===undefined)config.cron.deleteFileBins=true;
 if(config.cron.interval===undefined)config.cron.interval=1;
 if(config.databaseType===undefined){config.databaseType='mysql'}
-if(config.databaseLogs===undefined){config.databaseLogs=false}
 if(config.pluginKeys===undefined)config.pluginKeys={};
-if(config.databaseType===undefined){config.databaseType='mysql'}
 if(config.databaseLogs===undefined){config.databaseLogs=false}
 if(config.pipeAddition===undefined){config.pipeAddition=7}else{config.pipeAddition=parseInt(config.pipeAddition)}
 //Web Paths
@@ -3215,27 +3213,17 @@ var tx;
                             totalmem:s.totalmem
                         }
                     })
-                    http.get('http://'+config.ip+':'+config.port+'/'+cn.auth+'/monitor/'+cn.ke, function(res){
-                        var body = '';
-                        res.on('data', function(chunk){
-                            body += chunk;
-                        });
-                        res.on('end', function(){
-                            var rr = JSON.parse(body);
-                            setTimeout(function(g){
-                                g=function(t){
-                                    s.camera('snapshot',{mid:t.mid,ke:t.ke,mon:t})
-                                }
-                                if(rr.mid){
-                                    g(rr)
-                                }else{
-                                    rr.forEach(g)
-                                }
-                            },2000)
-                        });
-                    }).on('error', function(e){
-//                              s.systemLog("Get Snapshot Error", e);
-                    });
+                    try{
+                        s.sqlQuery('SELECT * FROM Monitors WHERE ke=?', [d.ke], function(err,r) {
+                            if(r && r[0]){
+                                r.forEach(function(monitor){
+                                    s.camera('snapshot',{mid:monitor.mid,ke:monitor.ke,mon:monitor})
+                                })
+                            }
+                        })
+                    }catch(err){
+                        console.log(err)
+                    }
                 })
             }
             s.sqlQuery('SELECT ke,uid,auth,mail,details FROM Users WHERE ke=? AND auth=? AND uid=?',[d.ke,d.auth,d.uid],function(err,r) {
