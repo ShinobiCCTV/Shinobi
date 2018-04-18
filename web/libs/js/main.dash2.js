@@ -95,7 +95,7 @@ switch($user.details.lang){
                         url=url+'/'
                     }
                 }else{
-                    url='/'
+                    url=''
                 }
                 return url
             break;
@@ -731,7 +731,7 @@ switch($user.details.lang){
                     if(e.useCanvas === true){
                         e.p.append('<div class="zoomGlass"><canvas class="blenderCanvas"></canvas></div>');
                     }else{
-                        e.p.append('<div class="zoomGlass"><iframe src="/'+e.auth+'/embed/'+e.ke+'/'+e.mid+'/fullscreen|jquery|relative"/><div class="hoverShade"></div></div>');
+                        e.p.append('<div class="zoomGlass"><iframe src="'+e.auth+'/embed/'+e.ke+'/'+e.mid+'/fullscreen|jquery|relative"/><div class="hoverShade"></div></div>');
                     }
                     zoomGlass = e.p.find(".zoomGlass");
                 }
@@ -755,7 +755,9 @@ switch($user.details.lang){
         if(d.id&&!d.mid){d.mid=d.id;}
         switch(x){
             case 0://video
-                if(!d.href&&d.hrefNoAuth){d.href=$.ccio.init('location',user)+user.auth_token+d.hrefNoAuth}
+                if(!d.href&&d.hrefNoAuth){
+                    d.href=$.ccio.init('location',user)+user.auth_token+d.hrefNoAuth
+                }
                 if(user!==$user&&d.href.charAt(0)==='/'){
                     d.href=$.ccio.init('location',user)+(d.href.substring(1))
                 }
@@ -1706,7 +1708,7 @@ $.ccio.globalWebsocket=function(d,user){
                 if(location.protocol==='https:'){
                     prefix = 'wss'
                 }
-                if(url=='/'){
+                if(url==''){
                     url = prefix+'://'+location.host
                 }else{
                     url = prefix+'://'+url.split('://')[1]
@@ -1822,7 +1824,7 @@ $.ccio.globalWebsocket=function(d,user){
                         d.fn()
                     break;
                     case'mjpeg':
-                        $('#monitor_live_'+d.id+user.auth_token+' .stream-element').attr('src',user.auth_token+'/mjpeg/'+d.ke+'/'+d.id+'/?full=true')
+                        $('#monitor_live_'+d.id+user.auth_token+' .stream-element').attr('src',$.ccio.init('location',user)+user.auth_token+'/mjpeg/'+d.ke+'/'+d.id+'/?full=true')
                     break;
                 }
             }
@@ -1957,11 +1959,12 @@ $.ccio.globalWebsocket=function(d,user){
                 startTime = moment(b.time).format();
                 endTime = moment(b.endTime).format();
                 var newSetOfEventsWithoutChecked = {};
+                var eventTime
                 $.each(eventsToCheck,function(n,v){
                     try{
-                        var eventTime = v.details.videoTime.split('T');
+                        eventTime = v.details.videoTime.split('T');
                     }catch(err){
-                        var eventTime = v.time.split('T');
+                        eventTime = v.time.split('T');
                     }
                     eventTime[1] = eventTime[1].replace(/-/g,':'),eventTime = eventTime.join(' ');
                     if(eventTime === startTimeFormatted){
@@ -2051,7 +2054,9 @@ $.ccio.globalWebsocket=function(d,user){
         break;
     }
 }
-$user.ws=io(location.origin);
+$user.ws=io(location.origin,{
+    path : location.pathname+'socket.io'
+});
 $user.ws.on('connect',function (d){
     $(document).ready(function(e){
         $.ccio.init('id',$user);
@@ -2372,7 +2377,7 @@ $.zO.initLiveStream=function(e){
         e.re=e.re.find('iframe')
         e.choice='embed'
     }
-    e.src='/'+$user.auth_token+'/'+e.choice+'/'+$user.ke+'/'+$.aM.selected.mid
+    e.src=$.ccio.init('location',$user)+$user.auth_token+'/'+e.choice+'/'+$user.ke+'/'+$.aM.selected.mid
     if(e.choice=='embed'){
         e.src+='/fullscreen|jquery|relative'
     }else{
@@ -2547,7 +2552,7 @@ $.pB.f.submit(function(e){
 //    if(e.s.url.indexOf('{{JSON}}')>-1){
 //        e.s.url='-v quiet -print_format json -show_format -show_streams '+e.s.url
 //    }
-    $.get('/'+$user.auth_token+'/probe/'+$user.ke+'?url='+e.s.url+'&flags='+flags,function(data){
+    $.get($.ccio.init('location',$user)+$user.auth_token+'/probe/'+$user.ke+'?url='+e.s.url+'&flags='+flags,function(data){
         if(data.ok===true){
             var html
             try{
@@ -2586,7 +2591,7 @@ $.log.e.on('shown.bs.modal', function () {
 $.log.lm.change(function(e){
     e.v=$(this).val();
     if(e.v==='all'){e.v=''}
-    $.get('/'+$user.auth_token+'/logs/'+$user.ke+'/'+e.v,function(d){
+    $.get($.ccio.init('location',$user)+$user.auth_token+'/logs/'+$user.ke+'/'+e.v,function(d){
         e.tmp='';
         $.each(d,function(n,v){
             e.tmp+='<tr class="search-row"><td title="'+v.time+'" class="livestamp"></td><td>'+v.time+'</td><td>'+v.name+'</td><td>'+v.mid+'</td><td>'+$.ccio.init('jsontoblock',v.info)+'</td></tr>'
@@ -2633,7 +2638,7 @@ $.multimon.e.find('.import_config').click(function(){
 //        $.confirm.click({title:'Save Set',class:'btn-danger'},function(){
             try{
                 var postMonitor = function(v){
-                    $.post('/'+$user.auth_token+'/configureMonitor/'+$user.ke+'/'+v.mid,{data:JSON.stringify(v,null,3)},function(d){
+                    $.post($.ccio.init('location',$user)+$user.auth_token+'/configureMonitor/'+$user.ke+'/'+v.mid,{data:JSON.stringify(v,null,3)},function(d){
                         $.ccio.log(d)
                     })
                 }
@@ -2676,7 +2681,7 @@ $.multimon.e.find('.delete').click(function(){
     $.confirm.body.html(e.html)
     $.confirm.click({title:'Delete',class:'btn-danger'},function(){
         $.each(arr,function(n,v){
-            $.get('/'+v.user.auth_token+'/configureMonitor/'+v.ke+'/'+v.mid+'/delete',function(data){
+            $.get($.ccio.init('location',$user)+v.user.auth_token+'/configureMonitor/'+v.ke+'/'+v.mid+'/delete',function(data){
                 console.log(data)
             })
         })
@@ -2933,7 +2938,7 @@ $.aM.drawList=function(){
     e.list.html(e.html)
 }
 $.aM.import=function(e){
-    $('#monEditBufferPreview').attr('src','/'+$user.auth_token+'/hls/'+e.values.ke+'/'+e.values.mid+'/detectorStream.m3u8')
+    $('#monEditBufferPreview').attr('src',$.ccio.init('location',$user)+$user.auth_token+'/hls/'+e.values.ke+'/'+e.values.mid+'/detectorStream.m3u8')
     $.aM.e.find('.edit_id').text(e.values.mid);
     $.aM.e.attr('mid',e.values.mid).attr('ke',e.values.ke).attr('auth',e.auth)
     $.each(e.values,function(n,v){
@@ -3147,7 +3152,7 @@ $.aM.f.submit(function(ee){
         $.ccio.init('note',{title:'Configuration Invalid',text:e.er.join('<br>'),type:'error'});
         return;
     }
-    $.post('/'+$user.auth_token+'/configureMonitor/'+$user.ke+'/'+e.s.mid,{data:JSON.stringify(e.s)},function(d){
+    $.post($.ccio.init('location',$user)+$user.auth_token+'/configureMonitor/'+$user.ke+'/'+e.s.mid,{data:JSON.stringify(e.s)},function(d){
         $.ccio.log(d)
     })
     //
@@ -3224,7 +3229,7 @@ $.aM.f.submit(function(ee){
                 monitor = alterSettings(section,monitor)
             })
             console.log(monitor)
-            $.post('/'+$user.auth_token+'/configureMonitor/'+$user.ke+'/'+monitor.mid,{data:JSON.stringify(monitor)},function(d){
+            $.post($.ccio.init('location',$user)+$user.auth_token+'/configureMonitor/'+$user.ke+'/'+monitor.mid,{data:JSON.stringify(monitor)},function(d){
                 $.ccio.log(d)
             })
              chosenMonitors[monitor.mid] = monitor;
@@ -3763,7 +3768,7 @@ $.timelapse.drawTimeline=function(getData){
     var mid=$.timelapse.monitors.val();
     e.dateRange=$.timelapse.dr.data('daterangepicker');
     e.dateRange={startDate:e.dateRange.startDate,endDate:e.dateRange.endDate}
-    e.videoURL='/'+$user.auth_token+'/videos/'+$user.ke+'/'+mid;
+    e.videoURL=$.ccio.init('location',$user)+$user.auth_token+'/videos/'+$user.ke+'/'+mid;
     e.videoURL+='?limit=100&start='+$.ccio.init('th',e.dateRange.startDate)+'&end='+$.ccio.init('th',e.dateRange.endDate);
     e.next=function(videos){
         $.timelapse.currentVideos={}
@@ -4233,7 +4238,7 @@ $.pwrvid.drawTimeline=function(getData){
     
     var getTheData = function(){
         e.live_header.text($.ccio.mon[$user.ke+mid+$user.auth_token].name)
-        e.live.attr('src','/'+$user.auth_token+'/embed/'+$user.ke+'/'+mid+'/fullscreen|jquery|relative|gui')
+        e.live.attr('src',$.ccio.init('location',$user)+$user.auth_token+'/embed/'+$user.ke+'/'+mid+'/fullscreen|jquery|relative|gui')
 
         var pulseLoading = function(){
             var loading = $.pwrvid.e.find('.loading')
@@ -4374,7 +4379,7 @@ $('#monitors_list_search').keyup(function(){
 $('body')
 .on('click','.logout',function(e){
     var logout = function(user,callback){
-        $.get('/'+user.auth_token+'/logout/'+user.ke+'/'+user.uid,callback)
+        $.get($.ccio.init('location',user)+user.auth_token+'/logout/'+user.ke+'/'+user.uid,callback)
     }
     $.each($.users,function(n,linkedShinobiUser){
         logout(linkedShinobiUser,function(){});
@@ -4762,9 +4767,7 @@ $('body')
                         e.tmp+='<tbody>';
                         $.each(d.videos,function(n,v){
                             if(v.status!==0){
-                                if(user!==$user&&v.href.charAt(0)==='/'){
-                                    v.href=$.ccio.init('location',user)+(v.href.substring(1))
-                                }
+                                v.href=$.ccio.init('location',user)+v.href
                                 v.mon=$.ccio.mon[v.ke+v.mid+user.auth_token];
                                 v.start=v.time;
                                 v.filename=$.ccio.init('tf',v.time)+'.'+v.ext;
