@@ -55,7 +55,6 @@ var knex = require('knex');
 var Mp4Frag = require('mp4frag');
 var P2P = require('pipe2pam');
 var PamDiff = require('pam-diff');
-//var chokidar = require('chokidar');
 var location = {}
 location.super = __dirname+'/super.json'
 location.config = __dirname+'/conf.json'
@@ -2172,58 +2171,35 @@ s.camera=function(x,e,cn,tx){
                     }
                 },60000*1);
             }
-//            if(x==='record'||(x==='start'&&e.details.detector_record_method==='sip')){
-//                var pathToName = function(filePath){
-//                    var split = filePath.split('/');
-//                    return split[split.length - 1]
-//                }
-//                s.group[e.ke].mon[e.id].fswatch = chokidar.watch(e.dir, {ignored: /(^|[\/\\])\../,ignoreInitial:true}).on('all', (event, filePath) => {
-//                    var filename = pathToName(filePath)
-//                    if(s.group[e.ke].mon[e.id].fixingVideos[filename]){return}
-//                    switch(event){
-//                        case'change':
-//                            var filename = pathToName(filePath)
-//                            if(s.platform!=='darwin'){
-//                                if(s.group[e.ke].mon[e.id].fixingVideos[filename]){return}
-//                                clearTimeout(s.group[e.ke].mon[e.id].checker)
-//                                clearTimeout(s.group[e.ke].mon[e.id].checkStream)
-//                                s.group[e.ke].mon[e.id].checker=setTimeout(function(){
-//                                    if(s.group[e.ke].mon[e.id].started===1){
-//                                        e.fn();
-//                                        s.log(e,{type:lang['Camera is not recording'],msg:{msg:lang['Restarting Process']}});
-//                                    }
-//                                },60000*2);
-//                            }
-//                        break;
-//                        case'add':
-//                            if(s.group[e.ke].mon[e.id].open){
-//                                s.video('close',e);
-//                                var row = Object.assign({},s.init('noReference',e));
-//                                if(row.details.detector==='1'&&s.group[row.ke].mon[row.id].started===1&&row.details&&row.details.detector_record_method==='del'&&row.details.detector_delete_motionless_videos==='1'&&s.group[row.ke].mon[row.id].detector_motion_count===0){
-//                                    if(row.details.loglevel!=='quiet'){
-//                                        s.log(row,{type:lang['Delete Motionless Video'],msg:row.filename+'.'+row.ext});
-//                                    }
-//                                    s.video('delete',row)
-//                                }
-//                            }
-//                            e.filename=filename.split('.')[0];
-//                            s.video('open',e);
-//                            s.group[e.ke].mon[e.id].open=e.filename;
-//                            s.group[e.ke].mon[e.id].open_ext=e.ext;
-//                            s.group[e.ke].mon[e.id].detector_motion_count=0;
-//                        break;
-//                    }
-//                });
-//            }
-//            if(
-//                s.platform !== 'darwin' &&
-//                (x === 'start' || x === 'record') &&
-//                (e.details.stream_type === 'jpeg' || e.details.stream_type === 'hls' || e.details.snap === '1')
-//            ){
-//                s.group[e.ke].mon[e.id].fswatchStream = chokidar.watch(e.sdir, {ignored: /(^|[\/\\])\../,ignoreInitial:true}).on('all', (event, filePath) => {
-//                    resetStreamCheck()
-//                })
-//            }
+            if(s.platform!=='darwin' && (x==='record' || (x==='start'&&e.details.detector_record_method==='sip'))){
+                //check if ffmpeg is recording
+                s.group[e.ke].mon[e.id].fswatch = fs.watch(e.dir, {encoding : 'utf8'}, (event, filename) => {
+                    switch(event){
+                        case'change':
+                            clearTimeout(s.group[e.ke].mon[e.id].checker)
+                            clearTimeout(s.group[e.ke].mon[e.id].checkStream)
+                            s.group[e.ke].mon[e.id].checker=setTimeout(function(){
+                                if(s.group[e.ke].mon[e.id].started===1){
+                                    e.fn();
+                                    s.log(e,{type:lang['Camera is not recording'],msg:{msg:lang['Restarting Process']}});
+                                }
+                            },60000 * e.cutoff * 1.1);
+                        break;
+                    }
+                });
+            }
+            if(
+                //is MacOS
+                s.platform !== 'darwin' &&
+                //is Watch-Only or Record
+                (x === 'start' || x === 'record') &&
+                //if JPEG API enabled or Stream Type is HLS
+                (e.details.stream_type === 'jpeg' || e.details.stream_type === 'hls' || e.details.snap === '1')
+            ){
+                s.group[e.ke].mon[e.id].fswatchStream = fs.watch(e.sdir, {encoding : 'utf8'}, () => {
+                    resetStreamCheck()
+                })
+            }
             s.camera('snapshot',{mid:e.id,ke:e.ke,mon:e})
             //check host to see if has password and user in it
             e.hosty=e.host.split('@');if(e.hosty[1]){e.hosty=e.hosty[1];}else{e.hosty=e.hosty[0];};
@@ -2610,7 +2586,6 @@ s.camera=function(x,e,cn,tx){
                                             e.fn()
                                         break;
                                         case /T[0-9][0-9]-[0-9][0-9]-[0-9][0-9]./.test(d):
-                                            //can replace fs.watch and chokidar with fs.stat.ctime
                                             var filename = d.split('.')[0]+'.'+e.ext
                                             s.video('insertCompleted',e,{
                                                 file : filename
