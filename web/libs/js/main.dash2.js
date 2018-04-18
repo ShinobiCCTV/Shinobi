@@ -4554,12 +4554,9 @@ $('body')
         case'show_data':
             e.p.toggleClass('show_data')
             var dataBlocks = e.p.find('.stream-block,.mdl-data_window')
-            var dataWindow = e.p.find('.mdl-data_window')
             if(e.p.hasClass('show_data')){
-                dataWindow.css('height','100%')
                 dataBlocks.addClass('col-md-6').removeClass('col-md-12')
             }else{
-                dataWindow.css('height','0px')
                 dataBlocks.addClass('col-md-12').removeClass('col-md-6')
             }
         break;
