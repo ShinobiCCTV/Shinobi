@@ -1290,7 +1290,9 @@ s.ffmpeg=function(e){
             //add input feed map
             x.pipe += createFFmpegMap(e.details.input_map_choices['stream_channel-'+(number-config.pipeAddition)])
         }
-        x.cust_stream+=x.stream_fps
+        if(channel.stream_vcodec!=='copy'){
+            x.cust_stream+=x.stream_fps
+        }
         switch(channel.stream_type){
             case'mp4':
                 x.cust_stream+=' -movflags +frag_keyframe+empty_moov+default_base_moof -metadata title="Poseidon Stream" -reset_timestamps 1'
