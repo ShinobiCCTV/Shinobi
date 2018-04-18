@@ -97,7 +97,7 @@ img{max-width:100%}
 
 .monitor_item .grid-stack-item-content{width:100%!important;left:0;right:0}
 .monitor_item .stream-block{position: relative;text-align: center}
-.monitor_item .mdl-data_window{position: absolute;width:90%;height:80%;overflow-x: auto;z-index:10;display:none;background:rgba(0,0,0,0.7);color:#fff;box-shadow:0 0 15px #333;border-radius: 0 0 15px 15px;margin:auto;left:0;right:0}
+.monitor_item .mdl-data_window{overflow-x: auto;background:rgba(0,0,0,0.7);color:#fff;}
 
 .monitor_item.fullscreen img.stream-element{height:100%;width:auto}
 .monitor_item.fullscreen canvas.stream-element{height:auto;width:auto;background-color:black;}
@@ -136,6 +136,7 @@ img{max-width:100%}
 #monitors_live .monitor_item .mdl-cell--4-col-desktop,.monitor_item .mdl-card__supporting-text{display:none}
 #monitors_live .monitor_item .mdl-card__supporting-text .monitor_details,#monitors_live .monitor_item .mdl-card__supporting-text .btn-group{display:none;text-align:center}
 #monitors_live .monitor_item .mdl-card__supporting-text:not(.meta){display:block;position:absolute;bottom:0;left:0;height:0;padding:0;}
+#monitors_live .monitor_item.show_data .mdl-card__supporting-text:not(.meta){width:50%}
 #monitors_live .monitor_item.detector_triggered .mdl-card__supporting-text:not(.meta) .indifference{opacity:0.5;}
 #monitors_live .monitor_item:hover .mdl-card__supporting-text:not(.meta){padding:15px;z-index:15;height:auto;}
 #monitors_live .monitor_item:hover .mdl-card__supporting-text .monitor_details{display:block}

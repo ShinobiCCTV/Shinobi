@@ -785,12 +785,6 @@ switch($user.details.lang){
                 var dataTarget = '.monitor_item[mid=\''+d.mid+'\'][ke=\''+d.ke+'\'][auth=\''+user.auth_token+'\']';
                 tmp+='<div id="monitor_live_'+d.mid+user.auth_token+'" auth="'+user.auth_token+'" mid="'+d.mid+'" ke="'+d.ke+'" mode="'+k.mode+'" class="grid-stack-item monitor_item glM'+d.mid+user.auth_token+'"><div class="grid-stack-item-content">';
                 tmp+='<div class="stream-block no-padding mdl-card__media mdl-color-text--grey-50">';
-                tmp+='<div class="mdl-data_window">';
-                tmp+='<div>';
-                tmp+='<div class="data-menu col-md-6 no-padding videos_monitor_list glM'+d.mid+user.auth_token+' scrollable"><ul></ul></div>';
-                tmp+='<div class="data-menu col-md-6 no-padding logs scrollable"></div>';
-                tmp+='</div>';
-                tmp+='</div>';//.mdl-data_window
                 tmp+='<div class="stream-objects"></div>';
                 tmp+='<div class="stream-hud"><div class="lamp" title="'+k.mode+'"><i class="fa fa-eercast"></i></div><div class="controls"><span title="<%-cleanLang(lang['Currently viewing'])%>" class="label label-default"><span class="viewers"></span></span> <a class="btn-xs btn-danger btn" monitor="mode" mode="record"><i class="fa fa-circle"></i> <%-cleanLang(lang['Start Recording'])%></a> <a class="btn-xs btn-primary btn" monitor="mode" mode="start"><i class="fa fa-eye"></i> <%-cleanLang(lang['Set to Watch Only'])%></a></div><div class="bottom-text monospace "><div class="detector-fade">'
                     $.each([
@@ -807,7 +801,8 @@ switch($user.details.lang){
                 tmp+='<div class="btn-group btn-group-sm">'//start of btn list
                     $.each([
                         {label:"<%-cleanLang(lang.Snapshot)%>",attr:'monitor="snapshot"',class:'primary',icon:'camera'},
-                        {label:"<%-cleanLang(lang['Show Logs'])%>",attr:'class_toggle="show_data" data-target="'+dataTarget+'"',class:'warning',icon:'exclamation-triangle'},
+                        {label:"<%-cleanLang(lang['Show Logs'])%>",attr:'monitor="show_data"',class:'warning',icon:'exclamation-triangle'},
+//                        {label:"<%-cleanLang(lang['Show Logs'])%>",attr:'class_toggle="show_data" data-target="'+dataTarget+'"',class:'warning',icon:'exclamation-triangle'},
                         {label:"<%-cleanLang(lang.Control)%>",attr:'monitor="control_toggle"',class:'default arrows',icon:'arrows'},
                         {label:"<%-cleanLang(lang['Status Indicator'])%>",attr:'monitor="watch_on"',class:'success signal',icon:'plug'},
                         {label:"<%-cleanLang(lang['Detector'])%>",attr:'monitor="motion"',class:'warning',icon:'grav'},
@@ -825,6 +820,12 @@ switch($user.details.lang){
                     })
                 tmp+='</div>';//end of btn list
                 tmp+='</div>';//.stream-block
+                tmp+='<div class="mdl-data_window">';
+                tmp+='<div>';
+                tmp+='<div class="data-menu col-md-6 no-padding videos_monitor_list glM'+d.mid+user.auth_token+' scrollable"><ul></ul></div>';
+                tmp+='<div class="data-menu col-md-6 no-padding logs scrollable"></div>';
+                tmp+='</div>';
+                tmp+='</div>';//.mdl-data_window
                 tmp+='</div>';//.grid-stack-content
                 tmp+='</div>';//#monitor_live_...
             break;
@@ -4550,6 +4551,18 @@ $('body')
             user=$user
         }
     switch(e.a){
+        case'show_data':
+            e.p.toggleClass('show_data')
+            var dataBlocks = e.p.find('.stream-block,.mdl-data_window')
+            var dataWindow = e.p.find('.mdl-data_window')
+            if(e.p.hasClass('show_data')){
+                dataWindow.css('height','100%')
+                dataBlocks.addClass('col-md-6').removeClass('col-md-12')
+            }else{
+                dataWindow.css('height','0px')
+                dataBlocks.addClass('col-md-12').removeClass('col-md-6')
+            }
+        break;
         case'motion':
             if(!e.mon.motionDetectionRunning){
                 $.ccio.init('streamMotionDetectOn',e,user)
