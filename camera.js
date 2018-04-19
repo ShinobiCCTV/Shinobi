@@ -1063,6 +1063,7 @@ s.video=function(x,e,k){
                 e.filesizeMB = parseFloat((e.filesize/1000000).toFixed(2))
                 e.startTime = s.nameToTime(k.file)
                 e.endTime = s.moment(k.stat.mtime,'YYYY-MM-DD HH:mm:ss')
+                if(!e.ext){e.ext = k.file.split('.')[1]}
                 var save = [
                     e.mid,
                     e.ke,
@@ -2733,7 +2734,7 @@ s.camera=function(x,e,cn,tx){
                         var filename = s.moment()+'.mp4'
                         s.log(d,{type:"Traditional Recording",msg:"Started"})
                         //-t 00:'+moment(new Date(detector_timeout * 1000 * 60)).format('mm:ss')+'
-                        s.group[d.ke].mon[d.id].eventBasedRecording.process = spawn(config.ffmpegDir,s.splitForFFPMEG(('-loglevel warning -analyzeduration 1000000 -probesize 1000000 -re -i http://'+config.ip+':'+config.port+'/'+d.auth+'/hls/'+d.ke+'/'+d.id+'/detectorStream.m3u8 -t 00:'+moment(new Date(detector_timeout * 1000 * 60)).format('mm:ss')+' -c:v copy -c:a copy -strftime 1 "'+s.video('getDir',d.mon)+filename+'"').replace(/\s+/g,' ').trim()))
+                        s.group[d.ke].mon[d.id].eventBasedRecording.process = spawn(config.ffmpegDir,s.splitForFFPMEG(('-loglevel warning -analyzeduration 1000000 -probesize 1000000 -re -i http://'+config.ip+':'+config.port+'/'+d.auth+'/hls/'+d.ke+'/'+d.id+'/detectorStream.m3u8 -t 00:'+moment(new Date(detector_timeout * 1000 * 60)).format('mm:ss')+' -c:v copy -strftime 1 "'+s.video('getDir',d.mon) + filename + '"').replace(/\s+/g,' ').trim()))
                         var ffmpegError='';
                         var error
                         s.group[d.ke].mon[d.id].eventBasedRecording.process.stderr.on('data',function(data){
