@@ -1383,7 +1383,7 @@ s.ffmpeg=function(e){
     x.hwaccel=''
     x.pipe=''
     //input - frame rate (capture rate)
-    if(e.details.sfps!==''){x.input_fps=' -r '+e.details.sfps}else{x.input_fps=''}
+    if(e.details.sfps && e.details.sfps!==''){x.input_fps=' -r '+e.details.sfps}else{x.input_fps=''}
     //input - analyze duration
     if(e.details.aduration&&e.details.aduration!==''){x.cust_input+=' -analyzeduration '+e.details.aduration};
     //input - probe size
@@ -1789,11 +1789,7 @@ s.ffmpeg=function(e){
             x.ffmpegCommandString += ' -pattern_type glob -f image2pipe'+x.record_fps+' -vcodec mjpeg'+x.cust_input+' -i -';
         break;
         case'mjpeg':
-            if(!e.details.sfps||e.details.sfps===''){
-                x.capture_fps=parseFloat(e.details.sfps);
-                if(isNaN(x.capture_fps)){x.capture_fps=1}
-            }
-            x.ffmpegCommandString += ' -reconnect 1 -r '+x.capture_fps+' -f mjpeg'+x.cust_input+' -i "'+e.url+'"';
+            x.ffmpegCommandString += ' -reconnect 1 -f mjpeg'+x.cust_input+' -i "'+e.url+'"';
         break;
         case'h264':case'hls':case'mp4':
             x.ffmpegCommandString += x.cust_input+x.hwaccel+' -i "'+e.url+'"';
@@ -2040,7 +2036,6 @@ s.camera=function(x,e,cn,tx){
             }
             if(s.group[e.ke].mon[e.id].fswatch){s.group[e.ke].mon[e.id].fswatch.close();delete(s.group[e.ke].mon[e.id].fswatch)}
             if(s.group[e.ke].mon[e.id].fswatchStream){s.group[e.ke].mon[e.id].fswatchStream.close();delete(s.group[e.ke].mon[e.id].fswatchStream)}
-            if(s.group[e.ke].mon[e.id].open){ee.filename=s.group[e.ke].mon[e.id].open,ee.ext=s.group[e.ke].mon[e.id].open_ext;s.video('close',ee)}
             if(s.group[e.ke].mon[e.id].last_frame){delete(s.group[e.ke].mon[e.id].last_frame)}
             if(s.group[e.ke].mon[e.id].started!==1){return}
             s.kill(s.group[e.ke].mon[e.id].spawn,e);
@@ -2083,11 +2078,6 @@ s.camera=function(x,e,cn,tx){
                 },30000)
             }
             s.group[e.ke].mon[e.id].started=1;
-            s.group[e.ke].mon[e.id].closeVideo = function(){
-                if(s.group[e.ke].mon[e.id].open){
-                    s.video('close',e);
-                }
-            };
             if(x==='record'){
                 s.group[e.ke].mon[e.id].record.yes=1;
             }else{
@@ -2717,10 +2707,6 @@ s.camera=function(x,e,cn,tx){
 //                clearTimeout(s.group[d.ke].mon[d.id].eventBasedRecording.timeout)
                 s.group[d.ke].mon[d.id].eventBasedRecording.timeout = setTimeout(function(){
                     s.group[d.ke].mon[d.id].eventBasedRecording.allowEnd=true;
-//                    s.group[d.ke].mon[d.id].eventBasedRecording.process.stdin.setEncoding('utf8');
-//                    s.group[d.ke].mon[d.id].eventBasedRecording.process.stdin.write('q');
-//                    s.group[d.ke].mon[d.id].eventBasedRecording.process.kill('SIGTERM');
-//                    s.group[d.ke].mon[d.id].closeVideo()
                 },detector_timeout * 950 * 60)
                 if(!s.group[d.ke].mon[d.id].eventBasedRecording.process){
                     if(!d.auth){
@@ -2751,7 +2737,6 @@ s.camera=function(x,e,cn,tx){
                                 file : filename
                             })
                             s.log(d,{type:"Traditional Recording",msg:"Detector Recording Complete"})
-                            s.group[d.ke].mon[d.id].closeVideo()
                             delete(s.group[d.ke].users[d.auth])
                             s.log(d,{type:"Traditional Recording",msg:'Clear Recorder Process'})
                             delete(s.group[d.ke].mon[d.id].eventBasedRecording.process)
