@@ -2581,7 +2581,25 @@ s.camera=function(x,e,cn,tx){
                                             s.video('insertCompleted',e,{
                                                 file : filename
                                             })
-                                            return s.log(e,{type:lang['Video Finished'],msg:{filename:d}})
+                                            s.log(e,{type:lang['Video Finished'],msg:{filename:d}})
+                                            if(
+                                                e.details.detector==='1'&&
+                                                s.group[e.ke].mon[e.id].started===1&&
+                                                e.details&&
+                                                e.details.detector_record_method==='del'&&
+                                                e.details.detector_delete_motionless_videos==='1'&&
+                                                s.group[e.ke].mon[e.id].detector_motion_count===0
+                                            ){
+                                                if(e.details.loglevel!=='quiet'){
+                                                    s.log(e,{type:lang['Delete Motionless Video'],msg:filename});
+                                                }
+                                                s.video('delete',{
+                                                    filename : filename,
+                                                    ke : e.ke,
+                                                    id : e.id
+                                                })
+                                            }
+                                            return;
                                         break;
                                     }
                                     s.log(e,{type:"FFMPEG STDERR",msg:d})
