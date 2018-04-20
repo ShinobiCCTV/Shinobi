@@ -2599,6 +2599,7 @@ s.camera=function(x,e,cn,tx){
                                                     id : e.id
                                                 })
                                             }
+                                            s.group[e.ke].mon[e.id].detector_motion_count = 0
                                             return;
                                         break;
                                     }
