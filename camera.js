@@ -1064,13 +1064,17 @@ s.video=function(x,e,k){
                 e.startTime = s.nameToTime(k.file)
                 e.endTime = s.moment(k.stat.mtime,'YYYY-MM-DD HH:mm:ss')
                 if(!e.ext){e.ext = k.file.split('.')[1]}
+                k.details = {}
+                if(e.details&&e.details.dir&&e.details.dir!==''){
+                    k.details.dir=e.details.dir
+                }
                 var save = [
                     e.mid,
                     e.ke,
                     e.startTime,
                     e.ext,
                     1,
-                    '{}',
+                    s.s(k.details),
                     e.filesize,
                     e.endTime,
                 ]
