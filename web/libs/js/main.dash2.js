@@ -1741,9 +1741,6 @@ $.ccio.globalWebsocket=function(d,user){
                             }
                         }else{
                             stream.attr('src',$.ccio.init('location',user)+user.auth_token+'/mp4/'+d.ke+'/'+d.id+'/s.mp4')
-                            setTimeout(function(){
-                                $.ccio.init('signal-check',{id:d.id,ke:d.ke})
-                            },3000)
                         }
                     break;
                     case'flv':
@@ -1962,9 +1959,17 @@ $.ccio.globalWebsocket=function(d,user){
                 var eventTime
                 $.each(eventsToCheck,function(n,v){
                     try{
-                        eventTime = v.details.videoTime.split('T');
+                        if(v.details.videoTime.indexOf('T') > -1){
+                            eventTime = v.details.videoTime.split('T');
+                        }else{
+                            eventTime = v.details.videoTime.split(' ');
+                        }
                     }catch(err){
-                        eventTime = v.time.split('T');
+                        if(v.time.indexOf('T') > -1){
+                            eventTime = v.time.split('T');
+                        }else{
+                            eventTime = v.time.split(' ');
+                        }
                     }
                     eventTime[1] = eventTime[1].replace(/-/g,':'),eventTime = eventTime.join(' ');
                     if(eventTime === startTimeFormatted){
@@ -2778,8 +2783,8 @@ $.aM.generateDefaultMonitorSettings=function(){
         "aduration": "1000000",
         "probesize": "1000000",
         "stream_loop": "0",
-        "sfps": "1",
-        "accelerator": "1",
+        "sfps": "",
+        "accelerator": "0",
         "hwaccel": "auto",
         "hwaccel_vcodec": "",
         "hwaccel_device": "",
