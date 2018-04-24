@@ -1011,18 +1011,6 @@ s.video=function(x,e,k){
                             size:e.filesize,
                             end:moment(e.end_time).format()
                         },'GRP_'+e.ke,'video_view');
-
-                        //cloud auto savers
-                        //webdav
-                        if(s.group[e.ke].webdav&&s.group[e.ke].init.use_webdav!=='0'&&s.group[e.ke].init.webdav_save=="1"){
-                           fs.readFile(k.dir+k.file,function(err,data){
-                               s.group[e.ke].webdav.putFileContents(s.group[e.ke].init.webdav_dir+e.ke+'/'+e.mid+'/'+k.file,"binary",data)
-                            .catch(function(err) {
-                                   s.log(e,{type:lang['Webdav Error'],msg:{msg:lang.WebdavErrorText+' <b>/'+e.ke+'/'+e.id+'</b>',info:err},ffmpeg:s.group[e.ke].mon[e.id].ffmpeg})
-                                console.error(err);
-                               });
-                            });
-                        }
                         //send new diskUsage values
                         s.video('diskUseUpdate',e,k)
                     }else{
@@ -1064,6 +1052,48 @@ s.video=function(x,e,k){
                 e.startTime = s.nameToTime(k.file)
                 e.endTime = s.moment(k.stat.mtime,'YYYY-MM-DD HH:mm:ss')
                 if(!e.ext){e.ext = k.file.split('.')[1]}
+                //send event for completed recording
+                s.txWithSubPermissions({
+                    f:'video_build_success',
+                    hrefNoAuth:'/videos/'+e.ke+'/'+e.mid+'/'+k.file,
+                    filename:k.file,
+                    mid:e.mid,
+                    ke:e.ke,
+                    time:moment(e.startTime).format(),
+                    size:e.filesize,
+                    end:moment(e.endTime).format()
+                },'GRP_'+e.ke,'video_view');
+
+                //cloud auto savers
+                //webdav
+//                var webDAV = s.group[e.ke].webdav
+//                if(webDAV&&s.group[e.ke].init.use_webdav!=='0'&&s.group[e.ke].init.webdav_save=="1"){
+//                   fs.readFile(k.dir+k.file,function(err,data){
+//                       var webdavUploadDir = s.group[e.ke].init.webdav_dir+e.ke+'/'+e.mid+'/'
+//                       fs.readFile(k.dir+k.file,function(err,data){
+//                           webDAV.putFileContents(webdavUploadDir+k.file,"binary",data).catch(function(err) {
+//                               if(err){
+//                                   webDAV.createDirectory(webdavUploadDir).catch(function(err) {
+//                                       s.log(e,{type:lang['Webdav Error'],msg:{msg:lang.WebdavErrorText+' <b>/'+webdavUploadDir+'</b>',info:err}})
+//                                   })
+//                                   webDAV.putFileContents(webdavUploadDir+k.file,"binary",data).catch(function(err) {
+//                                       s.log(e,{type:lang['Webdav Error'],msg:{msg:lang.WebdavErrorText+' <b>/'+webdavUploadDir+'</b>',info:err}})
+//                                   })
+//                                   s.log(e,{type:lang['Webdav Error'],msg:{msg:lang.WebdavErrorText+' <b>/'+webdavUploadDir+'</b>',info:err}})
+//                               }
+//                           });
+//                        });
+//                    });
+//                }
+                if(s.group[e.ke].webdav&&s.group[e.ke].init.use_webdav!=='0'&&s.group[e.ke].init.webdav_save=="1"){
+                   fs.readFile(k.dir+k.file,function(err,data){
+                       s.group[e.ke].webdav.putFileContents(s.group[e.ke].init.webdav_dir+e.ke+'/'+e.mid+'/'+k.file,"binary",data)
+                    .catch(function(err) {
+                           s.log(e,{type:lang['Webdav Error'],msg:{msg:lang.WebdavErrorText+' <b>/'+e.ke+'/'+e.id+'</b>',info:err},ffmpeg:s.group[e.ke].mon[e.id].ffmpeg})
+                        console.error(err);
+                       });
+                    });
+                }
                 k.details = {}
                 if(e.details&&e.details.dir&&e.details.dir!==''){
                     k.details.dir=e.details.dir
@@ -1079,29 +1109,6 @@ s.video=function(x,e,k){
                     e.endTime,
                 ]
                 s.sqlQuery('INSERT INTO Videos (mid,ke,time,ext,status,details,size,end) VALUES (?,?,?,?,?,?,?,?)',save)
-                //send event for completed recording
-                s.txWithSubPermissions({
-                    f:'video_build_success',
-                    hrefNoAuth:'/videos/'+e.ke+'/'+e.mid+'/'+k.file,
-                    filename:k.file,
-                    mid:e.mid,
-                    ke:e.ke,
-                    time:moment(e.startTime).format(),
-                    size:e.filesize,
-                    end:moment(e.endTime).format()
-                },'GRP_'+e.ke,'video_view');
-
-                //cloud auto savers
-                //webdav
-                if(s.group[e.ke].webdav&&s.group[e.ke].init.use_webdav!=='0'&&s.group[e.ke].init.webdav_save=="1"){
-                   fs.readFile(k.dir+k.file,function(err,data){
-                       s.group[e.ke].webdav.putFileContents(s.group[e.ke].init.webdav_dir+e.ke+'/'+e.mid+'/'+k.file,"binary",data)
-                    .catch(function(err) {
-                           s.log(e,{type:lang['Webdav Error'],msg:{msg:lang.WebdavErrorText+' <b>/'+e.ke+'/'+e.id+'</b>',info:err},ffmpeg:s.group[e.ke].mon[e.id].ffmpeg})
-                        console.error(err);
-                       });
-                    });
-                }
                 //send new diskUsage values
                 s.video('diskUseUpdate',e,k)
             }else{
@@ -1247,8 +1254,6 @@ s.ffmpeg=function(e){
         if(channel.cust_stream&&channel.cust_stream!==''){x.cust_stream=' '+channel.cust_stream}else{x.cust_stream=''}
         //stream - preset
         if(channel.preset_stream&&channel.preset_stream!==''){x.preset_stream=' -preset '+channel.preset_stream;}else{x.preset_stream=''}
-        //stream - quality
-        if(channel.stream_quality&&channel.stream_quality!==''){x.stream_quality=channel.stream_quality}else{x.stream_quality=''}
         //hardware acceleration
         if(e.details.accelerator&&e.details.accelerator==='1'){
             if(e.details.hwaccel&&e.details.hwaccel!==''){
@@ -1303,8 +1308,7 @@ s.ffmpeg=function(e){
                 x.cust_stream+=' -movflags +frag_keyframe+empty_moov+default_base_moof -metadata title="Poseidon Stream" -reset_timestamps 1'
                 if(channel.stream_vcodec!=='copy'){
                     if(x.cust_stream.indexOf('-s ')===-1){x.cust_stream+=' -s '+x.ratio}
-                    if(x.stream_quality&&x.stream_quality!=='')x.stream_quality=' -crf '+x.stream_quality;
-                    x.cust_stream+=x.stream_quality
+                    if(channel.stream_quality && channel.stream_quality !== '')x.cust_stream+=' -crf '+channel.stream_quality;
                     x.cust_stream+=x.preset_stream
                     x.cust_stream+=x.stream_video_filters
                 }
@@ -1316,8 +1320,7 @@ s.ffmpeg=function(e){
                     if(channel.stream_vcodec==='libx264'){
                         channel.stream_vcodec = 'h264'
                     }
-                    if(x.stream_quality&&x.stream_quality!=='')x.stream_quality=' -crf '+x.stream_quality;
-                    x.cust_stream+=x.stream_quality
+                    if(channel.stream_quality && channel.stream_quality !== '')x.cust_stream+=' -crf '+channel.stream_quality;
                     x.cust_stream+=x.preset_stream
                     if(channel.stream_v_br&&channel.stream_v_br!==''){x.cust_stream+=' -b:v '+channel.stream_v_br}
                 }
@@ -1339,8 +1342,7 @@ s.ffmpeg=function(e){
             case'h264':
                 if(channel.stream_vcodec!=='copy'){
                     if(x.cust_stream.indexOf('-s ')===-1&&x.ratio){x.cust_stream+=' -s '+x.ratio}
-                    if(x.stream_quality&&x.stream_quality!=='')x.stream_quality=' -crf '+x.stream_quality;
-                    x.cust_stream+=x.stream_quality
+                    if(channel.stream_quality && channel.stream_quality !== '')x.cust_stream+=' -crf '+channel.stream_quality;
                     x.cust_stream+=x.preset_stream
                     x.cust_stream+=x.stream_video_filters
                 }
@@ -1349,8 +1351,7 @@ s.ffmpeg=function(e){
             case'flv':
                 if(channel.stream_vcodec!=='copy'){
                     if(x.cust_stream.indexOf('-s ')===-1&&x.ratio){x.cust_stream+=' -s '+x.ratio}
-                    if(x.stream_quality&&x.stream_quality!=='')x.stream_quality=' -crf '+x.stream_quality;
-                    x.cust_stream+=x.stream_quality
+                    if(channel.stream_quality && channel.stream_quality !== '')x.cust_stream+=' -crf '+channel.stream_quality;
                     x.cust_stream+=x.preset_stream
                     x.cust_stream+=x.stream_video_filters
                 }
@@ -1358,17 +1359,17 @@ s.ffmpeg=function(e){
             break;
             case'hls':
                 if(channel.stream_vcodec!=='h264_vaapi'&&channel.stream_vcodec!=='copy'){
-                    if(x.stream_quality&&x.stream_quality!=='')x.stream_quality=' -crf '+x.stream_quality;
+                    if(channel.stream_quality && channel.stream_quality !== '')x.cust_stream+=' -crf '+channel.stream_quality;
                     if(x.cust_stream.indexOf('-tune')===-1){x.cust_stream+=' -tune zerolatency'}
                     if(x.cust_stream.indexOf('-g ')===-1){x.cust_stream+=' -g 1'}
                     if(x.cust_stream.indexOf('-s ')===-1&&x.ratio){x.cust_stream+=' -s '+x.ratio}
                     x.cust_stream+=x.stream_video_filters
                 }
-                x.pipe+=x.preset_stream+x.stream_quality+x.stream_acodec+x.stream_vcodec+' -f hls'+x.cust_stream+' -hls_time '+x.hls_time+' -hls_list_size '+x.hls_list_size+' -start_number 0 -hls_allow_cache 0 -hls_flags +delete_segments+omit_endlist "'+x.channel_sdir+'s.m3u8"';
+                x.pipe+=x.preset_stream+x.stream_acodec+x.stream_vcodec+' -f hls'+x.cust_stream+' -hls_time '+x.hls_time+' -hls_list_size '+x.hls_list_size+' -start_number 0 -hls_allow_cache 0 -hls_flags +delete_segments+omit_endlist "'+x.channel_sdir+'s.m3u8"';
             break;
             case'mjpeg':
-                if(x.stream_quality&&x.stream_quality!=='')x.stream_quality=' -q:v '+x.stream_quality;
-                x.pipe+=' -c:v mjpeg -f mpjpeg -boundary_tag shinobi'+x.cust_stream+x.stream_video_filters+x.stream_quality+' -s '+x.ratio+' pipe:'+number;
+                if(channel.stream_quality && channel.stream_quality !== '')x.cust_stream+=' -q:v '+channel.stream_quality;
+                x.pipe+=' -c:v mjpeg -f mpjpeg -boundary_tag shinobi'+x.cust_stream+x.stream_video_filters+' -s '+x.ratio+' pipe:'+number;
             break;
             default:
                 x.pipe=''
@@ -1566,7 +1567,6 @@ s.ffmpeg=function(e){
     //stream - preset
     if(e.details.preset_stream&&e.details.preset_stream!==''){x.preset_stream=' -preset '+e.details.preset_stream;}else{x.preset_stream=''}
     //stream - quality
-    if(e.details.stream_quality&&e.details.stream_quality!==''){x.stream_quality=e.details.stream_quality}else{x.stream_quality=''}
     //hardware acceleration
     if(e.details.accelerator&&e.details.accelerator==='1'){
         if(e.details.hwaccel&&e.details.hwaccel!==''){
@@ -1620,8 +1620,7 @@ s.ffmpeg=function(e){
             x.cust_stream+=' -movflags +frag_keyframe+empty_moov+default_base_moof -metadata title="Poseidon Stream" -reset_timestamps 1'
             if(e.details.stream_vcodec!=='copy'){
                 if(x.cust_stream.indexOf('-s ')===-1){x.cust_stream+=' -s '+x.ratio}
-                if(x.stream_quality&&x.stream_quality!=='')x.stream_quality=' -crf '+x.stream_quality;
-                x.cust_stream+=x.stream_quality
+                if(e.details.stream_quality && e.details.stream_quality !== '')x.cust_stream+=' -crf '+e.details.stream_quality;
                 x.cust_stream+=x.preset_stream
                 x.cust_stream+=x.stream_video_filters
             }
@@ -1630,8 +1629,7 @@ s.ffmpeg=function(e){
         case'flv':
             if(e.details.stream_vcodec!=='copy'){
                 if(x.cust_stream.indexOf('-s ')===-1&&x.ratio){x.cust_stream+=' -s '+x.ratio}
-                if(x.stream_quality&&x.stream_quality!=='')x.stream_quality=' -crf '+x.stream_quality;
-                x.cust_stream+=x.stream_quality
+                if(e.details.stream_quality && e.details.stream_quality !== '')x.cust_stream+=' -crf '+e.details.stream_quality;
                 x.cust_stream+=x.preset_stream
                 x.cust_stream+=x.stream_video_filters
             }
@@ -1639,21 +1637,21 @@ s.ffmpeg=function(e){
         break;
         case'hls':
             if(e.details.stream_vcodec!=='h264_vaapi'&&e.details.stream_vcodec!=='copy'){
-                if(x.stream_quality&&x.stream_quality!=='')x.stream_quality=' -crf '+x.stream_quality;
+                if(e.details.stream_quality && e.details.stream_quality !== '')x.cust_stream+=' -crf '+e.details.stream_quality;
                 if(x.cust_stream.indexOf('-tune')===-1){x.cust_stream+=' -tune zerolatency'}
                 if(x.cust_stream.indexOf('-g ')===-1){x.cust_stream+=' -g 1'}
                 if(x.cust_stream.indexOf('-s ')===-1&&x.ratio){x.cust_stream+=' -s '+x.ratio}
                 x.cust_stream+=x.stream_video_filters
             }
-            x.pipe+=x.preset_stream+x.stream_quality+x.stream_acodec+x.stream_vcodec+' -f hls'+x.cust_stream+' -hls_time '+x.hls_time+' -hls_list_size '+x.hls_list_size+' -start_number 0 -hls_allow_cache 0 -hls_flags +delete_segments+omit_endlist "'+e.sdir+'s.m3u8"';
+            x.pipe+=x.preset_stream+x.stream_acodec+x.stream_vcodec+' -f hls'+x.cust_stream+' -hls_time '+x.hls_time+' -hls_list_size '+x.hls_list_size+' -start_number 0 -hls_allow_cache 0 -hls_flags +delete_segments+omit_endlist "'+e.sdir+'s.m3u8"';
         break;
         case'mjpeg':
-            if(x.stream_quality&&x.stream_quality!=='')x.stream_quality=' -q:v '+x.stream_quality;
-            x.pipe+=' -c:v mjpeg -f mpjpeg -boundary_tag shinobi'+x.cust_stream+x.stream_video_filters+x.stream_quality+' -s '+x.ratio+' pipe:1';
+            if(e.details.stream_quality && e.details.stream_quality !== '')x.cust_stream+=' -q:v '+e.details.stream_quality;
+            x.pipe+=' -c:v mjpeg -f mpjpeg -boundary_tag shinobi'+x.cust_stream+x.stream_video_filters+' -s '+x.ratio+' pipe:1';
         break;
         case'b64':case'':case undefined:case null://base64
-            if(x.stream_quality&&x.stream_quality!=='')x.stream_quality=' -q:v '+x.stream_quality;
-            x.pipe+=' -c:v mjpeg -f image2pipe'+x.cust_stream+x.stream_video_filters+x.stream_quality+' -s '+x.ratio+' pipe:1';
+            if(e.details.stream_quality && e.details.stream_quality !== '')x.cust_stream+=' -q:v '+e.details.stream_quality;
+            x.pipe+=' -c:v mjpeg -f image2pipe'+x.cust_stream+x.stream_video_filters+' -s '+x.ratio+' pipe:1';
         break;
         default:
             x.pipe=''
@@ -1918,43 +1916,51 @@ s.camera=function(x,e,cn,tx){
             }
             var controlURLOptions = buildOptionsFromUrl(e.base+monitorConfig.details['control_url_'+e.direction])
             if(monitorConfig.details.control_url_method === 'ONVIF'){
-                new Cam({
-                  hostname: controlURLOptions.host,
-                  port: controlURLOptions.port,
-                  username: controlURLOptions.username,
-                  password: controlURLOptions.password
-                }, function(err) {
-                    var Camera = this;
-                    if(err){
-                        s.log(e,{type:lang['Control Error'],msg:{error:err,options:controlURLOptions,direction:e.direction}})
-                    }
-                    //e.direction
-                    var controlOptions = {}
-                    var onvifDirections = {
-                        "left" : [-1,'x'],
-                        "right" : [1,'x'],
-                        "down" : [-1,'y'],
-                        "up" : [1,'y'],
-                        "zoom_in" : [1,'zoom'],
-                        "zoom_out" : [-1,'zoom']
-                    }
-                    var direction = onvifDirections[e.direction]
-                    controlOptions[direction[1]] = direction[0]
-                    if(monitorConfig.details.control_stop=='1'){
-                        Camera.continuousMove(controlOptions,function(){
-                            s.log(e,{type:'Control Trigger Started'});
-                            setTimeout(function(){
-                                s.log(e,{type:'Control Trigger Ended'});
-                                Camera.stop()
-                            },monitorConfig.details.control_url_stop_timeout)
+                try{
+                    var move = function(onvifConnection){
+                        var Camera = onvifConnection;
+                        var controlOptions = {}
+                        var onvifDirections = {
+                            "left" : [-1,'x'],
+                            "right" : [1,'x'],
+                            "down" : [-1,'y'],
+                            "up" : [1,'y'],
+                            "zoom_in" : [1,'zoom'],
+                            "zoom_out" : [-1,'zoom']
+                        }
+                        var direction = onvifDirections[e.direction]
+                        controlOptions[direction[1]] = direction[0]
+                        if(monitorConfig.details.control_stop=='1'){
+                            Camera.continuousMove(controlOptions,function(err){
+                                s.log(e,{type:'Control Trigger Started'});
+                                setTimeout(function(){
+                                    s.log(e,{type:'Control Trigger Ended'});
+                                    Camera.stop()
+                                },monitorConfig.details.control_url_stop_timeout)
 
+                            })
+                        }else{
+                            Camera.absoluteMove(controlOptions,function(err){
+                                s.log(e,{type:'Control Triggered'});
+                            })
+                        }
+                    }
+                    if(!s.group[e.ke].mon[e.id].onvifConnection){
+                        s.group[e.ke].mon[e.id].onvifConnection = new Cam({
+                          hostname: controlURLOptions.host,
+                          port: controlURLOptions.port,
+                          username: controlURLOptions.username,
+                          password: controlURLOptions.password
+                        }, function(err) {
+                            move(this)
                         })
                     }else{
-                        Camera.absoluteMove(controlOptions,function(){
-                            s.log(e,{type:'Control Triggered'});
-                        })
+                        move(s.group[e.ke].mon[e.id].onvifConnection)
                     }
-                });
+                }catch(err){
+                    delete(s.group[e.ke].mon[e.id].onvifConnection)
+                    s.log(e,{type:lang['Control Error'],msg:{msg:lang.ControlErrorText2,error:err,options:controlURLOptions,direction:e.direction}})
+                }
             }else{
                 http.request(controlURLOptions, function(first) {
                     var body = '';
@@ -6030,43 +6036,29 @@ setTimeout(function(){
                     s.init('group',v)
                     s.systemLog(v.mail+' : '+lang.startUpText1,countFinished+'/'+count)
                     if(countFinished===count){
-                        s.systemLog(lang.startUpText2)
-                        ////close open videos
-                        s.sqlQuery('SELECT * FROM Videos WHERE status=?',[0],function(err,r){
+                        s.systemLog(lang.startUpText4)
+                        //preliminary monitor start
+                        s.sqlQuery('SELECT * FROM Monitors', function(err,r) {
+                            if(err){s.systemLog(err)}
                             if(r&&r[0]){
                                 r.forEach(function(v){
-                                    s.init(0,v)
-                                    v.filename=s.moment(v.time);
-                                    s.video('close',v);
-                                })
-                            }
-                            s.systemLog(lang.startUpText3)
-                            setTimeout(function(){
-                                s.systemLog(lang.startUpText4)
-                                //preliminary monitor start
-                                s.sqlQuery('SELECT * FROM Monitors', function(err,r) {
-                                    if(err){s.systemLog(err)}
-                                    if(r&&r[0]){
-                                        r.forEach(function(v){
-                                            s.init(0,v);
-                                            r.ar={};
-                                            r.ar.id=v.mid;
-                                            Object.keys(v).forEach(function(b){
-                                                r.ar[b]=v[b];
-                                            })
-                                            if(!s.group[v.ke]){
-                                                s.group[v.ke]={}
-                                                s.group[v.ke].mon_conf={}
-                                            }
-                                            v.details=JSON.parse(v.details);
-                                            s.group[v.ke].mon_conf[v.mid]=v;
-                                            s.camera(v.mode,r.ar);
-                                        });
+                                    s.init(0,v);
+                                    r.ar={};
+                                    r.ar.id=v.mid;
+                                    Object.keys(v).forEach(function(b){
+                                        r.ar[b]=v[b];
+                                    })
+                                    if(!s.group[v.ke]){
+                                        s.group[v.ke]={}
+                                        s.group[v.ke].mon_conf={}
                                     }
-                                    s.processReady()
+                                    v.details=JSON.parse(v.details);
+                                    s.group[v.ke].mon_conf[v.mid]=v;
+                                    s.camera(v.mode,r.ar);
                                 });
-                            },3000)
-                        })
+                            }
+                            s.processReady()
+                        });
                     }
                 })
             })
