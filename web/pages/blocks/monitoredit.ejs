@@ -1194,10 +1194,11 @@
                   </div>
                   <div class="form-group">
                     <label><div><span><%-lang['Call Method']%></span></div>
-                        <div><select class="form-control" detail="control_url_method">
+                        <div><select class="form-control" detail="control_url_method" selector="h_control_call">
                             <option value="GET">GET (<%-lang.Default%>)</option>  
                             <option value="PUT">PUT</option>
                             <option value="POST">POST</option>
+                            <option value="ONVIF">ONVIF</option>
                         </select></div>
                     </label>
                   </div>
@@ -1214,80 +1215,82 @@
                     <div><input class="form-control" detail="control_url_stop_timeout" placeholder="1000"></div>
                     </label>
                   </div>
-                  <div class="form-group">
-                    <label><div><span><%-lang['Center']%></span></div>
-                    <div><input class="form-control" detail="control_url_center" placeholder="/"></div>
-                    </label>
-                  </div>
-                  <div class="form-group">
-                    <label><div><span><%-lang['Left']%></span></div>
-                    <div><input class="form-control" detail="control_url_left" placeholder="/"></div>
-                    </label>
-                  </div>
-                  <div class="form-group h_cs_input h_cs_1">
-                    <label><div><span><%-lang['Left Stop']%></span></div>
-                    <div><input class="form-control" detail="control_url_left_stop" placeholder="/"></div>
-                    </label>
-                  </div>
-                  <div class="form-group">
-                    <label><div><span><%-lang['Right']%></span></div>
-                    <div><input class="form-control" detail="control_url_right" placeholder="/"></div>
-                    </label>
-                  </div>
-                  <div class="form-group h_cs_input h_cs_1">
-                    <label><div><span><%-lang['Right Stop']%></span></div>
-                    <div><input class="form-control" detail="control_url_right_stop" placeholder="/"></div>
-                    </label>
-                  </div>
-                  <div class="form-group">
-                    <label><div><span><%-lang['Up']%></span></div>
-                    <div><input class="form-control" detail="control_url_up" placeholder="/"></div>
-                    </label>
-                  </div>
-                  <div class="form-group h_cs_input h_cs_1">
-                    <label><div><span><%-lang['Up Stop']%></span></div>
-                    <div><input class="form-control" detail="control_url_up_stop" placeholder="/"></div>
-                    </label>
-                  </div>
-                  <div class="form-group">
-                    <label><div><span><%-lang['Down']%></span></div>
-                    <div><input class="form-control" detail="control_url_down" placeholder="/"></div>
-                    </label>
-                  </div>
-                  <div class="form-group h_cs_input h_cs_1">
-                    <label><div><span><%-lang['Down Stop']%></span></div>
-                    <div><input class="form-control" detail="control_url_down_stop" placeholder="/"></div>
-                    </label>
-                  </div>
-                  <div class="form-group">
-                    <label><div><span><%-lang['Enable Night Vision']%></span></div>
-                    <div><input class="form-control" detail="control_url_enable_nv" placeholder="/"></div>
-                    </label>
-                  </div>
-                  <div class="form-group">
-                    <label><div><span><%-lang['Disable Night Vision']%></span></div>
-                    <div><input class="form-control" detail="control_url_disable_nv" placeholder="/"></div>
-                    </label>
-                  </div>
-                  <div class="form-group">
-                    <label><div><span><%-lang['Zoom Out']%></span></div>
-                    <div><input class="form-control" detail="control_url_zoom_out" placeholder="/"></div>
-                    </label>
-                  </div>
-                  <div class="form-group h_cs_input h_cs_1">
-                    <label><div><span><%-lang['Zoom Out Stop']%></span></div>
-                    <div><input class="form-control" detail="control_url_zoom_out_stop" placeholder="/"></div>
-                    </label>
-                  </div>
-                  <div class="form-group">
-                    <label><div><span><%-lang['Zoom In']%></span></div>
-                    <div><input class="form-control" detail="control_url_zoom_in" placeholder="/"></div>
-                    </label>
-                  </div>
-                  <div class="form-group h_cs_input h_cs_1">
-                    <label><div><span><%-lang['Zoom In Stop']%></span></div>
-                    <div><input class="form-control" detail="control_url_zoom_in_stop" placeholder="/"></div>
-                    </label>
+                  <div class="h_control_call_input h_control_call_GET h_control_call_PUT h_control_call_POST">
+                      <div class="form-group">
+                        <label><div><span><%-lang['Center']%></span></div>
+                        <div><input class="form-control" detail="control_url_center" placeholder="/"></div>
+                        </label>
+                      </div>
+                      <div class="form-group">
+                        <label><div><span><%-lang['Left']%></span></div>
+                        <div><input class="form-control" detail="control_url_left" placeholder="/"></div>
+                        </label>
+                      </div>
+                      <div class="form-group h_cs_input h_cs_1">
+                        <label><div><span><%-lang['Left Stop']%></span></div>
+                        <div><input class="form-control" detail="control_url_left_stop" placeholder="/"></div>
+                        </label>
+                      </div>
+                      <div class="form-group">
+                        <label><div><span><%-lang['Right']%></span></div>
+                        <div><input class="form-control" detail="control_url_right" placeholder="/"></div>
+                        </label>
+                      </div>
+                      <div class="form-group h_cs_input h_cs_1">
+                        <label><div><span><%-lang['Right Stop']%></span></div>
+                        <div><input class="form-control" detail="control_url_right_stop" placeholder="/"></div>
+                        </label>
+                      </div>
+                      <div class="form-group">
+                        <label><div><span><%-lang['Up']%></span></div>
+                        <div><input class="form-control" detail="control_url_up" placeholder="/"></div>
+                        </label>
+                      </div>
+                      <div class="form-group h_cs_input h_cs_1">
+                        <label><div><span><%-lang['Up Stop']%></span></div>
+                        <div><input class="form-control" detail="control_url_up_stop" placeholder="/"></div>
+                        </label>
+                      </div>
+                      <div class="form-group">
+                        <label><div><span><%-lang['Down']%></span></div>
+                        <div><input class="form-control" detail="control_url_down" placeholder="/"></div>
+                        </label>
+                      </div>
+                      <div class="form-group h_cs_input h_cs_1">
+                        <label><div><span><%-lang['Down Stop']%></span></div>
+                        <div><input class="form-control" detail="control_url_down_stop" placeholder="/"></div>
+                        </label>
+                      </div>
+                      <div class="form-group">
+                        <label><div><span><%-lang['Enable Night Vision']%></span></div>
+                        <div><input class="form-control" detail="control_url_enable_nv" placeholder="/"></div>
+                        </label>
+                      </div>
+                      <div class="form-group">
+                        <label><div><span><%-lang['Disable Night Vision']%></span></div>
+                        <div><input class="form-control" detail="control_url_disable_nv" placeholder="/"></div>
+                        </label>
+                      </div>
+                      <div class="form-group">
+                        <label><div><span><%-lang['Zoom Out']%></span></div>
+                        <div><input class="form-control" detail="control_url_zoom_out" placeholder="/"></div>
+                        </label>
+                      </div>
+                      <div class="form-group h_cs_input h_cs_1">
+                        <label><div><span><%-lang['Zoom Out Stop']%></span></div>
+                        <div><input class="form-control" detail="control_url_zoom_out_stop" placeholder="/"></div>
+                        </label>
+                      </div>
+                      <div class="form-group">
+                        <label><div><span><%-lang['Zoom In']%></span></div>
+                        <div><input class="form-control" detail="control_url_zoom_in" placeholder="/"></div>
+                        </label>
+                      </div>
+                      <div class="form-group h_cs_input h_cs_1">
+                        <label><div><span><%-lang['Zoom In Stop']%></span></div>
+                        <div><input class="form-control" detail="control_url_zoom_in_stop" placeholder="/"></div>
+                        </label>
+                      </div>
                   </div>
               </div>
           </div>

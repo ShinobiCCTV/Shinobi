@@ -1888,64 +1888,112 @@ s.camera=function(x,e,cn,tx){
             }
             if(!monitorConfig.details.control_url_stop_timeout||monitorConfig.details.control_url_stop_timeout===''){monitorConfig.details.control_url_stop_timeout=1000}
             if(!monitorConfig.details.control_url_method||monitorConfig.details.control_url_method===''){monitorConfig.details.control_url_method="GET"}
-            var setURL=function(url){
-                e.URLobject=URL.parse(url)
-                if(!e.URLobject.port){e.URLobject.port=80}
-                e.options = {
-                    host: e.URLobject.hostname,
-                    port: e.URLobject.port,
+            var buildOptionsFromUrl=function(url){
+                URLobject=URL.parse(url)
+//                if(monitorConfig.details.control_url_method === 'ONVIF'){
+//                    if(!URLobject.port){URLobject.port=8000}
+//                }else{
+                    if(!URLobject.port){URLobject.port=80}
+//                }
+                options = {
+                    host: URLobject.hostname,
+                    port: URLobject.port,
                     method: monitorConfig.details.control_url_method,
-                    path: e.URLobject.pathname,
+                    path: URLobject.pathname,
                 };
-                if(e.URLobject.query){
-                    e.options.path=e.options.path+'?'+e.URLobject.query
+                if(URLobject.query){
+                    options.path=options.path+'?'+URLobject.query
                 }
-                if(e.URLobject.username&&e.URLobject.password){
-                    e.options.auth=e.URLobject.username+':'+e.URLobject.password
+                if(URLobject.username&&URLobject.password){
+                    options.username = URLobject.username
+                    options.password = URLobject.password
+                    options.auth=URLobject.username+':'+URLobject.password
+                }else if(URLobject.auth){
+                    var auth = URLobject.auth.split(':')
+                    options.auth=URLobject.auth
+                    options.username = auth[0]
+                    options.password = auth[1]
                 }
-                if(e.URLobject.auth){
-                    e.options.auth=e.URLobject.auth
-                }
+                return options
             }
-            setURL(e.base+monitorConfig.details['control_url_'+e.direction])
-            http.request(e.options, function(first) {
-                var body = '';
-                var msg;
-                first.on('data', function(chunk) {
-                    body+=chunk
-                });
-                first.on('end',function(){
-                    if(monitorConfig.details.control_stop=='1'&&e.direction!=='center'){
-                        s.log(e,{type:'Control Triggered Started',msg:body});
-                        setURL(e.base+monitorConfig.details['control_url_'+e.direction+'_stop'])
-                        setTimeout(function(){
-                            http.request(e.options, function(data) {
-                                var body=''
-                                  data.on('data', function(chunk){
-                                      body+=chunk
-                                  })
-                                  data.on('end', function(){
-                                      msg = {ok:true,type:'Control Trigger Ended'};
-                                      cn(msg)
-                                      s.log(e,msg);
-                                  });
-                            }).on('error', function(err) {
-                               msg = {ok:false,type:'Control Error',msg:err};
-                               cn(msg)
-                               s.log(e,msg);
-                            }).end();
-                        },monitorConfig.details.control_url_stop_timeout)
+            var controlURLOptions = buildOptionsFromUrl(e.base+monitorConfig.details['control_url_'+e.direction])
+            if(monitorConfig.details.control_url_method === 'ONVIF'){
+                new Cam({
+                  hostname: controlURLOptions.host,
+                  port: controlURLOptions.port,
+                  username: controlURLOptions.username,
+                  password: controlURLOptions.password
+                }, function(err) {
+                    var Camera = this;
+                    if(err){
+                        s.log(e,{type:lang['Control Error'],msg:{error:err,options:controlURLOptions,direction:e.direction}})
+                    }
+                    //e.direction
+                    var controlOptions = {}
+                    var onvifDirections = {
+                        "left" : [-1,'x'],
+                        "right" : [1,'x'],
+                        "down" : [-1,'y'],
+                        "up" : [1,'y'],
+                        "zoom_in" : [1,'zoom'],
+                        "zoom_out" : [-1,'zoom']
+                    }
+                    var direction = onvifDirections[e.direction]
+                    controlOptions[direction[1]] = direction[0]
+                    if(monitorConfig.details.control_stop=='1'){
+                        Camera.continuousMove(controlOptions,function(){
+                            s.log(e,{type:'Control Trigger Started'});
+                            setTimeout(function(){
+                                s.log(e,{type:'Control Trigger Ended'});
+                                Camera.stop()
+                            },monitorConfig.details.control_url_stop_timeout)
+
+                        })
                     }else{
-                        msg = {ok:true,type:'Control Triggered',msg:body};
-                        cn(msg)
-                        s.log(e,msg);
+                        Camera.absoluteMove(controlOptions,function(){
+                            s.log(e,{type:'Control Triggered'});
+                        })
                     }
                 });
-            }).on('error', function(err) {
-                msg = {ok:false,type:'Control Error',msg:err};
-                cn(msg)
-                s.log(e,msg);
-            }).end();
+            }else{
+                http.request(controlURLOptions, function(first) {
+                    var body = '';
+                    var msg;
+                    first.on('data', function(chunk) {
+                        body+=chunk
+                    });
+                    first.on('end',function(){
+                        if(monitorConfig.details.control_stop=='1'&&e.direction!=='center'){
+                            s.log(e,{type:'Control Triggered Started'});
+                            setTimeout(function(){
+                                http.request(buildOptionsFromUrl(e.base+monitorConfig.details['control_url_'+e.direction+'_stop']), function(data) {
+                                    var body=''
+                                      data.on('data', function(chunk){
+                                          body+=chunk
+                                      })
+                                      data.on('end', function(){
+                                          msg = {ok:true,type:'Control Trigger Ended'};
+                                          cn(msg)
+                                          s.log(e,msg);
+                                      });
+                                }).on('error', function(err) {
+                                   msg = {ok:false,type:'Control Error',msg:err};
+                                   cn(msg)
+                                   s.log(e,msg);
+                                }).end();
+                            },monitorConfig.details.control_url_stop_timeout)
+                        }else{
+                            msg = {ok:true,type:'Control Triggered'};
+                            cn(msg)
+                            s.log(e,msg);
+                        }
+                    });
+                }).on('error', function(err) {
+                    msg = {ok:false,type:'Control Error',msg:err};
+                    cn(msg)
+                    s.log(e,msg);
+                }).end();
+            }
         break;
         case'snapshot'://get snapshot from monitor URL
             if(config.doSnapshot===true){
