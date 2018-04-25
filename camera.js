@@ -1140,8 +1140,6 @@ s.ffmpeg=function(e){
                 if(v.map==='')v.map='0'
                 string += ' -map '+v.map
             })
-        }else{
-            string = ' -map 0'
         }
         return string;
     }
@@ -1888,11 +1886,11 @@ s.camera=function(x,e,cn,tx){
             if(!monitorConfig.details.control_url_method||monitorConfig.details.control_url_method===''){monitorConfig.details.control_url_method="GET"}
             var buildOptionsFromUrl=function(url){
                 URLobject=URL.parse(url)
-//                if(monitorConfig.details.control_url_method === 'ONVIF'){
-//                    if(!URLobject.port){URLobject.port=8000}
-//                }else{
-                    if(!URLobject.port){URLobject.port=80}
-//                }
+                if(monitorConfig.details.control_url_method === 'ONVIF' && monitorConfig.details.control_base_url === ''){
+                    URLobject.port=8000
+                }else if(!URLobject.port){
+                    URLobject.port=80
+                }
                 options = {
                     host: URLobject.hostname,
                     port: URLobject.port,
