@@ -1916,17 +1916,18 @@ s.camera=function(x,e,cn,tx){
                 }
                 return options
             }
-            var controlURLOptions = buildOptionsFromUrl(e.base+monitorConfig.details['control_url_'+e.direction])
+            var controlURL = e.base+monitorConfig.details['control_url_'+e.direction]
+            var controlURLOptions = buildOptionsFromUrl(controlURL)
+            if(monitorConfig.details.control_url_stop_timeout === '0' && monitorConfig.details.control_stop === '1' && s.group[e.ke].mon[e.id].ptzMoving === true){
+                e.direction = 'stopMove'
+                s.group[e.ke].mon[e.id].ptzMoving = false
+            }else{
+                s.group[e.ke].mon[e.id].ptzMoving = true
+            }
             if(monitorConfig.details.control_url_method === 'ONVIF'){
                 try{
                     var move = function(onvifConnection){
                         var Camera = onvifConnection;
-                        if(monitorConfig.details.control_url_stop_timeout === '0' && monitorConfig.details.control_stop === '1' && s.group[e.ke].mon[e.id].ptzMoving === true){
-                            e.direction = 'stopMove'
-                            s.group[e.ke].mon[e.id].ptzMoving = false
-                        }else{
-                            s.group[e.ke].mon[e.id].ptzMoving = true
-                        }
                         switch(e.direction){
                             case'center':
 //                                Camera.gotoHomePosition()
@@ -1994,50 +1995,63 @@ s.camera=function(x,e,cn,tx){
                 }
             }else{
                 var stopCamera = function(){
-                    http.request(buildOptionsFromUrl(e.base+monitorConfig.details['control_url_'+e.direction+'_stop']), function(data) {
-                        var body=''
-                          data.on('data', function(chunk){
-                              body+=chunk
-                          })
-                          data.on('end', function(){
-                              msg = {ok:true,type:'Control Trigger Ended'};
-                              cn(msg)
-                              s.log(e,msg);
-                          });
-                    }).on('error', function(err) {
-                       msg = {ok:false,type:'Control Error',msg:err};
-                       cn(msg)
-                       s.log(e,msg);
-                    }).end();
+                    var stopURL = e.base+monitorConfig.details['control_url_'+e.direction+'_stop']
+                    var options = buildOptionsFromUrl(stopURL)
+                    var requestOptions = {
+                        url : stopURL,
+                        method : options.method,
+                        auth : {
+                            user : options.username,
+                            pass : options.password
+                        }
+                    }
+                    if(monitorConfig.details.control_digest_auth === '1'){
+                        requestOptions.sendImmediately = true
+                    }
+                    request(requestOptions,function(err,data){
+                        if(err){
+                            msg = {ok:false,type:'Control Error',msg:err}
+                        }else{
+                            msg = {ok:true,type:'Control Trigger Ended'}
+                        }
+                        cn(msg)
+                        s.log(e,msg);
+                    })
                 }
                 if(e.direction === 'stopMove'){
                     stopCamera()
                 }else{
-                    http.request(controlURLOptions, function(first) {
-                        var body = '';
-                        var msg;
-                        first.on('data', function(chunk) {
-                            body+=chunk
-                        });
-                        first.on('end',function(){
-                            if(monitorConfig.details.control_stop=='1'&&e.direction!=='center'){
-                                s.log(e,{type:'Control Triggered Started'});
-                                if(monitorConfig.details.control_url_stop_timeout > 0){
-                                    setTimeout(function(){
-                                        stopCamera()
-                                    },monitorConfig.details.control_url_stop_timeout)
-                                }
-                            }else{
-                                msg = {ok:true,type:'Control Triggered'};
-                                cn(msg)
-                                s.log(e,msg);
+                    var requestOptions = {
+                        url : controlURL,
+                        method : controlURLOptions.method,
+                        auth : {
+                            user : controlURLOptions.username,
+                            pass : controlURLOptions.password
+                        }
+                    }
+                    if(monitorConfig.details.control_digest_auth === '1'){
+                        requestOptions.sendImmediately = true
+                    }
+                    request(requestOptions,function(err,data){
+                        if(err){
+                            msg = {ok:false,type:'Control Error',msg:err};
+                            cn(msg)
+                            s.log(e,msg);
+                            return
+                        }
+                        if(monitorConfig.details.control_stop=='1'&&e.direction!=='center'){
+                            s.log(e,{type:'Control Triggered Started'});
+                            if(monitorConfig.details.control_url_stop_timeout > 0){
+                                setTimeout(function(){
+                                    stopCamera()
+                                },monitorConfig.details.control_url_stop_timeout)
                             }
-                        });
-                    }).on('error', function(err) {
-                        msg = {ok:false,type:'Control Error',msg:err};
-                        cn(msg)
-                        s.log(e,msg);
-                    }).end();
+                        }else{
+                            msg = {ok:true,type:'Control Triggered'};
+                            cn(msg)
+                            s.log(e,msg);
+                        }
+                    })
                 }
             }
         break;

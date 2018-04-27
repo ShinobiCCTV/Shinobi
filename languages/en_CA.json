@@ -377,6 +377,7 @@
    "Custom Base URL": "Custom Base URL <small>Leave blank to use Host URL</small>",
    "Stop URL": "Stop URL",
    "Stop Command": "Stop Command",
+   "Digest Authentication": "Digest Authentication",
    "URL Stop Timeout": "URL Stop Timeout <small>Run stop URL after X milliseconds</small>",
    "Center": "Center <small>URL Address</small>",
    "Left": "Left <small>URL Address</small>",
