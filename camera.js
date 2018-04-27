@@ -1164,10 +1164,9 @@ s.ffmpeg=function(e){
                 x.cust_input+=' -f mjpeg'
             }
             //input - frames per second
-            if(x.cust_input.indexOf('-r ')===-1&&!input.sfps||input.sfps===''){
+            if(x.cust_input.indexOf('-r ')===-1&&input.sfps&&input.sfps!==''){
                 input.sfps=parseFloat(input.sfps);
                 if(isNaN(input.sfps)){input.sfps=1}
-                input.sfps
                 x.cust_input+=' -r '+input.sfps
             }
             x.cust_input+=' -reconnect 1';
