@@ -1053,6 +1053,12 @@ switch($user.details.lang){
                         type:'text',
                     },
                     {
+                        name:'sfps',
+                        label:'<%-cleanLang(lang['Monitor Capture Rate'])%>',
+                        placeholder:'',
+                        type:'text',
+                    },
+                    {
                         name:'aduration',
                         label:'<%-cleanLang(lang['Analyzation Duration'])%>',
                         placeholder:'Example : 1000000',
