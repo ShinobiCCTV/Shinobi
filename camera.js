@@ -1928,6 +1928,12 @@ s.camera=function(x,e,cn,tx){
                 try{
                     var move = function(onvifConnection){
                         var Camera = onvifConnection;
+                        if(!Camera.profileToken){
+                            msg = {type:'ONVIF not Authenticated.',msg:'Check your connection details or set a custom base URL pointed at port 80 or 8000'}
+                            s.log(e,msg)
+                            cn(msg)
+                            return
+                        }
                         switch(e.direction){
                             case'center':
 //                                Camera.gotoHomePosition()
