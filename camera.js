@@ -1140,6 +1140,8 @@ s.ffmpeg=function(e){
                 if(v.map==='')v.map='0'
                 string += ' -map '+v.map
             })
+        }else{
+            string += ' -map 0'
         }
         return string;
     }
@@ -1882,14 +1884,16 @@ s.camera=function(x,e,cn,tx){
             }else{
                 e.base=monitorConfig.details.control_base_url;
             }
-            if(!monitorConfig.details.control_url_stop_timeout||monitorConfig.details.control_url_stop_timeout===''){monitorConfig.details.control_url_stop_timeout=1000}
+            if(!monitorConfig.details.control_url_stop_timeout || monitorConfig.details.control_url_stop_timeout === ''){
+                monitorConfig.details.control_url_stop_timeout = 1000
+            }
             if(!monitorConfig.details.control_url_method||monitorConfig.details.control_url_method===''){monitorConfig.details.control_url_method="GET"}
             var buildOptionsFromUrl=function(url){
                 URLobject=URL.parse(url)
                 if(monitorConfig.details.control_url_method === 'ONVIF' && monitorConfig.details.control_base_url === ''){
-                    URLobject.port=8000
+                    URLobject.port = 8000
                 }else if(!URLobject.port){
-                    URLobject.port=80
+                    URLobject.port = 80
                 }
                 options = {
                     host: URLobject.hostname,
@@ -1917,30 +1921,57 @@ s.camera=function(x,e,cn,tx){
                 try{
                     var move = function(onvifConnection){
                         var Camera = onvifConnection;
-                        var controlOptions = {}
-                        var onvifDirections = {
-                            "left" : [-1,'x'],
-                            "right" : [1,'x'],
-                            "down" : [-1,'y'],
-                            "up" : [1,'y'],
-                            "zoom_in" : [1,'zoom'],
-                            "zoom_out" : [-1,'zoom']
-                        }
-                        var direction = onvifDirections[e.direction]
-                        controlOptions[direction[1]] = direction[0]
-                        if(monitorConfig.details.control_stop=='1'){
-                            Camera.continuousMove(controlOptions,function(err){
-                                s.log(e,{type:'Control Trigger Started'});
-                                setTimeout(function(){
-                                    s.log(e,{type:'Control Trigger Ended'});
-                                    Camera.stop()
-                                },monitorConfig.details.control_url_stop_timeout)
-
-                            })
+                        if(monitorConfig.details.control_url_stop_timeout === '0' && monitorConfig.details.control_stop === '1' && s.group[e.ke].mon[e.id].ptzMoving === true){
+                            e.direction = 'stopMove'
+                            s.group[e.ke].mon[e.id].ptzMoving = false
                         }else{
-                            Camera.absoluteMove(controlOptions,function(err){
-                                s.log(e,{type:'Control Triggered'});
-                            })
+                            s.group[e.ke].mon[e.id].ptzMoving = true
+                        }
+                        switch(e.direction){
+                            case'center':
+//                                Camera.gotoHomePosition()
+                                msg = {type:'Center button inactive'}
+                                s.log(e,msg)
+                                cn(msg)
+                            break;
+                            case'stopMove':
+                                msg = {type:'Control Trigger Ended'}
+                                s.log(e,msg)
+                                cn(msg)
+                                Camera.stop()
+                            break;
+                            default:
+                                var controlOptions = {}
+                                var onvifDirections = {
+                                    "left" : [-1,'x'],
+                                    "right" : [1,'x'],
+                                    "down" : [-1,'y'],
+                                    "up" : [1,'y'],
+                                    "zoom_in" : [1,'zoom'],
+                                    "zoom_out" : [-1,'zoom']
+                                }
+                                var direction = onvifDirections[e.direction]
+                                controlOptions[direction[1]] = direction[0]
+                                if(monitorConfig.details.control_stop=='1'){
+                                    Camera.continuousMove(controlOptions,function(err){
+                                        s.log(e,{type:'Control Trigger Started'});
+                                        if(monitorConfig.details.control_url_stop_timeout !== '0'){
+                                            setTimeout(function(){
+                                                msg = {type:'Control Trigger Ended'}
+                                                s.log(e,msg)
+                                                cn(msg)
+                                                Camera.stop()
+                                            },monitorConfig.details.control_url_stop_timeout)
+                                        }
+                                    })
+                                }else{
+                                    Camera.absoluteMove(controlOptions,function(err){
+                                        msg = {type:'Control Triggered'}
+                                        s.log(e,msg);
+                                        cn(msg)
+                                    })
+                                }
+                            break;
                         }
                     }
                     if(!s.group[e.ke].mon[e.id].onvifConnection){
@@ -1957,46 +1988,57 @@ s.camera=function(x,e,cn,tx){
                     }
                 }catch(err){
                     delete(s.group[e.ke].mon[e.id].onvifConnection)
-                    s.log(e,{type:lang['Control Error'],msg:{msg:lang.ControlErrorText2,error:err,options:controlURLOptions,direction:e.direction}})
+                    msg = {type:lang['Control Error'],msg:{msg:lang.ControlErrorText2,error:err,options:controlURLOptions,direction:e.direction}}
+                    s.log(e,msg)
+                    cn(msg)
                 }
             }else{
-                http.request(controlURLOptions, function(first) {
-                    var body = '';
-                    var msg;
-                    first.on('data', function(chunk) {
-                        body+=chunk
-                    });
-                    first.on('end',function(){
-                        if(monitorConfig.details.control_stop=='1'&&e.direction!=='center'){
-                            s.log(e,{type:'Control Triggered Started'});
-                            setTimeout(function(){
-                                http.request(buildOptionsFromUrl(e.base+monitorConfig.details['control_url_'+e.direction+'_stop']), function(data) {
-                                    var body=''
-                                      data.on('data', function(chunk){
-                                          body+=chunk
-                                      })
-                                      data.on('end', function(){
-                                          msg = {ok:true,type:'Control Trigger Ended'};
-                                          cn(msg)
-                                          s.log(e,msg);
-                                      });
-                                }).on('error', function(err) {
-                                   msg = {ok:false,type:'Control Error',msg:err};
-                                   cn(msg)
-                                   s.log(e,msg);
-                                }).end();
-                            },monitorConfig.details.control_url_stop_timeout)
-                        }else{
-                            msg = {ok:true,type:'Control Triggered'};
-                            cn(msg)
-                            s.log(e,msg);
-                        }
-                    });
-                }).on('error', function(err) {
-                    msg = {ok:false,type:'Control Error',msg:err};
-                    cn(msg)
-                    s.log(e,msg);
-                }).end();
+                var stopCamera = function(){
+                    http.request(buildOptionsFromUrl(e.base+monitorConfig.details['control_url_'+e.direction+'_stop']), function(data) {
+                        var body=''
+                          data.on('data', function(chunk){
+                              body+=chunk
+                          })
+                          data.on('end', function(){
+                              msg = {ok:true,type:'Control Trigger Ended'};
+                              cn(msg)
+                              s.log(e,msg);
+                          });
+                    }).on('error', function(err) {
+                       msg = {ok:false,type:'Control Error',msg:err};
+                       cn(msg)
+                       s.log(e,msg);
+                    }).end();
+                }
+                if(e.direction === 'stopMove'){
+                    stopCamera()
+                }else{
+                    http.request(controlURLOptions, function(first) {
+                        var body = '';
+                        var msg;
+                        first.on('data', function(chunk) {
+                            body+=chunk
+                        });
+                        first.on('end',function(){
+                            if(monitorConfig.details.control_stop=='1'&&e.direction!=='center'){
+                                s.log(e,{type:'Control Triggered Started'});
+                                if(monitorConfig.details.control_url_stop_timeout > 0){
+                                    setTimeout(function(){
+                                        stopCamera()
+                                    },monitorConfig.details.control_url_stop_timeout)
+                                }
+                            }else{
+                                msg = {ok:true,type:'Control Triggered'};
+                                cn(msg)
+                                s.log(e,msg);
+                            }
+                        });
+                    }).on('error', function(err) {
+                        msg = {ok:false,type:'Control Error',msg:err};
+                        cn(msg)
+                        s.log(e,msg);
+                    }).end();
+                }
             }
         break;
         case'snapshot'://get snapshot from monitor URL
@@ -6007,11 +6049,6 @@ s.beat=function(){
 s.beat();
 s.processReady = function(){
     s.systemLog(lang.startUpText5)
-    try{
-        s.setCronJob()
-    }catch(error){
-        console.log(error)
-    }
     process.send('ready')
 }
 setTimeout(function(){
@@ -6065,351 +6102,3 @@ setTimeout(function(){
         }
     })
 },1500)
-
-s.setCronJob = function(){
-    //start cron
-    if(config.cron.enabled){
-        s.getVideoDirectory=function(e){
-            if(e.mid&&!e.id){e.id=e.mid};
-            if(e.details&&(e.details instanceof Object)===false){
-                try{e.details=JSON.parse(e.details)}catch(err){}
-            }
-            if(e.details.dir&&e.details.dir!==''){
-                return s.checkCorrectPathEnding(e.details.dir)+e.ke+'/'+e.id+'/'
-            }else{
-                return s.dir.videos+e.ke+'/'+e.id+'/';
-            }
-        }
-        s.getFileBinDirectory=function(e){
-            if(e.mid&&!e.id){e.id=e.mid};
-            return s.dir.fileBin+e.ke+'/'+e.id+'/';
-        }
-        //filters set by the user in their dashboard
-        //deleting old videos is part of the filter - config.cron.deleteOld
-        s.checkFilterRules=function(v,callback){
-            //filters
-            if(!v.d.filters||v.d.filters==''){
-                v.d.filters={};
-            }
-            //delete old videos with filter
-            if(config.cron.deleteOld===true){
-                v.d.filters.deleteOldByCron={
-                    "id":"deleteOldByCron",
-                    "name":"deleteOldByCron",
-                    "sort_by":"time",
-                    "sort_by_direction":"ASC",
-                    "limit":"",
-                    "enabled":"1",
-                    "archive":"0",
-                    "email":"0",
-                    "delete":"1",
-                    "execute":"",
-                    "where":[{
-                        "p1":"end",
-                        "p2":"<",
-                        "p3":s.sqlDate(v.d.days+" DAYS"),
-                        "p3_type":"function",
-                    }]
-                };
-            }
-            var keys = Object.keys(v.d.filters)
-            if(keys.length>0){
-                keys.forEach(function(m,current){
-                    var b=v.d.filters[m];
-                    if(b.enabled==="1"){
-                        b.ar=[v.ke];
-                        b.sql=[];
-                        b.where.forEach(function(j,k){
-                            if(j.p1==='ke'){j.p3=v.ke}
-                            switch(j.p3_type){
-                                case'function':
-                                    b.sql.push(j.p1+' '+j.p2+' '+j.p3)
-                                break;
-                                default:
-                                    b.sql.push(j.p1+' '+j.p2+' ?')
-                                    b.ar.push(j.p3)
-                                break;
-                            }
-                        })
-                        b.sql='WHERE ke=? AND status != 0 AND details NOT LIKE \'%"archived":"1"%\' AND ('+b.sql.join(' AND ')+')';
-                        if(b.sort_by&&b.sort_by!==''){
-                            b.sql+=' ORDER BY `'+b.sort_by+'` '+b.sort_by_direction
-                        }
-                        if(b.limit&&b.limit!==''){
-                            b.sql+=' LIMIT '+b.limit
-                        }
-                        s.sqlQuery('SELECT * FROM Videos '+b.sql,b.ar,function(err,r){
-                             if(r&&r[0]){
-                                b.cx={
-                                    name:b.name,
-                                    videos:r,
-                                    time:moment(),
-                                    ke:v.ke,
-                                    id:b.id
-                                };
-                                if(b.archive==="1"){
-                                    s.filterEvents('archive',{videos:r,time:moment(),ke:v.ke,id:b.id});
-                                }else{
-                                    if(b.delete==="1"){
-                                        s.filterEvents('delete',{videos:r,time:moment(),ke:v.ke,id:b.id});
-                                    }
-                                }
-                                if(b.email==="1"){
-                                    b.cx.delete=b.delete;
-                                    b.cx.mail=v.mail;
-                                    b.cx.execute=b.execute;
-                                    b.cx.query=b.sql;
-                                    s.filterEvents('email',b.cx);
-                                }
-                                if(b.execute&&b.execute!==""){
-                                    s.filterEvents('execute',{execute:b.execute,time:moment()});
-                                }
-                            }
-                        })
-
-                    }
-                    if(current===keys.length-1){
-                        //last filter
-                        callback()
-                    }
-                })
-            }else{
-                //no filters
-                callback()
-            }
-        }
-        //database rows with no videos in the filesystem
-        s.deleteRowsWithNoVideo=function(v,callback){
-            if(
-                config.cron.deleteNoVideo===true&&(
-                    config.cron.deleteNoVideoRecursion===true||
-                    (config.cron.deleteNoVideoRecursion===false&&!s.group[v.ke].alreadyDeletedRowsWithNoVideosOnStart)
-                )
-            ){
-                s.group[v.ke].alreadyDeletedRowsWithNoVideosOnStart=true;
-                es={};
-                s.sqlQuery('SELECT * FROM Videos WHERE ke=? AND status!=0 AND details NOT LIKE \'%"archived":"1"%\' AND time < '+s.sqlDate('10 MINUTE'),[v.ke],function(err,evs){
-                    if(evs&&evs[0]){
-                        es.del=[];es.ar=[v.ke];
-                        evs.forEach(function(ev){
-                            ev.dir=s.getVideoDirectory(ev)+s.moment(ev.time)+'.'+ev.ext;
-                            if(fs.existsSync(ev.dir)!==true){
-                                s.video('delete',ev)
-                                es.del.push('(mid=? AND time=?)');
-                                es.ar.push(ev.mid),es.ar.push(ev.time);
-                                s.tx({f:'video_delete',filename:s.moment(ev.time)+'.'+ev.ext,mid:ev.mid,ke:ev.ke,time:ev.time,end:s.moment(new Date,'YYYY-MM-DD HH:mm:ss')},'GRP_'+ev.ke);
-                            }
-                        });
-                        if(es.del.length>0){
-                            s.systemLog({f:'deleteNoVideo',msg:es.del.length+' SQL rows with no file deleted',ke:v.ke,time:moment()})
-                        }
-                    }
-                    setTimeout(function(){
-                        callback()
-                    },3000)
-                })
-            }else{
-                callback()
-            }
-        }
-        //info about what the application is doing
-        s.deleteOldLogs=function(v,callback){
-            if(!v.d.log_days||v.d.log_days==''){v.d.log_days=10}else{v.d.log_days=parseFloat(v.d.log_days)};
-            if(config.cron.deleteLogs===true&&v.d.log_days!==0){
-                s.sqlQuery("DELETE FROM Logs WHERE ke=? AND `time` < "+s.sqlDate('? DAYS'),[v.ke,v.d.log_days],function(err,rrr){
-                    callback()
-                    if(err)return console.error(err);
-                    if(rrr.affectedRows && rrr.affectedRows.length>0){
-                        s.systemLog({f:'deleteLogs',msg:rrr.affectedRows+' SQL rows older than '+v.d.log_days+' days deleted',ke:v.ke,time:moment()})
-                    }
-                })
-            }else{
-                callback()
-            }
-        }
-        //events - motion, object, etc. detections
-        s.deleteOldEvents=function(v,callback){
-            if(!v.d.event_days||v.d.event_days==''){v.d.event_days=10}else{v.d.event_days=parseFloat(v.d.event_days)};
-            if(config.cron.deleteEvents===true&&v.d.event_days!==0){
-                s.sqlQuery("DELETE FROM Events WHERE ke=? AND `time` < "+s.sqlDate('? DAYS'),[v.ke,v.d.event_days],function(err,rrr){
-                    callback()
-                    if(err)return console.error(err);
-                    if(rrr.affectedRows && rrr.affectedRows.length>0){
-                        s.systemLog({f:'deleteEvents',msg:rrr.affectedRows+' SQL rows older than '+v.d.event_days+' days deleted',ke:v.ke,time:moment()})
-                    }
-                })
-            }else{
-                callback()
-            }
-        }
-        //check for temporary files (special archive)
-        s.deleteOldFileBins=function(v,callback){
-            if(!v.d.fileBin_days||v.d.fileBin_days==''){v.d.fileBin_days=10}else{v.d.fileBin_days=parseFloat(v.d.fileBin_days)};
-            if(config.cron.deleteFileBins===true&&v.d.fileBin_days!==0){
-                var fileBinQuery = " FROM Files WHERE ke=? AND `date` < "+s.sqlDate('? DAYS');
-                s.sqlQuery("SELECT *"+fileBinQuery,[v.ke,v.d.fileBin_days],function(err,files){
-                    if(files&&files[0]){
-                        //delete the files
-                        files.forEach(function(file){
-                            fs.unlink(s.getFileBinDirectory(file)+file.name,function(err){
-        //                        if(err)console.error(err)
-                            })
-                        })
-                        //delete the database rows
-                        s.sqlQuery("DELETE"+fileBinQuery,[v.ke,v.d.fileBin_days],function(err,rrr){
-                            callback()
-                            if(err)return console.error(err);
-                            if(rrr.affectedRows && rrr.affectedRows.length>0){
-                                s.systemLog({f:'deleteFileBins',msg:rrr.affectedRows+' files older than '+v.d.fileBin_days+' days deleted',ke:v.ke,time:moment()})
-                            }
-                        })
-                    }else{
-                        callback()
-                    }
-                })
-            }else{
-                callback()
-            }
-        }
-        //check for files with no database row
-        s.checkForOrphanedFiles=function(v,callback){
-            if(config.cron.deleteOrphans===true){
-                var finish=function(count){
-                    if(count>0){
-                        s.systemLog({f:'deleteOrphanedFiles',msg:count+' SQL rows with no database row deleted',ke:v.ke,time:moment()})
-                    }
-                    callback()
-                }
-                e={};
-                var numberOfItems = 0;
-                s.sqlQuery('SELECT * FROM Monitors WHERE ke=?',[v.ke],function(arr,b) {
-                    if(b&&b[0]){
-                        b.forEach(function(mon,m){
-                            fs.readdir(s.getVideoDirectory(mon), function(err, items) {
-                                e.query=[];
-                                e.filesFound=[mon.ke,mon.mid];
-                                numberOfItems+=items.length;
-                                if(items&&items.length>0){
-                                    items.forEach(function(v,n){
-                                        e.query.push('time=?')
-                                        e.filesFound.push(s.nameToTime(v))
-                                    })
-                                    s.sqlQuery('SELECT * FROM Videos WHERE ke=? AND mid=? AND ('+e.query.join(' OR ')+')',e.filesFound,function(arr,r) {
-                                        if(!r){r=[]};
-                                        e.foundSQLrows=[];
-                                        r.forEach(function(v,n){
-                                            v.index=e.filesFound.indexOf(s.moment(v.time,'YYYY-MM-DD HH:mm:ss'));
-                                            if(v.index>-1){
-                                                delete(items[v.index-2]);
-                                            }
-                                        });
-                                        items.forEach(function(v,n){
-                                            if(v&&v!==null){
-                                                exec('rm '+s.getVideoDirectory(mon)+v);
-                                            }
-                                            if(m===b.length-1&&n===items.length-1){
-                                                finish(numberOfItems)
-                                            }
-                                        })
-                                    })
-                                }else{
-                                    if(m===b.length-1){
-                                        finish(numberOfItems)
-                                    }
-                                }
-                            })
-                        });
-                    }else{
-                        finish(numberOfItems)
-                    }
-                });
-            }else{
-                callback()
-            }
-        }
-        //user processing function
-        s.processUser = function(number,rows){
-            var v = rows[number];
-            if(!v){
-                //no user object given
-                return
-            }
-            if(!s.group[v.ke].alreadyDeletedRowsWithNoVideosOnStart){
-                s.group[v.ke].alreadyDeletedRowsWithNoVideosOnStart=false;
-            }
-            if(!s.group[v.ke].overlapLock){
-                // set overlap lock
-                s.group[v.ke].overlapLock=true;
-                //set permissions
-                v.d=JSON.parse(v.details);
-                //size
-                if(!v.d.size||v.d.size==''){v.d.size=10000}else{v.d.size=parseFloat(v.d.size)};
-                //days to keep videos
-                if(!v.d.days||v.d.days==''){v.d.days=5}else{v.d.days=parseFloat(v.d.days)};
-                s.sqlQuery('SELECT * FROM Monitors WHERE ke=?', [v.ke], function(err,rr) {
-                    rr.forEach(function(b,m){
-                        b.details=JSON.parse(b.details);
-                        if(b.details.max_keep_days&&b.details.max_keep_days!==''){
-                            v.d.filters['deleteOldByCron'+b.mid]={
-                                "id":'deleteOldByCron'+b.mid,
-                                "name":'deleteOldByCron'+b.mid,
-                                "sort_by":"time",
-                                "sort_by_direction":"ASC",
-                                "limit":"",
-                                "enabled":"1",
-                                "archive":"0",
-                                "email":"0",
-                                "delete":"1",
-                                "execute":"",
-                                "where":[{
-                                    "p1":"ke",
-                                    "p2":"=",
-                                    "p3":b.mid
-                                },{
-                                    "p1":"end",
-                                    "p2":"<",
-                                    "p3":s.sqlDate(b.details.max_keep_days+" DAYS"),
-                                    "p3_type":"function",
-                                }]
-                            };
-                        }
-                    })
-                    s.deleteOldLogs(v,function(){
-                        s.deleteOldFileBins(v,function(){
-                            s.deleteOldEvents(v,function(){
-                                s.checkFilterRules(v,function(){
-                                    s.deleteRowsWithNoVideo(v,function(){
-                                        s.checkForOrphanedFiles(v,function(){
-                                            //done user, unlock current, and do next
-                                            s.group[v.ke].overlapLock=false;
-                                            s.processUser(number+1,rows)
-                                        })
-                                    })
-                                })
-                            })
-                        })
-                    })
-                })
-            }
-        }
-        //recursive function
-        s.cron=function(){
-            x={};
-            s.systemLog({f:'start',time:moment()})
-            s.sqlQuery('SELECT ke,uid,details,mail FROM Users WHERE details NOT LIKE \'%"sub"%\'', function(err,rows) {
-                if(err){
-                    console.error('SELECT ke,uid,details,mail FROM Users WHERE details NOT LIKE \'%"sub"%\'')
-                    console.error(err)
-                }
-                if(rows&&rows[0]){
-                    s.processUser(0,rows)
-                }
-            })
-            s.timeout=setTimeout(function(){
-                s.cron();
-            },parseFloat(config.cron.interval)*60000*60)
-        }
-        s.cron();
-        console.log('Shinobi : cron started')
-    }
-}

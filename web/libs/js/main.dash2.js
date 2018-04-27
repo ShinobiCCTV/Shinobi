@@ -108,7 +108,7 @@ switch($user.details.lang){
             break;
             case'streamMotionDetectOff':
                 d.mon.motionDetectionRunning = false
-                $('.monitor_item[mid="'+d.mid+'"][ke="'+d.ke+'"][auth="'+user.auth_token+'"] .zoomGlass').remove()
+                $('.monitor_item[mid="'+d.mid+'"][ke="'+d.ke+'"][auth="'+user.auth_token+'"]').find('.stream-detected-object,.zoomGlass').remove()
                 clearInterval(d.mon.motionDetector)
             break;
             case'streamMotionDetectOn':
@@ -4671,7 +4671,7 @@ $('body')
             });
         break;
         case'control':
-            e.a=e.e.attr('control'),e.j=JSON.parse(e.mon.details);
+            e.a=e.e.attr('control')
             $.ccio.cx({f:'monitor',ff:'control',direction:e.a,mid:e.mid,ke:e.ke},user)
         break;
         case'videos_table':case'calendar'://call videos table or calendar
