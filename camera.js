@@ -1140,8 +1140,8 @@ s.ffmpeg=function(e){
                 if(v.map==='')v.map='0'
                 string += ' -map '+v.map
             })
-        }else{
-            string += ' -map 0'
+        }else if(e.details.input_maps && e.details.input_maps.length > 0){
+            string += ' -map 0:0'
         }
         return string;
     }
