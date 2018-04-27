@@ -42,6 +42,23 @@ if(databaseOptions.client === 'sqlite3' && databaseOptions.connection.filename =
     databaseOptions.connection.filename = __dirname+"/shinobi.sqlite"
 }
 s.databaseEngine = knex(databaseOptions)
+s.sqlDate = function(value){
+    var dateQueryFunction = ''
+    if(databaseOptions.client === 'sqlite3'){
+        value = value.toLowerCase()
+        if (value.slice(-1) !== 's') {
+            value = value+'s'
+        }
+        dateQueryFunction = "datetime('now', '-"+value+"')"
+    }else{
+        value = value.toUpperCase()
+        if (value.slice(-1) === 'S') {
+            value = value.slice(0, -1);  
+        }
+        dateQueryFunction = "DATE_SUB(NOW(), INTERVAL "+value+")"
+    }
+    return dateQueryFunction
+}
 s.sqlQuery = function(query,values,onMoveOn,hideLog){
     if(!values){values=[]}
     var valuesNotFunction = true;
@@ -156,7 +173,7 @@ s.checkFilterRules=function(v,callback){
             "where":[{
                 "p1":"end",
                 "p2":"<",
-                "p3":"NOW() - INTERVAL "+(v.d.days*24)+" HOUR",
+                "p3":s.sqlDate(v.d.days+" DAYS"),
                 "p3_type":"function",
             }]
         };
@@ -239,7 +256,7 @@ s.deleteRowsWithNoVideo=function(v,callback){
     ){
         s.alreadyDeletedRowsWithNoVideosOnStart[v.ke]=true;
         es={};
-        s.sqlQuery('SELECT * FROM Videos WHERE ke=? AND status!=0 AND details NOT LIKE \'%"archived":"1"%\' AND time < (NOW() - INTERVAL 10 MINUTE)',[v.ke],function(err,evs){
+        s.sqlQuery('SELECT * FROM Videos WHERE ke=? AND status!=0 AND details NOT LIKE \'%"archived":"1"%\' AND time < '+s.sqlDate('10 MINUTE'),[v.ke],function(err,evs){
             if(evs&&evs[0]){
                 es.del=[];es.ar=[v.ke];
                 evs.forEach(function(ev){
@@ -267,10 +284,10 @@ s.deleteRowsWithNoVideo=function(v,callback){
 s.deleteOldLogs=function(v,callback){
     if(!v.d.log_days||v.d.log_days==''){v.d.log_days=10}else{v.d.log_days=parseFloat(v.d.log_days)};
     if(config.cron.deleteLogs===true&&v.d.log_days!==0){
-        s.sqlQuery("DELETE FROM Logs WHERE ke=? AND `time` < DATE_SUB(NOW(), INTERVAL ? DAY)",[v.ke,v.d.log_days],function(err,rrr){
+        s.sqlQuery("DELETE FROM Logs WHERE ke=? AND `time` < "+s.sqlDate('? DAYS'),[v.ke,v.d.log_days],function(err,rrr){
             callback()
             if(err)return console.error(err);
-            if(rrr.affectedRows.length>0){
+            if(rrr.affectedRows && rrr.affectedRows.length>0){
                 s.cx({f:'deleteLogs',msg:rrr.affectedRows+' SQL rows older than '+v.d.log_days+' days deleted',ke:v.ke,time:moment()})
             }
         })
@@ -282,10 +299,10 @@ s.deleteOldLogs=function(v,callback){
 s.deleteOldEvents=function(v,callback){
     if(!v.d.event_days||v.d.event_days==''){v.d.event_days=10}else{v.d.event_days=parseFloat(v.d.event_days)};
     if(config.cron.deleteEvents===true&&v.d.event_days!==0){
-        s.sqlQuery("DELETE FROM Events WHERE ke=? AND `time` < DATE_SUB(NOW(), INTERVAL ? DAY)",[v.ke,v.d.event_days],function(err,rrr){
+        s.sqlQuery("DELETE FROM Events WHERE ke=? AND `time` < "+s.sqlDate('? DAYS'),[v.ke,v.d.event_days],function(err,rrr){
             callback()
             if(err)return console.error(err);
-            if(rrr.affectedRows.length>0){
+            if(rrr.affectedRows && rrr.affectedRows.length>0){
                 s.cx({f:'deleteEvents',msg:rrr.affectedRows+' SQL rows older than '+v.d.event_days+' days deleted',ke:v.ke,time:moment()})
             }
         })
@@ -297,7 +314,7 @@ s.deleteOldEvents=function(v,callback){
 s.deleteOldFileBins=function(v,callback){
     if(!v.d.fileBin_days||v.d.fileBin_days==''){v.d.fileBin_days=10}else{v.d.fileBin_days=parseFloat(v.d.fileBin_days)};
     if(config.cron.deleteFileBins===true&&v.d.fileBin_days!==0){
-        var fileBinQuery = ' FROM Files WHERE ke=? AND `date` < DATE_SUB(NOW(), INTERVAL ? DAY)';
+        var fileBinQuery = " FROM Files WHERE ke=? AND `date` < "+s.sqlDate('? DAYS');
         s.sqlQuery("SELECT *"+fileBinQuery,[v.ke,v.d.fileBin_days],function(err,files){
             if(files&&files[0]){
                 //delete the files
@@ -310,7 +327,7 @@ s.deleteOldFileBins=function(v,callback){
                 s.sqlQuery("DELETE"+fileBinQuery,[v.ke,v.d.fileBin_days],function(err,rrr){
                     callback()
                     if(err)return console.error(err);
-                    if(rrr.affectedRows.length>0){
+                    if(rrr.affectedRows && rrr.affectedRows.length>0){
                         s.cx({f:'deleteFileBins',msg:rrr.affectedRows+' files older than '+v.d.fileBin_days+' days deleted',ke:v.ke,time:moment()})
                     }
                 })
@@ -419,7 +436,7 @@ s.processUser = function(number,rows){
                         },{
                             "p1":"end",
                             "p2":"<",
-                            "p3":"NOW() - INTERVAL "+(parseFloat(b.details.max_keep_days)*24)+" HOUR",
+                            "p3":s.sqlDate(b.details.max_keep_days+" DAYS"),
                             "p3_type":"function",
                         }]
                     };
