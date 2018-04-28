@@ -1390,7 +1390,7 @@ switch($user.details.lang){
                     height = saved.height;
                 }
                 var autoPlacement = false
-                if($.ccio.op().switches.monitorOrder === 1){
+                if($.ccio.op().switches.monitorOrder !== 1){
                     autoPlacement = true
                 }
                 $(z).data('gridstack').addWidget($(tmp), x, y, width, height, autoPlacement);
@@ -4499,7 +4499,7 @@ $('body')
             $.ccio.op('switches',e.o)
             switch(e.switch){
                 case'monitorOrder':
-                    if(e.o[e.switch] === 1){
+                    if(e.o[e.switch] !== 1){
                         $('.monitor_item').attr('data-gs-auto-position','yes')
                     }else{
                         $('.monitor_item').attr('data-gs-auto-position','no')
