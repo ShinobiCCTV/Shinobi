@@ -28,10 +28,10 @@ if [ "$ffmpeginstall" = "y" ]; then
     sudo mv ffmpeg-3.4.1-macos/ffplay /usr/bin/ffplay
     sudo mv ffmpeg-3.4.1-macos/ffprobe /usr/bin/ffprobe
     sudo mv ffmpeg-3.4.1-macos/ffserver /usr/bin/ffserver
-    sudo chmod +x /usr/bin/ffmpeg
-    sudo chmod +x /usr/bin/ffplay
-    sudo chmod +x /usr/bin/ffprobe
-    sudo chmod +x /usr/bin/ffserver
+    sudo chmod +x /usr/local/bin/ffmpeg
+    sudo chmod +x /usr/local/bin/ffplay
+    sudo chmod +x /usr/local/bin/ffprobe
+    sudo chmod +x /usr/local/bin/ffserver
 fi
 echo "============="
 echo "Shinobi - Do you want to Install MySQL? Choose No if you have MySQL or MySQL already."
@@ -45,6 +45,6 @@ echo "============="
 echo "============="
 echo "You must now close this terminal window and reopen it."
 echo "Reopen the Shinobi folder and run"
-echo "chmod +x INSTALL/macos-part2.sh && INSTALL/macos-part2.sh"
+echo "sudo sh INSTALL/macos-part2.sh"
 echo "============="
 echo "============="
