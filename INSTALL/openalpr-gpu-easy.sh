@@ -17,7 +17,7 @@ mkdir build
 cd build
 
 # setup the compile environment
-cmake -DCMAKE_INSTALL_PREFIX:PATH=/usr -DCMAKE_INSTALL_SYSCONFDIR:PATH=/etc –DCOMPILE_GPU=1 ..
+cmake -DCMAKE_INSTALL_PREFIX:PATH=/usr -DCMAKE_INSTALL_SYSCONFDIR:PATH=/etc –DCOMPILE_GPU=1 -D WITH_GPU_DETECTOR=ON ..
 
 # compile the library
 make
