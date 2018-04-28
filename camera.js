@@ -1158,22 +1158,24 @@ s.ffmpeg=function(e){
         if(input.probesize&&input.probesize!==''){x.cust_input+=' -probesize '+input.probesize};
         //input - stream loop (good for static files/lists)
         if(input.stream_loop==='1'){x.cust_input+=' -stream_loop -1'};
-        //input - is h264 has rtsp in address and transport method is chosen
+        //input - fps
+        if(x.cust_input.indexOf('-r ')===-1&&input.sfps&&input.sfps!==''){
+            input.sfps=parseFloat(input.sfps);
+            if(isNaN(input.sfps)){input.sfps=1}
+            x.cust_input+=' -r '+input.sfps
+        }
+        //input - is mjpeg
         if(input.type==='mjpeg'){
             if(x.cust_input.indexOf('-f ')===-1){
                 x.cust_input+=' -f mjpeg'
             }
             //input - frames per second
-            if(x.cust_input.indexOf('-r ')===-1&&input.sfps&&input.sfps!==''){
-                input.sfps=parseFloat(input.sfps);
-                if(isNaN(input.sfps)){input.sfps=1}
-                x.cust_input+=' -r '+input.sfps
-            }
             x.cust_input+=' -reconnect 1';
-        }
+        }else
+        //input - is h264 has rtsp in address and transport method is chosen
         if((input.type==='h264'||input.type==='mp4')&&input.fulladdress.indexOf('rtsp://')>-1&&input.rtsp_transport!==''&&input.rtsp_transport!=='no'){
             x.cust_input += ' -rtsp_transport '+input.rtsp_transport;
-        }
+        }else
         if((input.type==='mp4'||input.type==='mjpeg')&&x.cust_input.indexOf('-re')===-1){
             x.cust_input += ' -re'
         }
