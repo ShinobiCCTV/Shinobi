@@ -11,7 +11,7 @@ echo "Shinobi - Do you want to Install Node.js?"
 echo "(y)es or (N)o"
 set nodejsinstall = $<
 if ( $nodejsinstall == "y" ) then
-	pkg install -y node8 npm-node8
+	pkg install -y node npm
 endif
 echo "============="
 echo "Shinobi - Do you want to Install FFMPEG?"
