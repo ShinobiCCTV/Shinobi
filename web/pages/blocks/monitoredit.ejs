@@ -47,6 +47,16 @@
                 </label>
               </div>
               <div class="form-group">
+                <label><div><span><%-lang['Retry Connection']%></span></div>
+                    <div><input class="form-control" detail="fatal_max" placeholder="10"></div>
+                </label>
+              </div>
+              <div class="form-group">
+                <label><div><span><%-lang["Number of Days to keep"]%> <%-lang["Videos"]%></span></div>
+                    <div><input class="form-control" detail="max_keep_days" placeholder="Default is global value"></div>
+                </label>
+              </div>
+              <div class="form-group">
                 <label><div><span><%-lang.Notes%></span></div>
                     <div><textarea class="form-control" detail="notes" placeholder="<%-lang.NotesPlacholder%>"></textarea></div>
                 </label>
@@ -100,7 +110,7 @@
                     </label>
                   </div>
               </div>
-              <div class="h_auto_host_input h_auto_host_0" style="display:none">
+              <div class="h_auto_host_input h_auto_host_0 auto_host_fill" style="display:none">
                   <div class="form-group h_t_input h_t_h264 h_t_hls h_t_mp4 h_t_jpeg h_t_mjpeg">
                     <label><div><span><%-lang['Connection Type']%></span></div>
                         <div><select class="form-control" name="protocol" selector="h_p">
@@ -111,17 +121,17 @@
                         </select></div>
                     </label>
                   </div>
-                  <div class="form-group h_p_input h_p_rtsp">
-                    <label><div><span><%-lang['RTSP Transport']%></span></div>
-                        <div><select class="form-control" detail="rtsp_transport">
-                            <option value="no" selected><%-lang['Auto']%></option>  
-                            <option value="tcp"><%-lang['TCP']%></option>  
-                            <option value="udp"><%-lang['UDP']%></option>  
-                            <option value="http"><%-lang['HTTP']%></option>  
-                        </select></div>
-                    </label>
-                  </div>
                   <div class="h_t_input h_t_h264 h_t_hls h_t_mp4 h_t_jpeg h_t_mjpeg">
+                      <div class="form-group h_p_input h_p_rtsp">
+                        <label><div><span><%-lang['RTSP Transport']%></span></div>
+                            <div><select class="form-control" detail="rtsp_transport">
+                                <option value="no" selected><%-lang['Auto']%></option>  
+                                <option value="tcp"><%-lang['TCP']%></option>  
+                                <option value="udp"><%-lang['UDP']%></option>  
+                                <option value="http"><%-lang['HTTP']%></option>  
+                            </select></div>
+                        </label>
+                      </div>
                       <div class="form-group">
                         <label><div><span><%-lang['Username']%></span></div>
                         <div><input class="form-control" detail="muser" placeholder=""></div>
@@ -132,8 +142,6 @@
                         <div><input class="form-control" type="password" detail="mpass" placeholder=""></div>
                         </label>
                       </div>
-                  </div>
-                  <div class="h_t_input h_t_h264 h_t_hls h_t_mp4 h_t_jpeg h_t_mjpeg">
                       <div class="form-group">
                         <label><div><span><%-lang['Host']%></span></div>
                         <div><input class="form-control" name="host" placeholder=""></div>
@@ -165,6 +173,14 @@
                     <div><input class="form-control" detail="fatal_max" placeholder="10"></div>
                 </label>
               </div>
+              <div class="form-group">
+                <label><div><span><%-lang['Skip Ping']%></span></div>
+                    <div><select class="form-control" detail="skip_ping">
+                        <option value="0" selected><%-lang.No%></option>
+                        <option value="1"><%-lang.Yes%></option>
+                    </select></div>
+                </label>
+              </div>
             </div>
 <!--     END of Connection     -->
 <!--     START of Input     -->
@@ -188,7 +204,7 @@
                     </select></div>
                 </label>
               </div>
-              <div class="form-group h_t_input h_t_socket h_t_jpeg h_t_mjpeg">
+              <div class="form-group">
                 <label><div><span><%-lang['Monitor Capture Rate']%></span></div>
                 <div><input class="form-control" detail="sfps"></div>
                 </label>
@@ -211,7 +227,7 @@
                             <option value="qsv"><%-lang.qsv%></option>
                             <option value="vdpau"><%-lang.vdpau%></option>
                             <option value="dxva2"><%-lang.dxva2%></option>
-                            <option value="vdpau"><%-lang.vda%></option>
+                            <option value="vda"><%-lang.vda%></option>
                             <option value="videotoolbox"><%-lang.videotoolbox%></option>
                         </select></div>
                     </label>
@@ -251,7 +267,7 @@
               <blockquote class="global_tip">
                   <%-lang.StreamText%>
               </blockquote>
-              <div class="form-group-group forestgreen" input-mapping="stream">
+              <div class="form-group-group forestgreen" style="display:none" input-mapping="stream">
                   <h4><%-lang['Input Feed']%>
                       <div class="pull-right">
                           <a class="btn btn-success btn-xs add_map_row"><i class="fa fa-plus-square-o"></i></a>
@@ -261,7 +277,7 @@
               </div>
               <div class="form-group">
                 <label><div><span><%-lang['Stream Type']%></span></div>
-                    <div><select class="form-control" detail="stream_type" selector="h_st">
+                    <div><select class="form-control" detail="stream_type" selector="h_st" triggerChange="#add_monitor [detail=stream_vcodec]">
                         <option value="mp4"><%-lang['Poseidon']%></option>
                         <option value="b64" selected><%-lang['Base64 over Websocket']%></option>
                         <option value="jpeg"><%-lang['JPEG (Auto Enables JPEG API)']%></option>
@@ -492,7 +508,7 @@
 <!--     START of JPEG     -->
           <div class="form-group-group forestgreen" section id="monSectionJPEGAPI">
           <h4><%-lang['JPEG API']%></h4>
-              <div class="form-group-group forestgreen" input-mapping="snap">
+              <div class="form-group-group forestgreen" style="display:none" input-mapping="snap">
                   <h4><%-lang['Input Feed']%>
                       <div class="pull-right">
                           <a class="btn btn-success btn-xs add_map_row"><i class="fa fa-plus-square-o"></i></a>
@@ -538,7 +554,7 @@
               <blockquote class="global_tip">
                 <%-lang.RecordingText%>
               </blockquote>
-              <div class="form-group-group forestgreen" input-mapping="record">
+              <div class="form-group-group forestgreen" style="display:none" input-mapping="record">
                   <h4><%-lang['Input Feed']%>
                       <div class="pull-right">
                           <a class="btn btn-success btn-xs add_map_row"><i class="fa fa-plus-square-o"></i></a>
@@ -646,7 +662,7 @@
               </div>
               <div class="form-group">
                 <label><div><span><%-lang['Recording Segment Interval']%></span></div>
-                <div><input class="form-control" detail="cutoff" placeholder="15"></div>
+                <div><input class="form-control" detail="cutoff" placeholder="15" triggerChange="#add_monitor [detail=vcodec]"></div>
                 </label>
               </div>
               <div class="h_vc_input h_vc_libvpx h_vc_libvpx-vp9 h_vc_libx264 h_vc_libx265 h_vc_hevc_nvenc h_vc_h264_nvenc h_vc_h264_vaapi h_vc_hevc_vaapi h_vc_h264_qsv h_vc_hevc_qsv h_vc_mpeg2_qsv h_vc_default h_vc_none">
@@ -808,7 +824,7 @@
                 <%-lang.DetectorText%>
                 <p class="shinobi-detector-msg"></p>
               </blockquote>
-              <div class="form-group-group forestgreen" input-mapping="detector">
+              <div class="form-group-group forestgreen" style="display:none" input-mapping="detector">
                   <h4><%-lang['Input Feed']%>
                       <div class="pull-right">
                           <a class="btn btn-success btn-xs add_map_row"><i class="fa fa-plus-square-o"></i></a>
@@ -936,14 +952,14 @@
                         <div><input class="form-control" detail="detector_timeout" placeholder="10"></div>
                         </label>
                       </div>
-                      <div class="form-group">
-                        <label><div><span><%-lang['Timeout Reset on Next Motion']%></span></div>
-                            <div><select class="form-control" detail="watchdog_reset">
-                                <option value="0"><%-lang.No%></option>
-                                <option value="1" selected><%-lang.Yes%></option>
-                            </select></div>
-                        </label>
-                      </div>
+                  </div>
+                  <div class="form-group h_rec_mtd_input h_rec_mtd_hot">
+                    <label><div><span><%-lang['Timeout Reset on Next Motion']%></span></div>
+                        <div><select class="form-control" detail="watchdog_reset">
+                            <option value="0"><%-lang.No%></option>
+                            <option value="1" selected><%-lang.Yes%></option>
+                        </select></div>
+                    </label>
                   </div>
                   <div class="h_rec_mtd_input h_rec_mtd_del">
                       <div class="form-group">
@@ -1029,7 +1045,7 @@
           </div>
           <div class="form-group-group orange h_rec_mtd_input h_rec_mtd_sip" style="display:none" section id="monSectionDetectorBuffer">
           <h4><%-lang['Traditional Recording']%></h4>
-              <div class="form-group-group forestgreen" input-mapping="detector_sip_buffer">
+              <div class="form-group-group forestgreen" style="display:none" input-mapping="detector_sip_buffer">
                   <h4><%-lang['Input Feed']%>
                       <div class="pull-right">
                           <a class="btn btn-success btn-xs add_map_row"><i class="fa fa-plus-square-o"></i></a>
@@ -1044,6 +1060,18 @@
                         <option value="libx264"><%-lang['libx264']%></option>
                         <option value="h264_vaapi"><%-lang['h264_vaapi']%></option>
                         <option value="hevc_vaapi"><%-lang['hevc_vaapi']%></option>
+                        <option value="copy"><%-lang['copy']%></option>
+                    </select></div>
+                </label>
+              </div>
+              <div class="form-group">
+                <label><div><span><%-lang['HLS Audio Encoder']%></span></div>
+                    <div><select class="form-control" detail="detector_buffer_acodec">
+                        <option value="no" selected><%-lang['No Audio']%></option>
+                        <option value="auto" selected><%-lang['Auto']%></option>
+                        <option value="aac"><%-lang['aac']%></option>
+                        <option value="ac3"><%-lang['ac3']%></option>
+                        <option value="libmp3lame"><%-lang['libmp3lame']%></option>
                         <option value="copy"><%-lang['copy']%></option>
                     </select></div>
                 </label>
@@ -1166,15 +1194,24 @@
                   </div>
                   <div class="form-group">
                     <label><div><span><%-lang['Call Method']%></span></div>
-                        <div><select class="form-control" detail="control_url_method">
+                        <div><select class="form-control" detail="control_url_method" selector="h_control_call">
                             <option value="GET">GET (<%-lang.Default%>)</option>  
                             <option value="PUT">PUT</option>
                             <option value="POST">POST</option>
+                            <option value="ONVIF">ONVIF</option>
+                        </select></div>
+                    </label>
+                  </div>
+                  <div class="form-group h_control_call_input h_control_call_GET h_control_call_PUT h_control_call_POST">
+                    <label><div><span><%-lang['Digest Authentication']%></span></div>
+                        <div><select class="form-control" detail="control_digest_auth">
+                            <option value="0"><%-lang.No%></option>  
+                            <option value="1"><%-lang.Yes%></option>
                         </select></div>
                     </label>
                   </div>
                   <div class="form-group">
-                    <label><div><span><%-lang['Stop URL']%></span></div>
+                    <label><div><span><%-lang['Stop Command']%></span></div>
                         <div><select class="form-control" detail="control_stop" selector="h_cs">
                             <option value="0"><%-lang.No%></option>  
                             <option value="1"><%-lang.Yes%></option>
@@ -1186,80 +1223,82 @@
                     <div><input class="form-control" detail="control_url_stop_timeout" placeholder="1000"></div>
                     </label>
                   </div>
-                  <div class="form-group">
-                    <label><div><span><%-lang['Center']%></span></div>
-                    <div><input class="form-control" detail="control_url_center" placeholder="/"></div>
-                    </label>
-                  </div>
-                  <div class="form-group">
-                    <label><div><span><%-lang['Left']%></span></div>
-                    <div><input class="form-control" detail="control_url_left" placeholder="/"></div>
-                    </label>
-                  </div>
-                  <div class="form-group h_cs_input h_cs_1">
-                    <label><div><span><%-lang['Left Stop']%></span></div>
-                    <div><input class="form-control" detail="control_url_left_stop" placeholder="/"></div>
-                    </label>
-                  </div>
-                  <div class="form-group">
-                    <label><div><span><%-lang['Right']%></span></div>
-                    <div><input class="form-control" detail="control_url_right" placeholder="/"></div>
-                    </label>
-                  </div>
-                  <div class="form-group h_cs_input h_cs_1">
-                    <label><div><span><%-lang['Right Stop']%></span></div>
-                    <div><input class="form-control" detail="control_url_right_stop" placeholder="/"></div>
-                    </label>
-                  </div>
-                  <div class="form-group">
-                    <label><div><span><%-lang['Up']%></span></div>
-                    <div><input class="form-control" detail="control_url_up" placeholder="/"></div>
-                    </label>
-                  </div>
-                  <div class="form-group h_cs_input h_cs_1">
-                    <label><div><span><%-lang['Up Stop']%></span></div>
-                    <div><input class="form-control" detail="control_url_up_stop" placeholder="/"></div>
-                    </label>
-                  </div>
-                  <div class="form-group">
-                    <label><div><span><%-lang['Down']%></span></div>
-                    <div><input class="form-control" detail="control_url_down" placeholder="/"></div>
-                    </label>
-                  </div>
-                  <div class="form-group h_cs_input h_cs_1">
-                    <label><div><span><%-lang['Down Stop']%></span></div>
-                    <div><input class="form-control" detail="control_url_down_stop" placeholder="/"></div>
-                    </label>
-                  </div>
-                  <div class="form-group">
-                    <label><div><span><%-lang['Enable Night Vision']%></span></div>
-                    <div><input class="form-control" detail="control_url_enable_nv" placeholder="/"></div>
-                    </label>
-                  </div>
-                  <div class="form-group">
-                    <label><div><span><%-lang['Disable Night Vision']%></span></div>
-                    <div><input class="form-control" detail="control_url_disable_nv" placeholder="/"></div>
-                    </label>
-                  </div>
-                  <div class="form-group">
-                    <label><div><span><%-lang['Zoom Out']%></span></div>
-                    <div><input class="form-control" detail="control_url_zoom_out" placeholder="/"></div>
-                    </label>
-                  </div>
-                  <div class="form-group h_cs_input h_cs_1">
-                    <label><div><span><%-lang['Zoom Out Stop']%></span></div>
-                    <div><input class="form-control" detail="control_url_zoom_out_stop" placeholder="/"></div>
-                    </label>
-                  </div>
-                  <div class="form-group">
-                    <label><div><span><%-lang['Zoom In']%></span></div>
-                    <div><input class="form-control" detail="control_url_zoom_in" placeholder="/"></div>
-                    </label>
-                  </div>
-                  <div class="form-group h_cs_input h_cs_1">
-                    <label><div><span><%-lang['Zoom In Stop']%></span></div>
-                    <div><input class="form-control" detail="control_url_zoom_in_stop" placeholder="/"></div>
-                    </label>
+                  <div class="h_control_call_input h_control_call_GET h_control_call_PUT h_control_call_POST">
+                      <div class="form-group">
+                        <label><div><span><%-lang['Center']%></span></div>
+                        <div><input class="form-control" detail="control_url_center" placeholder="/"></div>
+                        </label>
+                      </div>
+                      <div class="form-group">
+                        <label><div><span><%-lang['Left']%></span></div>
+                        <div><input class="form-control" detail="control_url_left" placeholder="/"></div>
+                        </label>
+                      </div>
+                      <div class="form-group h_cs_input h_cs_1">
+                        <label><div><span><%-lang['Left Stop']%></span></div>
+                        <div><input class="form-control" detail="control_url_left_stop" placeholder="/"></div>
+                        </label>
+                      </div>
+                      <div class="form-group">
+                        <label><div><span><%-lang['Right']%></span></div>
+                        <div><input class="form-control" detail="control_url_right" placeholder="/"></div>
+                        </label>
+                      </div>
+                      <div class="form-group h_cs_input h_cs_1">
+                        <label><div><span><%-lang['Right Stop']%></span></div>
+                        <div><input class="form-control" detail="control_url_right_stop" placeholder="/"></div>
+                        </label>
+                      </div>
+                      <div class="form-group">
+                        <label><div><span><%-lang['Up']%></span></div>
+                        <div><input class="form-control" detail="control_url_up" placeholder="/"></div>
+                        </label>
+                      </div>
+                      <div class="form-group h_cs_input h_cs_1">
+                        <label><div><span><%-lang['Up Stop']%></span></div>
+                        <div><input class="form-control" detail="control_url_up_stop" placeholder="/"></div>
+                        </label>
+                      </div>
+                      <div class="form-group">
+                        <label><div><span><%-lang['Down']%></span></div>
+                        <div><input class="form-control" detail="control_url_down" placeholder="/"></div>
+                        </label>
+                      </div>
+                      <div class="form-group h_cs_input h_cs_1">
+                        <label><div><span><%-lang['Down Stop']%></span></div>
+                        <div><input class="form-control" detail="control_url_down_stop" placeholder="/"></div>
+                        </label>
+                      </div>
+                      <div class="form-group">
+                        <label><div><span><%-lang['Enable Night Vision']%></span></div>
+                        <div><input class="form-control" detail="control_url_enable_nv" placeholder="/"></div>
+                        </label>
+                      </div>
+                      <div class="form-group">
+                        <label><div><span><%-lang['Disable Night Vision']%></span></div>
+                        <div><input class="form-control" detail="control_url_disable_nv" placeholder="/"></div>
+                        </label>
+                      </div>
+                      <div class="form-group">
+                        <label><div><span><%-lang['Zoom Out']%></span></div>
+                        <div><input class="form-control" detail="control_url_zoom_out" placeholder="/"></div>
+                        </label>
+                      </div>
+                      <div class="form-group h_cs_input h_cs_1">
+                        <label><div><span><%-lang['Zoom Out Stop']%></span></div>
+                        <div><input class="form-control" detail="control_url_zoom_out_stop" placeholder="/"></div>
+                        </label>
+                      </div>
+                      <div class="form-group">
+                        <label><div><span><%-lang['Zoom In']%></span></div>
+                        <div><input class="form-control" detail="control_url_zoom_in" placeholder="/"></div>
+                        </label>
+                      </div>
+                      <div class="form-group h_cs_input h_cs_1">
+                        <label><div><span><%-lang['Zoom In Stop']%></span></div>
+                        <div><input class="form-control" detail="control_url_zoom_in_stop" placeholder="/"></div>
+                        </label>
+                      </div>
                   </div>
               </div>
           </div>
@@ -1323,7 +1362,15 @@
                   </div>
                   <div class="form-group">
                       <label><div><span><%-lang['Copy Stream Settings']%></span></div>
-                        <div><select class="form-control" copy="#monSectionStream,#monSectionStreamTimestamp,#monSectionStreamWatermark,#monSectionJPEGAPI">
+                        <div><select class="form-control" copy="#monSectionStream,#monSectionStreamTimestamp,#monSectionStreamWatermark">
+                            <option value="0" selected><%-lang.No%></option>  
+                            <option value="1"><%-lang.Yes%></option>  
+                        </select></div>
+                      </label>
+                  </div>
+                  <div class="form-group">
+                      <label><div><span><%-lang['Copy JPEG API Settings']%></span></div>
+                        <div><select class="form-control" copy="#monSectionJPEGAPI">
                             <option value="0" selected><%-lang.No%></option>  
                             <option value="1"><%-lang.Yes%></option>  
                         </select></div>

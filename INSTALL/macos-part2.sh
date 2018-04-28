@@ -8,8 +8,7 @@ echo "Shinobi - Database Installation"
 echo "(y)es or (N)o"
 read mysqlagreeData
 if [ "$mysqlagreeData" = "y" ]; then
-    echo "Shinobi - Use root for database installation?"
-    echo "(y)es or (N)o"
+    echo "Shinobi will now use root for database installation..."
     echo "What is your SQL Username?"
     read sqluser
     echo "What is your SQL Password?"
@@ -77,7 +76,6 @@ echo "(y)es or (N)o"
 read startShinobi
 if [ "$startShinobi" = "y" ]; then
     sudo pm2 start camera.js
-    sudo pm2 start cron.js
     sudo pm2 startup
     sudo pm2 save
     sudo pm2 list

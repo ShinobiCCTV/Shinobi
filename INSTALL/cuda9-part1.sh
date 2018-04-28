@@ -1,18 +1,15 @@
-sudo add-apt-repository ppa:graphics-drivers/ppa -y
-sudo apt update -y
-sudo apt install g++ freeglut3-dev build-essential libx11-dev libxmu-dev libxi-dev libglu1-mesa libglu1-mesa-dev -y
-sudo apt install gcc-6 -y
-sudo apt install g++-6 -y
-wget https://cdn.shinobi.video/installers/cuda9-part2-after-reboot.sh -O cuda9-part2-after-reboot.sh
-sudo chmod +x ./cuda9-part2-after-reboot.sh
-wget https://developer.nvidia.com/compute/cuda/9.0/Prod/local_installers/cuda_9.0.176_384.81_linux-run -O cuda_9.run
-sudo chmod +x cuda_9.run
-sudo echo "blacklist amd76x_edac" >> /etc/modprobe.d/blacklist.conf
-sudo echo "blacklist vga16fb" >> /etc/modprobe.d/blacklist.conf
-sudo echo "blacklist nouveau" >> /etc/modprobe.d/blacklist.conf
-sudo echo "blacklist rivafb" >> /etc/modprobe.d/blacklist.conf
-sudo echo "blacklist nvidiafb" >> /etc/modprobe.d/blacklist.conf
-sudo echo "blacklist rivatv" >> /etc/modprobe.d/blacklist.conf
-sudo update-initramfs -u
-echo "Now you need to reboot and run the next part."
-echo "Do after the reboot inside this directory : ./cuda9-part2-after-reboot.sh"
+#https://devtalk.nvidia.com/default/topic/1000340/cuda-setup-and-installation/-quot-nvidia-smi-has-failed-because-it-couldn-t-communicate-with-the-nvidia-driver-quot-ubuntu-16-04/4
+sudo apt-key adv --fetch-keys http://developer.download.nvidia.com/compute/cuda/repos/ubuntu1604/x86_64/7fa2af80.pub
+sudo echo "# NVIDIA Graphics Driver Repo (Added by Shinobi installer)" >> /etc/apt/sources.list
+sudo echo "# Public Key : sudo apt-key adv --fetch-keys http://developer.download.nvidia.com/compute/cuda/repos/ubuntu1604/x86_64/7fa2af80.pub" >> /etc/apt/sources.list
+sudo echo "deb http://developer.download.nvidia.com/compute/cuda/repos/ubuntu1604/x86_64 /" >> /etc/apt/sources.list
+sudo apt update
+sudo apt-get -y install cuda-drivers
+
+echo "After rebooting you need to run part 2. The file is named `cuda9-part2-after-reboot.sh`."
+echo "Reboot is required. Do it now?"
+echo "(y)es or (N)o"
+read rebootTheMachineHomie
+if [ "$rebootTheMachineHomie" = "y" ] || [ "$rebootTheMachineHomie" = "Y" ]; then
+    sudo reboot
+fi

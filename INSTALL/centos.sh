@@ -11,17 +11,42 @@ fi
 if [ ! -e "./super.json" ]; then
     echo "Default Superuser : admin@shinobi.video"
     echo "Default Password : admin"
-    cp super.sample.json super.json
+    sudo cp super.sample.json super.json
+    echo "Shinobi - Do you want to enable superuser access?"
+    echo "This may be useful if passwords are forgotten or"
+    echo "if you would like to limit accessibility of an"
+    echo "account for business scenarios."
+    echo "(y)es or (N)o"
+    read createSuperJson
+    if [ "$createSuperJson" = "y" ] || [ "$createSuperJson" = "Y" ]; then
+        echo "Default Superuser : admin@shinobi.video"
+        echo "Default Password : admin"
+        echo "* You can edit these settings in \"super.json\" located in the Shinobi directory."
+        sudo cp super.sample.json super.json
+    fi
 fi
 echo "Shinobi - Run yum update"
 sudo yum update -y
-echo "Shinobi - Get dependencies"
-#Install EPEL Repo
-sudo yum install epel-release -y
-#Enable Nux Dextop repo for FFMPEG
-sudo rpm --import http://li.nux.ro/download/nux/RPM-GPG-KEY-nux.ro
-sudo rpm -Uvh http://li.nux.ro/download/nux/dextop/el7/x86_64/nux-dextop-release-0-1.el7.nux.noarch.rpm
-sudo yum install ffmpeg ffmpeg-devel -y
+echo "============="
+echo "Shinobi - Do you want to Install FFMPEG?"
+echo "(y)es or (N)o"
+read ffmpeginstall
+if [ "$ffmpeginstall" = "y" ] || [ "$ffmpeginstall" = "Y" ]; then
+    echo "Shinobi - Do you want to Install FFMPEG with `apt` or download a static version provided with `npm`?"
+    echo "(a)pt or (N)pm"
+    echo "Press [ENTER] for default (npm)"
+    read ffmpegstaticinstall
+    if [ "$ffmpegstaticinstall" = "a" ] || [ "$ffmpegstaticinstall" = "A" ]; then
+        #Install EPEL Repo
+        sudo yum install epel-release -y
+        #Enable Nux Dextop repo for FFMPEG
+        sudo rpm --import http://li.nux.ro/download/nux/RPM-GPG-KEY-nux.ro
+        sudo rpm -Uvh http://li.nux.ro/download/nux/dextop/el7/x86_64/nux-dextop-release-0-1.el7.nux.noarch.rpm
+        sudo yum install ffmpeg ffmpeg-devel -y
+    else
+        sudo npm install ffmpeg-static
+    fi
+fi
 echo "Shinobi - Do you want to Install Node.js?"
 echo "(y)es or (N)o"
 read nodejsinstall
@@ -41,6 +66,7 @@ read sqliteormariadb
 if [ "$sqliteormariadb" = "S" ] || [ "$sqliteormariadb" = "s" ]; then
     sudo npm install jsonfile
     sudo yum install -y sqlite sqlite-devel -y
+    sudo npm install sqlite3
     node ./tools/modifyConfiguration.js databaseType=sqlite3
     if [ ! -e "./shinobi.sqlite" ]; then
         echo "Creating shinobi.sqlite for SQLite3..."

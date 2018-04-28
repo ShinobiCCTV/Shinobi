@@ -38,6 +38,7 @@ s.checkCorrectPathEnding=function(x){
 if(!config.port){config.port=8080}
 if(!config.hostPort){config.hostPort=8082}
 if(config.systemLog===undefined){config.systemLog=true}
+if(config.alprConfig===undefined){config.alprConfig=__dirname+'/openalpr.conf'}
 //default stream folder check
 if(!config.streamDir){
     if(s.isWin===false){
@@ -82,13 +83,14 @@ s.detectObject=function(buffer,d,tx){
       }
       fs.writeFile(d.dir+d.tmpFile,buffer,function(err){
           if(err) return s.systemLog(err);
-          exec('alpr -j -c '+d.mon.detector_lisence_plate_country+' '+d.dir+d.tmpFile,{encoding:'utf8'},(err, scan, stderr) => {
+          exec('alpr -j --config '+config.alprConfig+' -c '+d.mon.detector_lisence_plate_country+' '+d.dir+d.tmpFile,{encoding:'utf8'},(err, scan, stderr) => {
               if(err){
                   s.systemLog(err);
               }else{
                   try{
                       try{
-                          scan=JSON.parse(scan)
+                          var data = scan.split('\n')[1]
+                          scan=JSON.parse(data)
                       }catch(err){
                           if(!scan||!scan.results){
                               return s.systemLog(scan,err);
@@ -327,9 +329,10 @@ s.MainEventController=function(d,cn,tx){
                     if(d.mon.detector_frame_save==="1"){
                        d.base64=s.group[d.ke][d.id].buffer.toString('base64')
                     }
-                        if(d.mon.no_regions==='1'){
-                            s.detectObject(s.group[d.ke][d.id].buffer,d,tx)
-                        }else{
+                    if(d.mon.detector_second==='1'&&d.objectOnly===true){
+                        s.detectObject(s.group[d.ke][d.id].buffer,d,tx)
+                    }else{
+                        if(d.mon.detector_use_motion==="1"||d.mon.detector_use_detect_object!=="1"){
                             if((typeof d.mon.cords ==='string')&&d.mon.cords.trim()===''){
                                 d.mon.cords=[]
                             }else{
@@ -352,17 +355,11 @@ s.MainEventController=function(d,cn,tx){
                             d.width=d.image.width;
                             d.height=d.image.height;
                             d.image.onload = function() {
-                                if(d.mon.detector_second==='1'&&d.objectOnly===true){
-                                    s.detectObject(s.group[d.ke][d.id].buffer,d,tx)
-                                }else{
-                                    if(d.mon.detector_use_motion==="1"||d.mon.detector_use_detect_object!=="1"){
-                                        s.checkAreas(d,tx);
-                                    }else{
-                                        s.detectObject(s.group[d.ke][d.id].buffer,d,tx)
-                                    }
-                                }
+                                s.checkAreas(d,tx);
                             }
                             d.image.src = s.group[d.ke][d.id].buffer;
+                        }else{
+                            s.detectObject(s.group[d.ke][d.id].buffer,d,tx)
                         }
                     }
                     s.group[d.ke][d.id].buffer=null;
