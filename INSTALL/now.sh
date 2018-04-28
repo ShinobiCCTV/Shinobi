@@ -7,7 +7,6 @@ echo "========"
 echo "1. Ubuntu"
 echo "2. CentOS"
 echo "3. MacOS"
-echo "4. FreeBSD"
 echo "========"
 read oschoicee
 case $oschoicee in
@@ -22,10 +21,6 @@ INSTALL/centos.sh
 "3")
 chmod +x INSTALL/macos.sh
 INSTALL/macos.sh
-  ;;
-"4")
-chmod +x INSTALL/freebsd.sh
-INSTALL/freebsd.sh
   ;;
 *)
   echo "Choice not found."
