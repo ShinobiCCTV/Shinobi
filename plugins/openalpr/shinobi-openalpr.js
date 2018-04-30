@@ -89,8 +89,7 @@ s.detectObject=function(buffer,d,tx){
               }else{
                   try{
                       try{
-                          var data = scan.split('\n')[1]
-                          scan=JSON.parse(data)
+                          scan=JSON.parse(scan.replace('--(!)Loaded CUDA classifier','').trim())
                       }catch(err){
                           if(!scan||!scan.results){
                               return s.systemLog(scan,err);
