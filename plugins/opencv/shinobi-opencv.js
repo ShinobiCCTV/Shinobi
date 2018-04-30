@@ -72,7 +72,7 @@ s.findCascades=function(callback){
 s.findCascades(function(){
     //get cascades
 })
-s.detectLicensePlate=function(buffer,d){
+s.detectLicensePlate=function(buffer,d,tx){
   if(!d.mon.detector_lisence_plate_country||d.mon.detector_lisence_plate_country===''){
       d.mon.detector_lisence_plate_country='us'
   }
@@ -132,10 +132,10 @@ s.detectLicensePlate=function(buffer,d){
       })
   })
 }
-s.detectObject=function(buffer,d){
+s.detectObject=function(buffer,d,tx){
     //detect license plate?
   if(d.mon.detector_lisence_plate==="1"){
-      s.detectLicensePlate(buffer,d)
+      s.detectLicensePlate(buffer,d,tx)
   }
     //check selected opencv cascades
   var selectedCascades = Object.keys(d.mon.detector_cascades);
@@ -286,7 +286,7 @@ s.differenceAccuracy=function(target, data1, data2) {
         ++i;
     }
 }
-s.checkAreas=function(d){
+s.checkAreas=function(d,tx){
     if(!s.group[d.ke][d.id].cords){
         if(!d.mon.cords){d.mon.cords={}}
         s.group[d.ke][d.id].cords=Object.values(d.mon.cords);
@@ -297,7 +297,7 @@ s.checkAreas=function(d){
     }
     for (var b = 0; b < s.group[d.ke][d.id].cords.length; b++){
         if(!s.group[d.ke][d.id].cords[b]){return}
-        s.blenderRegion(d,s.group[d.ke][d.id].cords[b])
+        s.blenderRegion(d,s.group[d.ke][d.id].cords[b],tx)
     }
     delete(d.image)
 }
