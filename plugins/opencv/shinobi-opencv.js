@@ -304,6 +304,14 @@ s.checkAreas=function(d){
 
 s.MainEventController=function(d,cn,tx){
     switch(d.f){
+        case'refreshPlugins':
+            s.findCascades(function(cascades){
+                s.cx({f:'s.tx',data:{f:'detector_cascade_list',cascades:cascades},to:'GRP_'+d.ke})
+            })
+        break;
+        case'readPlugins':
+            s.cx({f:'s.tx',data:{f:'detector_cascade_list',cascades:s.cascadesInDir},to:'GRP_'+d.ke})
+        break;
         case'init_plugin_as_host':
             if(!cn){
                 console.log('No CN',d)
