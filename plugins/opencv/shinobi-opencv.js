@@ -374,7 +374,7 @@ s.MainEventController=function(d,cn,tx){
                     if(d.mon.detector_second==='1'&&d.objectOnly===true){
                         s.detectObject(s.group[d.ke][d.id].buffer,d,tx)
                     }else{
-                        if(d.mon.detector_use_motion==="1"||d.mon.detector_use_detect_object!=="1"){
+                        if((d.mon.detector_pam !== '1' && d.mon.detector_use_motion === "1") || d.mon.detector_use_detect_object !== "1"){
                             if((typeof d.mon.cords ==='string')&&d.mon.cords.trim()===''){
                                 d.mon.cords=[]
                             }else{

@@ -145,7 +145,14 @@ if(config.renderPaths===undefined){config.renderPaths={}}
     //gridstack only page
     if(config.renderPaths.grid===undefined){config.renderPaths.grid='pages/grid'}
 
-s={factorAuth:{},child_help:false,totalmem:os.totalmem(),platform:os.platform(),s:JSON.stringify,isWin:(process.platform==='win32')};
+s={
+    factorAuth : {},
+    child_help : false,
+    totalmem : os.totalmem(),
+    platform : os.platform(),
+    s : JSON.stringify,
+    isWin : (process.platform==='win32')
+};
 //load languages dynamically
 s.loadedLanguages={}
 s.loadedLanguages[config.language]=lang;
@@ -468,6 +475,7 @@ s.kill=function(x,e,p){
         delete(s.group[e.ke].mon[e.id].checkStream);
         clearTimeout(s.group[e.ke].mon[e.id].watchdog_stop);
         delete(s.group[e.ke].mon[e.id].watchdog_stop);
+        delete(s.group[e.ke].mon[e.id].lastJpegDetectorFrame);
         if(e&&s.group[e.ke].mon[e.id].record){
             clearTimeout(s.group[e.ke].mon[e.id].record.capturing);
 //            if(s.group[e.ke].mon[e.id].record.request){s.group[e.ke].mon[e.id].record.request.abort();delete(s.group[e.ke].mon[e.id].record.request);}
@@ -1135,13 +1143,15 @@ s.ffmpeg=function(e){
     var createFFmpegMap = function(arrayOfMaps){
         //e.details.input_map_choices.stream
         var string = '';
-        if(arrayOfMaps && arrayOfMaps instanceof Array && arrayOfMaps.length>0){
-            arrayOfMaps.forEach(function(v){
-                if(v.map==='')v.map='0'
-                string += ' -map '+v.map
-            })
-        }else if(e.details.input_maps && e.details.input_maps.length > 0){
-            string += ' -map 0:0'
+        if(e.details.input_maps && e.details.input_maps.length > 0){
+            if(arrayOfMaps && arrayOfMaps instanceof Array && arrayOfMaps.length>0){
+                arrayOfMaps.forEach(function(v){
+                    if(v.map==='')v.map='0'
+                    string += ' -map '+v.map
+                })
+            }else{
+                string += ' -map 0:0'
+            }
         }
         return string;
     }
@@ -1673,7 +1683,12 @@ s.ffmpeg=function(e){
         if(e.details.detector_scale_x&&e.details.detector_scale_x!==''&&e.details.detector_scale_y&&e.details.detector_scale_y!==''){x.dratio=' -s '+e.details.detector_scale_x+'x'+e.details.detector_scale_y}else{x.dratio=' -s 320x240'}
         if(e.details.cust_detect&&e.details.cust_detect!==''){x.cust_detect+=e.details.cust_detect;}
         if(e.details.detector_pam==='1'){
-            x.pipe+=' -an -c:v pam -pix_fmt gray -f image2pipe -vf fps='+e.details.detector_fps+x.cust_detect+x.dratio+' pipe:3';
+            x.pipe+=' -an -c:v pam -pix_fmt gray -f image2pipe -vf fps='+e.details.detector_fps+x.cust_detect+x.dratio+' pipe:3'
+            if(e.details.detector_use_detect_object === '1'){
+                //for object detection
+                x.pipe += createFFmpegMap(e.details.input_map_choices.detector)
+                x.pipe += ' -f singlejpeg -vf fps='+e.details.detector_fps+x.cust_detect+x.dratio+' pipe:4';
+            }
         }else{
             x.pipe+=' -f singlejpeg -vf fps='+e.details.detector_fps+x.cust_detect+x.dratio+' pipe:3';
         }
@@ -1857,10 +1872,11 @@ s.camera=function(x,e,cn,tx){
     (['detector_cascades','cords','input_map_choices']).forEach(function(v){
         if(e.details&&e.details[v]&&(e.details[v] instanceof Object)===false){
             try{
+                if(e.details[v] === '') e.details[v] = '{}'
                 e.details[v]=JSON.parse(e.details[v]);
                 if(!e.details[v])e.details[v]={};
             }catch(err){
-                e.details[v]={};
+                
             }
         }
     });
@@ -2502,6 +2518,9 @@ s.camera=function(x,e,cn,tx){
                                             s.queueS3pushRequest(Object.assign({},detectorObject))
                                         }
                                         s.camera('motion',detectorObject)
+                                        if(e.details.detector_use_detect_object === '1'){
+                                            s.ocvTx({f:'frame',mon:s.group[e.ke].mon_conf[e.id].details,ke:e.ke,id:e.id,time:s.moment(),frame:s.group[e.ke].mon[e.id].lastJpegDetectorFrame});
+                                        }
                                     }
                                     var filterTheNoise = function(trigger){
                                         if(noiseFilterArray[trigger.name].length > 2){
@@ -2544,13 +2563,15 @@ s.camera=function(x,e,cn,tx){
                                             data.trigger.forEach(sendTrigger)
                                         })
                                     }
-                                    s.group[e.ke].mon[e.id].spawn.stdio[3].pipe(s.group[e.ke].mon[e.id].p2p).pipe(s.group[e.ke].mon[e.id].pamDiff);
+                                    s.group[e.ke].mon[e.id].spawn.stdio[3].pipe(s.group[e.ke].mon[e.id].p2p).pipe(s.group[e.ke].mon[e.id].pamDiff)
+                                    if(e.details.detector_use_detect_object === '1'){
+                                        s.group[e.ke].mon[e.id].spawn.stdio[4].on('data',function(d){
+                                            s.group[e.ke].mon[e.id].lastJpegDetectorFrame = d
+                                        })
+                                    }
                                 }else{
                                     s.group[e.ke].mon[e.id].spawn.stdio[3].on('data',function(d){
-                                        if(s.ocv&&e.details.detector==='1'&&e.details.detector_send_frames==='1'){
-
-                                            s.ocvTx({f:'frame',mon:s.group[e.ke].mon_conf[e.id].details,ke:e.ke,id:e.id,time:s.moment(),frame:d},s.group[e.ke].mon[e.id].detectorStreamTx);
-                                        };
+                                        s.ocvTx({f:'frame',mon:s.group[e.ke].mon_conf[e.id].details,ke:e.ke,id:e.id,time:s.moment(),frame:d});
                                     })
                                 }
                             }
