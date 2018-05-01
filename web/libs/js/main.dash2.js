@@ -2822,7 +2822,7 @@ $.aM.generateDefaultMonitorSettings=function(){
         "stream_watermark": "0",
         "stream_watermark_location": "",
         "stream_watermark_position": "tr",
-        "snap": "1",
+        "snap": "0",
         "snap_fps": "",
         "snap_scale_x": "",
         "snap_scale_y": "",
