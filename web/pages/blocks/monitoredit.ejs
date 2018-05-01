@@ -978,197 +978,199 @@
                   </div>
               </div>
           </div>
-          <div class="form-group-group orange" section id="monSectionDetectorMotion">
-              <h4><%-lang['Motion Detection']%> <small><%-lang['Primary Engine']%> : <b class="h_det_pam_input h_det_pam_1">Pixel Array</b><span class="h_det_pam_input h_det_pam_0"><b class="shinobi-detector_name"></b> <b class="shinobi-detector-invert"><%-lang['Not Connected']%></b><b class="shinobi-detector" style="display:none"><%-lang['Connected']%></b></span></small></h4>
-              <div class="form-group">
-                <label><div><span><%-lang['Use Built-In']%></span></div>
-                    <div><select class="form-control" detail="detector_pam" selector="h_det_pam">
-                            <option value="0" selected><%-lang.No%></option>
-                            <option value="1"><%-lang.Yes%></option>
-                    </select></div>
-                </label>
-              </div>
-              <div class="form-group">
-                <label><div><span><%-lang['Indifference']%></span></div>
-                <div><input class="form-control" detail="detector_sensitivity" placeholder="0.5"></div>
-                </label>
-              </div>
-              <div class="form-group">
-                <label><div><span><%-lang['Full Frame Detection']%></span></div>
-                    <div><select class="form-control" detail="detector_frame">
-                        <option value="0"><%-lang.No%></option>
-                        <option value="1" selected><%-lang.Yes%></option>
-                    </select></div>
-                </label>
-              </div>
-              <div class="form-group">
-                <label><div><span><%-lang['Noise Filter']%></span></div>
-                    <div><select class="form-control" detail="detector_noise_filter">
-                            <option value="0" selected><%-lang.No%></option>
-                            <option value="1"><%-lang.Yes%></option>
-                    </select></div>
-                </label>
-              </div>
-<!--
-                <div class="form-group">
-                    <label><div><span><%-lang['Show Regions of Interest']%></span></div>
-                        <div><select class="form-control" detail="detector_region_of_interest">
-                            <option value="0" selected><%-lang.No%></option>
-                            <option value="1"><%-lang.Yes%></option>
-                        </select></div>
-                    </label>
-                </div>
--->
-              <div class="form-group-group orange" section id="monSectionNoMotionDetector">
-              <h4><%-lang['"No Motion" Detector']%></h4>
-                  <div class="form-group">
-                    <label><div><span><%-lang['Enabled']%></span></div>
-                        <div><select class="form-control" detail="detector_notrigger">
-                            <option value="0" selected><%-lang.No%></option>
-                            <option value="1"><%-lang.Yes%></option>
-                        </select></div>
-                    </label>
-                  </div>
-                  <div class="form-group">
-                    <label><div><span><%-lang['Email on No Motion']%></span></div>
-                        <div><select class="form-control" detail="detector_notrigger_mail">
-                            <option value="0" selected><%-lang.No%></option>
-                            <option value="1"><%-lang.Yes%></option>
-                        </select></div>
-                    </label>
-                  </div>
-                  <div class="form-group">
-                    <label><div><span><%-lang['Timeout']%></span></div>
-                        <div><input class="form-control" detail="detector_notrigger_timeout" placeholder="10"></div>
-                    </label>
-                  </div>
-              </div>
-          </div>
-          <div class="form-group-group orange shinobi-detector-opencv shinobi-detector-openalpr shinobi-detector_plug" section id="monSectionDetectorObject">
-              <h4><%-lang['Object Detection']%> <small><%-lang['Plugin']%> : <b class="shinobi-detector_name"></b> <b class="shinobi-detector-invert"><%-lang['Not Connected']%></b><b class="shinobi-detector" style="display:none"><%-lang['Connected']%></b></small></h4>
-              <div class="form-group">
-                <label><div><span><%-lang['Detect Objects']%></span></div>
-                    <div><select class="form-control" detail="detector_use_detect_object" selector="h_casc">
-                        <option value="0" selected><%-lang.No%></option>
-                        <option value="1"><%-lang.Yes%></option>
-                    </select></div>
-                </label>
-              </div>
-              <div class="form-group">
-                <label><div><span><%-lang['Check for Motion First']%></span></div>
-                    <div><select class="form-control" detail="detector_use_motion">
-                        <option value="0" selected><%-lang.No%></option>
-                        <option value="1"><%-lang.Yes%></option>
-                    </select></div>
-                </label>
-              </div>
-              <div class=" h_casc_input h_casc_1" style="display:none">
-                  <div class="form-group-group orange shinobi-detector-opencv shinobi-detector-openalpr shinobi-detector_plug" style="display:none" section id="monSectionLisencePlateDetector">
-                      <h4><%-lang['Lisence Plate Detector']%></h4>
+              <div class="h_det_input h_det_1 form-group-group orange" style="display:none;padding-top:10px;padding-bottom: 0">
+                  <div class="form-group-group orange" section id="monSectionDetectorMotion">
+                      <h4><%-lang['Motion Detection']%> <small><%-lang['Primary Engine']%> : <b class="h_det_pam_input h_det_pam_1">Pixel Array</b><span class="h_det_pam_input h_det_pam_0"><b class="shinobi-detector_name"></b> <b class="shinobi-detector-invert"><%-lang['Not Connected']%></b><b class="shinobi-detector" style="display:none"><%-lang['Connected']%></b></span></small></h4>
                       <div class="form-group">
-                        <label><div><span><%-lang['Enabled']%></span></div>
-                            <div><select class="form-control" detail="detector_lisence_plate">
+                        <label><div><span><%-lang['Use Built-In']%></span></div>
+                            <div><select class="form-control" detail="detector_pam" selector="h_det_pam">
+                                    <option value="0" selected><%-lang.No%></option>
+                                    <option value="1"><%-lang.Yes%></option>
+                            </select></div>
+                        </label>
+                      </div>
+                      <div class="form-group">
+                        <label><div><span><%-lang['Indifference']%></span></div>
+                        <div><input class="form-control" detail="detector_sensitivity" placeholder="0.5"></div>
+                        </label>
+                      </div>
+                      <div class="form-group">
+                        <label><div><span><%-lang['Full Frame Detection']%></span></div>
+                            <div><select class="form-control" detail="detector_frame">
+                                <option value="0"><%-lang.No%></option>
+                                <option value="1" selected><%-lang.Yes%></option>
+                            </select></div>
+                        </label>
+                      </div>
+                      <div class="form-group">
+                        <label><div><span><%-lang['Noise Filter']%></span></div>
+                            <div><select class="form-control" detail="detector_noise_filter">
+                                    <option value="0" selected><%-lang.No%></option>
+                                    <option value="1"><%-lang.Yes%></option>
+                            </select></div>
+                        </label>
+                      </div>
+        <!--
+                        <div class="form-group">
+                            <label><div><span><%-lang['Show Regions of Interest']%></span></div>
+                                <div><select class="form-control" detail="detector_region_of_interest">
+                                    <option value="0" selected><%-lang.No%></option>
+                                    <option value="1"><%-lang.Yes%></option>
+                                </select></div>
+                            </label>
+                        </div>
+        -->
+                      <div class="form-group-group orange" section id="monSectionNoMotionDetector">
+                      <h4><%-lang['"No Motion" Detector']%></h4>
+                          <div class="form-group">
+                            <label><div><span><%-lang['Enabled']%></span></div>
+                                <div><select class="form-control" detail="detector_notrigger">
+                                    <option value="0" selected><%-lang.No%></option>
+                                    <option value="1"><%-lang.Yes%></option>
+                                </select></div>
+                            </label>
+                          </div>
+                          <div class="form-group">
+                            <label><div><span><%-lang['Email on No Motion']%></span></div>
+                                <div><select class="form-control" detail="detector_notrigger_mail">
+                                    <option value="0" selected><%-lang.No%></option>
+                                    <option value="1"><%-lang.Yes%></option>
+                                </select></div>
+                            </label>
+                          </div>
+                          <div class="form-group">
+                            <label><div><span><%-lang['Timeout']%></span></div>
+                                <div><input class="form-control" detail="detector_notrigger_timeout" placeholder="10"></div>
+                            </label>
+                          </div>
+                      </div>
+                  </div>
+                  <div class="form-group-group orange shinobi-detector-opencv shinobi-detector-openalpr shinobi-detector_plug" section id="monSectionDetectorObject">
+                      <h4><%-lang['Object Detection']%> <small><%-lang['Plugin']%> : <b class="shinobi-detector_name"></b> <b class="shinobi-detector-invert"><%-lang['Not Connected']%></b><b class="shinobi-detector" style="display:none"><%-lang['Connected']%></b></small></h4>
+                      <div class="form-group">
+                        <label><div><span><%-lang['Detect Objects']%></span></div>
+                            <div><select class="form-control" detail="detector_use_detect_object" selector="h_casc">
                                 <option value="0" selected><%-lang.No%></option>
                                 <option value="1"><%-lang.Yes%></option>
                             </select></div>
                         </label>
                       </div>
                       <div class="form-group">
-                        <label><div><span><%-lang['Country of Plates']%></span></div>
-                            <div><select class="form-control" detail="detector_lisence_plate_country">
-                                <option value="us" selected><%-lang['US']%></option>
-                                <option value="eu"><%-lang['EU']%></option>
+                        <label><div><span><%-lang['Check for Motion First']%></span></div>
+                            <div><select class="form-control" detail="detector_use_motion">
+                                <option value="0" selected><%-lang.No%></option>
+                                <option value="1"><%-lang.Yes%></option>
                             </select></div>
                         </label>
                       </div>
-                  </div>
-                  <div class="form-group-group orange shinobi-detector-opencv shinobi-detector_plug" style="display:none" section id="monSectionOpenCVCascades">
-                      <h4><%-lang['OpenCV Cascades']%><a class="pull-right btn btn-xs btn-default refresh_cascades" title="<%-lang['Refresh List of Cascades']%>">&nbsp;<i class="fa fa-retweet"></i>&nbsp;</a></h4>
-                      <blockquote>
-                        If you see nothing here then just download this package of <a href="https://cdn.shinobi.video/weights/cascades.zip">cascades</a>. Drop them into <code>plugins/opencv/cascades</code> then press refresh <i class="fa fa-retweet"></i>.
-                      </blockquote>
-                      <div id="detector_cascade_list"></div>
-                  </div>
-              </div>
-          </div>
-          <div class="form-group-group orange h_rec_mtd_input h_rec_mtd_sip h_det_input h_det_1" style="display:none" section id="monSectionDetectorBuffer">
-          <h4><%-lang['Traditional Recording']%></h4>
-              <div class="form-group-group forestgreen" style="display:none" input-mapping="detector_sip_buffer">
-                  <h4><%-lang['Input Feed']%>
-                      <div class="pull-right">
-                          <a class="btn btn-success btn-xs add_map_row"><i class="fa fa-plus-square-o"></i></a>
+                      <div class=" h_casc_input h_casc_1" style="display:none">
+                          <div class="form-group-group orange shinobi-detector-opencv shinobi-detector-openalpr shinobi-detector_plug" style="display:none" section id="monSectionLisencePlateDetector">
+                              <h4><%-lang['Lisence Plate Detector']%></h4>
+                              <div class="form-group">
+                                <label><div><span><%-lang['Enabled']%></span></div>
+                                    <div><select class="form-control" detail="detector_lisence_plate">
+                                        <option value="0" selected><%-lang.No%></option>
+                                        <option value="1"><%-lang.Yes%></option>
+                                    </select></div>
+                                </label>
+                              </div>
+                              <div class="form-group">
+                                <label><div><span><%-lang['Country of Plates']%></span></div>
+                                    <div><select class="form-control" detail="detector_lisence_plate_country">
+                                        <option value="us" selected><%-lang['US']%></option>
+                                        <option value="eu"><%-lang['EU']%></option>
+                                    </select></div>
+                                </label>
+                              </div>
+                          </div>
+                          <div class="form-group-group orange shinobi-detector-opencv shinobi-detector_plug" style="display:none" section id="monSectionOpenCVCascades">
+                              <h4><%-lang['OpenCV Cascades']%><a class="pull-right btn btn-xs btn-default refresh_cascades" title="<%-lang['Refresh List of Cascades']%>">&nbsp;<i class="fa fa-retweet"></i>&nbsp;</a></h4>
+                              <blockquote>
+                                If you see nothing here then just download this package of <a href="https://cdn.shinobi.video/weights/cascades.zip">cascades</a>. Drop them into <code>plugins/opencv/cascades</code> then press refresh <i class="fa fa-retweet"></i>.
+                              </blockquote>
+                              <div id="detector_cascade_list" style="max-height: 300px;overflow: auto;"></div>
+                          </div>
                       </div>
-                  </h4>
-                  <div class="choices"></div>
-              </div>
-              <div class="form-group">
-                <label><div><span><%-lang['HLS Video Encoder']%></span></div>
-                    <div><select class="form-control" detail="detector_buffer_vcodec" selector="h_buff">
-                        <option value="auto" selected><%-lang['Auto']%></option>
-                        <option value="libx264"><%-lang['libx264']%></option>
-                        <option value="h264_vaapi"><%-lang['h264_vaapi']%></option>
-                        <option value="hevc_vaapi"><%-lang['hevc_vaapi']%></option>
-                        <option value="copy"><%-lang['copy']%></option>
-                    </select></div>
-                </label>
-              </div>
-              <div class="form-group">
-                <label><div><span><%-lang['HLS Audio Encoder']%></span></div>
-                    <div><select class="form-control" detail="detector_buffer_acodec">
-                        <option value="no" selected><%-lang['No Audio']%></option>
-                        <option value="auto" selected><%-lang['Auto']%></option>
-                        <option value="aac"><%-lang['aac']%></option>
-                        <option value="ac3"><%-lang['ac3']%></option>
-                        <option value="libmp3lame"><%-lang['libmp3lame']%></option>
-                        <option value="copy"><%-lang['copy']%></option>
-                    </select></div>
-                </label>
-              </div>
-<!--
-              <div class="form-group">
-                <label><div><span><%-lang['Tune']%></span></div>
-                    <div><input class="form-control" detail="detector_buffer_tune" placeholder="zerolatency"></div>
-                </label>
-              </div>
-              <div class="form-group">
-                <label><div><span>G</span></div>
-                    <div><input class="form-control" detail="detector_buffer_g" placeholder="1"></div>
-                </label>
-              </div>
--->
-              <div class="form-group h_buff_input h_buff_libx264 h_buff_h264_vaapi h_buff_hevc_vaapi">
-                <label><div><span><%-lang['Frame Rate']%></span></div>
-                    <div><input class="form-control" detail="detector_buffer_fps" placeholder="30"></div>
-                </label>
-              </div>
-              <div class="form-group">
-                <label><div><span><%-lang['HLS Segment Length']%></span></div>
-                    <div><input class="form-control" detail="detector_buffer_hls_time" placeholder="2"></div>
-                </label>
-              </div>
-              <div class="form-group">
-                <label><div><span><%-lang['HLS List Size']%></span></div>
-                    <div><input class="form-control" detail="detector_buffer_hls_list_size" placeholder="10"></div>
-                </label>
-              </div>
-              <div class="h_buff_input h_buff_libx264 h_buff_h264_vaapi h_buff_hevc_vaapi">
-                  <div class="form-group">
-                    <label><div><span><%-lang['HLS Start Number']%></span></div>
-                        <div><input class="form-control" detail="detector_buffer_start_number" placeholder="0"></div>
-                    </label>
                   </div>
-                  <div class="form-group">
-                    <label><div><span><%-lang['HLS Live Start Index']%></span></div>
-                        <div><input class="form-control" detail="detector_buffer_live_start_index" placeholder="-3"></div>
-                    </label>
+                  <div class="form-group-group orange h_rec_mtd_input h_rec_mtd_sip h_det_input h_det_1" style="display:none" section id="monSectionDetectorBuffer">
+                  <h4><%-lang['Traditional Recording']%></h4>
+                      <div class="form-group-group forestgreen" style="display:none" input-mapping="detector_sip_buffer">
+                          <h4><%-lang['Input Feed']%>
+                              <div class="pull-right">
+                                  <a class="btn btn-success btn-xs add_map_row"><i class="fa fa-plus-square-o"></i></a>
+                              </div>
+                          </h4>
+                          <div class="choices"></div>
+                      </div>
+                      <div class="form-group">
+                        <label><div><span><%-lang['HLS Video Encoder']%></span></div>
+                            <div><select class="form-control" detail="detector_buffer_vcodec" selector="h_buff">
+                                <option value="auto" selected><%-lang['Auto']%></option>
+                                <option value="libx264"><%-lang['libx264']%></option>
+                                <option value="h264_vaapi"><%-lang['h264_vaapi']%></option>
+                                <option value="hevc_vaapi"><%-lang['hevc_vaapi']%></option>
+                                <option value="copy"><%-lang['copy']%></option>
+                            </select></div>
+                        </label>
+                      </div>
+                      <div class="form-group">
+                        <label><div><span><%-lang['HLS Audio Encoder']%></span></div>
+                            <div><select class="form-control" detail="detector_buffer_acodec">
+                                <option value="no" selected><%-lang['No Audio']%></option>
+                                <option value="auto" selected><%-lang['Auto']%></option>
+                                <option value="aac"><%-lang['aac']%></option>
+                                <option value="ac3"><%-lang['ac3']%></option>
+                                <option value="libmp3lame"><%-lang['libmp3lame']%></option>
+                                <option value="copy"><%-lang['copy']%></option>
+                            </select></div>
+                        </label>
+                      </div>
+        <!--
+                      <div class="form-group">
+                        <label><div><span><%-lang['Tune']%></span></div>
+                            <div><input class="form-control" detail="detector_buffer_tune" placeholder="zerolatency"></div>
+                        </label>
+                      </div>
+                      <div class="form-group">
+                        <label><div><span>G</span></div>
+                            <div><input class="form-control" detail="detector_buffer_g" placeholder="1"></div>
+                        </label>
+                      </div>
+        -->
+                      <div class="form-group h_buff_input h_buff_libx264 h_buff_h264_vaapi h_buff_hevc_vaapi">
+                        <label><div><span><%-lang['Frame Rate']%></span></div>
+                            <div><input class="form-control" detail="detector_buffer_fps" placeholder="30"></div>
+                        </label>
+                      </div>
+                      <div class="form-group">
+                        <label><div><span><%-lang['HLS Segment Length']%></span></div>
+                            <div><input class="form-control" detail="detector_buffer_hls_time" placeholder="2"></div>
+                        </label>
+                      </div>
+                      <div class="form-group">
+                        <label><div><span><%-lang['HLS List Size']%></span></div>
+                            <div><input class="form-control" detail="detector_buffer_hls_list_size" placeholder="10"></div>
+                        </label>
+                      </div>
+                      <div class="h_buff_input h_buff_libx264 h_buff_h264_vaapi h_buff_hevc_vaapi">
+                          <div class="form-group">
+                            <label><div><span><%-lang['HLS Start Number']%></span></div>
+                                <div><input class="form-control" detail="detector_buffer_start_number" placeholder="0"></div>
+                            </label>
+                          </div>
+                          <div class="form-group">
+                            <label><div><span><%-lang['HLS Live Start Index']%></span></div>
+                                <div><input class="form-control" detail="detector_buffer_live_start_index" placeholder="-3"></div>
+                            </label>
+                          </div>
+                      </div>
+                      <div class="form-group">
+                        <label><div><span><%-lang['Buffer Preview']%></span></div>
+                            <div><iframe id="monEditBufferPreview" style="width:100%;height:300px;background:#eceaea" class="form-control"></iframe></div>
+                        </label>
+                      </div>
                   </div>
               </div>
-              <div class="form-group">
-                <label><div><span><%-lang['Buffer Preview']%></span></div>
-                    <div><iframe id="monEditBufferPreview" style="width:100%;height:300px;background:#eceaea" class="form-control"></iframe></div>
-                </label>
-              </div>
-          </div>
 <!--     END of Motion     -->
           <div class="form-group-group blue" section id="monSectionControl">
           <h4><%-lang['Control']%></h4>
