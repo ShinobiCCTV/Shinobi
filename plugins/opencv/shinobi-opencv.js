@@ -50,6 +50,10 @@ s.dir.streams=config.streamDir;
 if(!fs.existsSync(s.dir.streams)){
     fs.mkdirSync(s.dir.streams);
 }
+//streams dir
+if(!fs.existsSync(s.dir.cascades)){
+    fs.mkdirSync(s.dir.cascades);
+}
 s.gid=function(x){
     if(!x){x=10};var t = "";var p = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
     for( var i=0; i < x; i++ )
@@ -95,37 +99,32 @@ s.detectLicensePlate=function(buffer,d,tx){
               s.systemLog(err);
           }else{
               try{
-                  try{
-                      scan=JSON.parse(scan.replace('--(!)Loaded CUDA classifier','').trim())
-                  }catch(err){
-                      if(!scan||!scan.results){
-                          return s.systemLog(scan,err);
-                      }
-                  }
-//                      console.log('scan',scan)
-                  if(scan.results.length>0){
-                      scan.plates=[]
-                      scan.mats=[]
-                      scan.results.forEach(function(v){
-                          v.candidates.forEach(function(g,n){
-                              if(v.candidates[n].matches_template)
-                                delete(v.candidates[n].matches_template)
-                          })
-                          scan.plates.push({coordinates:v.coordinates,candidates:v.candidates,confidence:v.confidence,plate:v.plate})
-                          var width = Math.sqrt( Math.pow(v.coordinates[1].x - v.coordinates[0].x, 2) + Math.pow(v.coordinates[1].y - v.coordinates[0].y, 2));
-                          var height = Math.sqrt( Math.pow(v.coordinates[2].x - v.coordinates[1].x, 2) + Math.pow(v.coordinates[2].y - v.coordinates[1].y, 2))
-                          scan.mats.push({
-                            x:v.coordinates[0].x,
-                            y:v.coordinates[0].y,
-                            width:width,
-                            height:height,
-                            tag:v.plate
-                          })
-                      })
-                      tx({f:'trigger',id:d.id,ke:d.ke,details:{split:true,plug:config.plug,name:'licensePlate',reason:'object',matrices:scan.mats,imgHeight:d.mon.detector_scale_y,imgWidth:d.mon.detector_scale_x,frame:d.base64}})
-                  }
+                  scan=JSON.parse(scan.replace('--(!)Loaded CUDA classifier','').trim())
               }catch(err){
-                  s.systemLog(scan,err);
+                  if(!scan||!scan.results){
+                      return s.systemLog(scan,err);
+                  }
+              }
+              if(scan.results.length>0){
+                  scan.plates=[]
+                  scan.mats=[]
+                  scan.results.forEach(function(v){
+                      v.candidates.forEach(function(g,n){
+                          if(v.candidates[n].matches_template)
+                            delete(v.candidates[n].matches_template)
+                      })
+                      scan.plates.push({coordinates:v.coordinates,candidates:v.candidates,confidence:v.confidence,plate:v.plate})
+                      var width = Math.sqrt( Math.pow(v.coordinates[1].x - v.coordinates[0].x, 2) + Math.pow(v.coordinates[1].y - v.coordinates[0].y, 2));
+                      var height = Math.sqrt( Math.pow(v.coordinates[2].x - v.coordinates[1].x, 2) + Math.pow(v.coordinates[2].y - v.coordinates[1].y, 2))
+                      scan.mats.push({
+                        x:v.coordinates[0].x,
+                        y:v.coordinates[0].y,
+                        width:width,
+                        height:height,
+                        tag:v.plate
+                      })
+                  })
+                  tx({f:'trigger',id:d.id,ke:d.ke,details:{split:true,plug:config.plug,name:'licensePlate',reason:'object',matrices:scan.mats,imgHeight:d.mon.detector_scale_y,imgWidth:d.mon.detector_scale_x,frame:d.base64}})
               }
           }
           exec('rm -rf '+d.dir+d.tmpFile,{encoding:'utf8'})
