@@ -30,7 +30,10 @@ s={
     dir:{
         cascades : config.cascadesDir
     },
-    isWin:(process.platform==='win32')
+    isWin:(process.platform==='win32'),
+    foundCascades : {
+        
+    }
 }
 //default stream folder check
 if(!config.streamDir){
@@ -137,6 +140,7 @@ s.detectObject=function(buffer,d,tx){
       s.detectLicensePlate(buffer,d,tx)
   }
     //check selected opencv cascades
+  if(!d.mon.detector_cascades || d.mon.detector_cascades === '')return;
   var selectedCascades = Object.keys(d.mon.detector_cascades);
   if(selectedCascades.length > 0){
     cv.imdecodeAsync(buffer,(err,im) => {
@@ -145,7 +149,13 @@ s.detectObject=function(buffer,d,tx){
             return
         }
         selectedCascades.forEach(function(cascade){
-            var classifier = new cv.CascadeClassifier(s.dir.cascades+cascade+'.xml')
+            var cascadePath = s.dir.cascades+cascade+'.xml'
+            if(s.foundCascades[cascadePath] === undefined){
+                s.foundCascades[cascadePath] = fs.existsSync(cascadePath)
+            }else if(s.foundCascades[cascadePath] === false){
+                return s.systemLog('Attempted to use non existant cascade. : '+cascadePath)
+            }
+            var classifier = new cv.CascadeClassifier(cascadePath)
             var matrices = classifier.detectMultiScaleGpu(im).objects
             if(matrices.length > 0){
                 matrices.forEach(function(v,n){
