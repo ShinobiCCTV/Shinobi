@@ -13,15 +13,16 @@ process.on('uncaughtException', function (err) {
     console.error('Uncaught Exception occured!');
     console.error(err.stack);
 });
-var ffmpegPath = false;
+var staticFFmpeg = false;
 try{
-    ffmpegPath = require('ffmpeg-static').path;
-    if (!fs.existsSync(ffmpegPath)) {
-	 console.log('"ffmpeg-static" from NPM has failed to provide a compatible library or has been corrupted.')
-	 console.log('You may need to install FFmpeg manually or you can try running "npm uninstall ffmpeg-static && npm install ffmpeg-static".')
+    staticFFmpeg = require('ffmpeg-static').path;
+    if (!fs.existsSync(staticFFmpeg)) {
+        staticFFmpeg = false
+        console.log('"ffmpeg-static" from NPM has failed to provide a compatible library or has been corrupted.')
+        console.log('You may need to install FFmpeg manually or you can try running "npm uninstall ffmpeg-static && npm install ffmpeg-static".')
     }
 }catch(err){
-    ffmpegPath = false;
+    staticFFmpeg = false;
     console.log('No Static FFmpeg. Continuing.')
     //no static ffmpeg
 }
@@ -546,8 +547,8 @@ io.attach(server);
 console.log('NODE.JS version : '+execSync("node -v"))
 //ffmpeg location
 if(!config.ffmpegDir){
-    if(ffmpegPath !== false){
-        config.ffmpegDir = ffmpegPath
+    if(staticFFmpeg !== false){
+        config.ffmpegDir = staticFFmpeg
     }else{
         if(s.isWin===true){
             config.ffmpegDir = __dirname+'/ffmpeg/ffmpeg.exe'
