@@ -1530,6 +1530,15 @@ $.ccio.globalWebsocket=function(d,user){
         case'detector_trigger':
             d.e=$('.monitor_item[ke="'+d.ke+'"][mid="'+d.id+'"][auth="'+user.auth_token+'"]')
             if($.ccio.mon[d.ke+d.id+user.auth_token]&&d.e.length>0){
+                if(d.doObjectDetection === true){
+                    d.e.addClass('doObjectDetection')
+                    clearTimeout($.ccio.mon[d.ke+d.id+user.auth_token].detector_trigger_doObjectDetection_timeout)
+                    $.ccio.mon[d.ke+d.id+user.auth_token].detector_trigger_doObjectDetection_timeout = setTimeout(function(){
+                        d.e.removeClass('doObjectDetection')
+                    },3000)
+                }else{
+                    d.e.removeClass('doObjectDetection')
+                }
                 if(d.details.plates&&d.details.plates.length>0){
                     console.log('licensePlateStream',d.id,d)
                 }

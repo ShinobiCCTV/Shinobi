@@ -122,6 +122,7 @@ img{max-width:100%}
 .monitor_item[mode="Record"] [mode="record"]{display:none}
 .monitor_item[mode="Watch Only"] [mode="start"]{display:none}
 .monitor_item .stream-hud .controls .btn{opacity:0.7}
+.monitor_item.doObjectDetection .progress-bar{background-color: #57d94f}
 
 @media screen and (max-width:1500px){
     .monitor_item .mdl-card__supporting-text .btn{
