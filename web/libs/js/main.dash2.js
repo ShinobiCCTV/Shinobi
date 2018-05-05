@@ -271,6 +271,9 @@ switch($user.details.lang){
                     case'b64':
                         streamURL='Websocket'
                     break;
+                    case'pam':
+                        streamURL='Websocket'
+                    break;
                 }
                 return streamURL
             break;
@@ -365,6 +368,10 @@ switch($user.details.lang){
                 k.o=$.ccio.op().switches
                 if(k.o&&k.o.notifyHide!==1){
                     new PNotify(d)
+                    if(user.details.audio_note && user.details.audio_note !== ''){
+                        var audio = new Audio('libs/audio/'+user.details.audio_note);
+                        audio.play()
+                    }
                 }
             break;
             case'monGroup':
@@ -519,7 +526,7 @@ switch($user.details.lang){
                 d.fn=function(){
                     if(!d.speed){d.speed=1000}
                     switch(d.d.stream_type){
-                        case'b64':
+                        case'b64':case'pam':
                             d.p.resize()
                         break;
                         case'hls':case'flv':case'mp4':
@@ -633,6 +640,9 @@ switch($user.details.lang){
                     var ctx = c.getContext('2d');
                     ctx.drawImage(img, 0, 0,c.width,c.height);
                     extend(atob(c.toDataURL('image/jpeg').split(',')[1]),c.width,c.height)
+                break;
+                case'pam':
+                    alert('Need to add')
                 break;
                 case'b64':
                     base64 = e.mon.last_frame.split(',')[1];
@@ -1549,6 +1559,29 @@ $.ccio.globalWebsocket=function(d,user){
                 $.ccio.mon[d.ke+d.id+user.auth_token].detector_trigger_timeout=setTimeout(function(){
                     $('.monitor_item[ke="'+d.ke+'"][mid="'+d.id+'"][auth="'+user.auth_token+'"]').removeClass('detector_triggered').find('.stream-detected-object,.stream-detected-point').remove()
                 },5000);
+                //noise alert
+                if(user.details.audio_alert && user.details.audio_alert !== '' && $.ccio.soundAlarmed !== true){
+                    $.ccio.soundAlarmed = true
+                    var audio = new Audio('libs/audio/'+user.details.audio_alert);
+                    audio.onended = function(){
+                        setTimeout(function(){
+                            $.ccio.soundAlarmed = false
+                        },user.details.audio_delay * 1000)
+                    }
+                    if($.ccio.windowFocus = true){
+                        audio.play()
+                    }else{
+                        clearInterval($.ccio.soundAlarmInterval)
+                        if(!user.details.audio_delay || user.details.audio_delay === ''){
+                            user.details.audio_delay = 1
+                        }else{
+                            user.details.audio_delay = parseFloat(user.details.audio_delay)
+                        }
+                        $.ccio.soundAlarmInterval = setInterval(function(){
+                            audio.play()
+                        },user.details.audio_delay * 1000)
+                    }
+                }
             }
         break;
         case'init_success':
@@ -1848,6 +1881,16 @@ $.ccio.globalWebsocket=function(d,user){
                     $.ccio.init('streamMotionDetectRestart',{mid:d.id,ke:d.ke,mon:$.ccio.mon[d.ke+d.id+user.auth_token]},user);
                 }
             },3000)
+        break;
+        case'pam_frame':
+            if(!$.ccio.mon[d.ke+d.id+user.auth_token].ctx||$.ccio.mon[d.ke+d.id+user.auth_token].ctx.length===0){
+                $.ccio.mon[d.ke+d.id+user.auth_token].ctx = $('#monitor_live_'+d.id+user.auth_token+' canvas');
+            }
+            var ctx = $.ccio.mon[d.ke+d.id+user.auth_token].ctx[0].getContext('2d');
+            var imageData = ctx.createImageData(d.imageData.width,d.imageData.height)
+            imageData.data.set(d.imageData.data)
+            console.log(imageData)
+            ctx.putImageData(imageData, 0, 0);
         break;
         case'monitor_frame':
             try{
@@ -4389,6 +4432,13 @@ $('#monitors_list_search').keyup(function(){
     })
 })
 //dynamic bindings
+$.ccio.windowFocus = true
+$(window).focus(function() {
+    $.ccio.windowFocus = true
+    clearInterval($.ccio.soundAlarmInterval)
+}).blur(function() {
+    $.ccio.windowFocus = false
+});
 $('body')
 .on('click','.logout',function(e){
     var logout = function(user,callback){

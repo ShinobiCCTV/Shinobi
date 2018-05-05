@@ -673,6 +673,9 @@
    "Copy Recording Settings":"Copy Recording Settings",
    "Copy Detector Settings":"Copy Detector Settings",
    "Monitors to Copy to":"Monitors to Copy to",
+   "Notification Sound":"Notification Sound",
+   "Alert Sound":"Alert Sound",
+   "Alert Sound Delay":"Alert Sound Delay",
    "powerVideoEventLimit":"You have set a high event limit. Are you sure you want to make this request?",
    "There are no monitors that you can view with this account.":"There are no monitors that you can view with this account.",
    "Use Built-In":"Use Built-In"
