@@ -461,7 +461,9 @@ s.kill=function(x,e,p){
     if(s.group[e.ke]&&s.group[e.ke].mon[e.id]&&s.group[e.ke].mon[e.id].spawn !== undefined){
         if(s.group[e.ke].mon[e.id].spawn){
             s.group[e.ke].mon[e.id].spawn.stdio[3].unpipe();
+//            if(s.group[e.ke].mon[e.id].p2pStream){s.group[e.ke].mon[e.id].p2pStream.unpipe();}
             if(s.group[e.ke].mon[e.id].p2p){s.group[e.ke].mon[e.id].p2p.unpipe();}
+            delete(s.group[e.ke].mon[e.id].p2pStream)
             delete(s.group[e.ke].mon[e.id].p2p)
             delete(s.group[e.ke].mon[e.id].pamDiff)
             try{
@@ -1659,11 +1661,18 @@ s.ffmpeg=function(e){
         break;
         case'mjpeg':
             if(e.details.stream_quality && e.details.stream_quality !== '')x.cust_stream+=' -q:v '+e.details.stream_quality;
-            x.pipe+=' -c:v mjpeg -f mpjpeg -boundary_tag shinobi'+x.cust_stream+x.stream_video_filters+' -s '+x.ratio+' pipe:1';
+            x.pipe+=' -an -c:v mjpeg -f mpjpeg -boundary_tag shinobi'+x.cust_stream+x.stream_video_filters+' -s '+x.ratio+' pipe:1';
         break;
+//        case'pam':
+//            if(e.details.stream_scale_x&&e.details.stream_scale_x!==''&&e.details.stream_scale_y&&e.details.stream_scale_y!==''){
+//                x.cust_stream+=' -s '+x.ratio
+//            }
+//            if(e.details.stream_quality && e.details.stream_quality !== '')x.cust_stream+=' -q:v '+e.details.stream_quality;
+//            x.pipe+=' -an -c:v pam -pix_fmt gray -f image2pipe'+x.cust_stream+x.stream_video_filters+' pipe:1';
+//        break;
         case'b64':case'':case undefined:case null://base64
             if(e.details.stream_quality && e.details.stream_quality !== '')x.cust_stream+=' -q:v '+e.details.stream_quality;
-            x.pipe+=' -c:v mjpeg -f image2pipe'+x.cust_stream+x.stream_video_filters+' -s '+x.ratio+' pipe:1';
+            x.pipe+=' -an -c:v mjpeg -f image2pipe'+x.cust_stream+x.stream_video_filters+' -s '+x.ratio+' pipe:1';
         break;
         default:
             x.pipe=''
@@ -2515,11 +2524,9 @@ s.camera=function(x,e,cn,tx){
                                             imgHeight:height,
                                             imgWidth:width
                                         }
-                                        if(s.group[e.ke].init.aws_s3_save=="1"){
-                                            s.queueS3pushRequest(Object.assign({},detectorObject))
-                                        }
+                                        detectorObject.doObjectDetection = (e.details.detector_use_detect_object === '1')
                                         s.camera('motion',detectorObject)
-                                        if(e.details.detector_use_detect_object === '1'){
+                                        if(detectorObject.doObjectDetection === true){
                                             s.ocvTx({f:'frame',mon:s.group[e.ke].mon_conf[e.id].details,ke:e.ke,id:e.id,time:s.moment(),frame:s.group[e.ke].mon[e.id].lastJpegDetectorFrame});
                                         }
                                     }
@@ -2564,6 +2571,7 @@ s.camera=function(x,e,cn,tx){
                                             data.trigger.forEach(sendTrigger)
                                         })
                                     }
+                                    
                                     s.group[e.ke].mon[e.id].spawn.stdio[3].pipe(s.group[e.ke].mon[e.id].p2p).pipe(s.group[e.ke].mon[e.id].pamDiff)
                                     if(e.details.detector_use_detect_object === '1'){
                                         s.group[e.ke].mon[e.id].spawn.stdio[4].on('data',function(d){
@@ -2577,7 +2585,6 @@ s.camera=function(x,e,cn,tx){
                                 }
                             }
                             //frames to stream
-                               ++e.frames;
                            switch(e.details.stream_type){
                                case'mp4':
                                    s.group[e.ke].mon[e.id].mp4frag['MAIN'] = new Mp4Frag();
@@ -2599,7 +2606,19 @@ s.camera=function(x,e,cn,tx){
                                        s.group[e.ke].mon[e.id].emitter.emit('data',d);
                                    }
                                break;
-                               case'b64':case undefined:case null:
+//                               case'pam':
+//                                   s.group[e.ke].mon[e.id].p2pStream = new P2P();
+//                                   s.group[e.ke].mon[e.id].spawn.stdout.pipe(s.group[e.ke].mon[e.id].p2pStream)
+//                                   s.group[e.ke].mon[e.id].p2pStream.on('pam',function(d){
+//                                       resetStreamCheck()
+//                                       s.tx({f:'pam_frame',ke:e.ke,id:e.id,imageData:{
+//                                           data : new Uint8ClampedArray(d.pixels),
+//                                           height : d.height,
+//                                           width : d.width
+//                                       }},'MON_STREAM_'+e.id);
+//                                    })
+//                               break;
+                               case'b64':case undefined:case null:case'':
                                    e.frame_to_stream=function(d){
                                        resetStreamCheck()
                                        if(s.group[e.ke]&&s.group[e.ke].mon[e.id]&&s.group[e.ke].mon[e.id].watch&&Object.keys(s.group[e.ke].mon[e.id].watch).length>0){
@@ -2610,7 +2629,7 @@ s.camera=function(x,e,cn,tx){
                                           }
                                           if((d[d.length-2] === 0xFF && d[d.length-1] === 0xD9)){
                                               e.buffer=Buffer.concat(e.buffer);
-                                              s.tx({f:'monitor_frame',ke:e.ke,id:e.id,time:s.moment(),frame:e.buffer.toString('base64'),frame_format:'b64'},'MON_STREAM_'+e.id);
+                                              s.tx({f:'monitor_frame',ke:e.ke,id:e.id,frame:e.buffer.toString('base64'),frame_format:'b64'},'MON_STREAM_'+e.id);
                                               e.buffer=null;
                                           }
                                         }
@@ -2798,110 +2817,112 @@ s.camera=function(x,e,cn,tx){
                 return s.systemLog(lang['No Monitor Found, Ignoring Request'])
             }
             d.mon=s.group[d.ke].mon_conf[d.id];
-            if(!s.group[d.ke].mon[d.id].detector_motion_count){
-                s.group[d.ke].mon[d.id].detector_motion_count=0
-            }
-            s.group[d.ke].mon[d.id].detector_motion_count+=1
-            if(s.group[d.ke].mon[d.id].motion_lock){
-                return
-            }
-            var detector_lock_timeout
-            if(!d.mon.details.detector_lock_timeout||d.mon.details.detector_lock_timeout===''){
-                detector_lock_timeout = 2000
-            }
-            detector_lock_timeout = parseFloat(d.mon.details.detector_lock_timeout);
-            if(!s.group[d.ke].mon[d.id].detector_lock_timeout){
-                s.group[d.ke].mon[d.id].detector_lock_timeout=setTimeout(function(){
-                    clearTimeout(s.group[d.ke].mon[d.id].detector_lock_timeout)
-                    delete(s.group[d.ke].mon[d.id].detector_lock_timeout)
-                },detector_lock_timeout)
-            }else{
-                return
-            }
-            d.cx={f:'detector_trigger',id:d.id,ke:d.ke,details:d.details};
-            s.tx(d.cx,'DETECTOR_'+d.ke+d.id);
-            if(d.mon.details.detector_notrigger=='1'){
-                var detector_notrigger_timeout
-                if(!d.mon.details.detector_notrigger_timeout||d.mon.details.detector_notrigger_timeout===''){
-                    detector_notrigger_timeout = 10
+            if(d.doObjectDetection !== true){
+                //save this detection result in SQL, only coords. not image.
+                if(d.mon.details.detector_save==='1'){
+                    s.sqlQuery('INSERT INTO Events (ke,mid,details) VALUES (?,?,?)',[d.ke,d.id,detailString])
                 }
-                detector_notrigger_timeout = parseFloat(d.mon.details.detector_notrigger_timeout)*1000*60;
-                s.group[e.ke].mon[e.id].detector_notrigger_timeout = detector_notrigger_timeout;
-                clearInterval(s.group[d.ke].mon[d.id].detector_notrigger_timeout)
-                s.group[d.ke].mon[d.id].detector_notrigger_timeout = setInterval(s.group[d.ke].mon[d.id].detector_notrigger_timeout_function,detector_notrigger_timeout)
-            }
-            if(d.mon.details.detector_webhook=='1'){
-                var detector_webhook_url = d.mon.details.detector_webhook_url
-                    .replace(/{{TIME}}/g,moment(new Date).format())
-                    .replace(/{{MONITOR_ID}}/g,d.id)
-                    .replace(/{{GROUP_KEY}}/g,d.ke)
-                    .replace(/{{DETAILS}}/g,detailString)
-                http.get(detector_webhook_url, function(data) {
-                      data.setEncoding('utf8');
-                      var chunks='';
-                      data.on('data', (chunk) => {
-                          chunks+=chunk;
-                      });
-                      data.on('end', () => {
-
-                      });
-
-                }).on('error', function(e) {
-
-                }).end();
-            }
-            var detector_timeout
-            if(!d.mon.details.detector_timeout||d.mon.details.detector_timeout===''){
-                detector_timeout = 10
-            }else{
-                detector_timeout = parseFloat(d.mon.details.detector_timeout)
-            }
-            if(d.mon.mode=='start'&&d.mon.details.detector_trigger==='1'&&d.mon.details.detector_record_method==='sip'){
-                //s.group[d.ke].mon[d.id].eventBasedRecording.timeout
-//                clearTimeout(s.group[d.ke].mon[d.id].eventBasedRecording.timeout)
-                s.group[d.ke].mon[d.id].eventBasedRecording.timeout = setTimeout(function(){
-                    s.group[d.ke].mon[d.id].eventBasedRecording.allowEnd=true;
-                },detector_timeout * 950 * 60)
-                if(!s.group[d.ke].mon[d.id].eventBasedRecording.process){
-                    if(!d.auth){
-                        d.auth=s.gid();
+                if(!s.group[d.ke].mon[d.id].detector_motion_count){
+                    s.group[d.ke].mon[d.id].detector_motion_count=0
+                }
+                s.group[d.ke].mon[d.id].detector_motion_count+=1
+                if(s.group[d.ke].mon[d.id].motion_lock){
+                    return
+                }
+                var detector_lock_timeout
+                if(!d.mon.details.detector_lock_timeout||d.mon.details.detector_lock_timeout===''){
+                    detector_lock_timeout = 2000
+                }
+                detector_lock_timeout = parseFloat(d.mon.details.detector_lock_timeout);
+                if(!s.group[d.ke].mon[d.id].detector_lock_timeout){
+                    s.group[d.ke].mon[d.id].detector_lock_timeout=setTimeout(function(){
+                        clearTimeout(s.group[d.ke].mon[d.id].detector_lock_timeout)
+                        delete(s.group[d.ke].mon[d.id].detector_lock_timeout)
+                    },detector_lock_timeout)
+                }else{
+                    return
+                }
+                if(d.mon.details.detector_notrigger=='1'){
+                    var detector_notrigger_timeout
+                    if(!d.mon.details.detector_notrigger_timeout||d.mon.details.detector_notrigger_timeout===''){
+                        detector_notrigger_timeout = 10
                     }
-                    if(!s.group[d.ke].users[d.auth]){
-                        s.group[d.ke].users[d.auth]={system:1,details:{},lang:lang}
-                    }
-                    s.group[d.ke].mon[d.id].eventBasedRecording.allowEnd = false;
-                    var runRecord = function(){
-                        var filename = s.moment()+'.mp4'
-                        s.log(d,{type:"Traditional Recording",msg:"Started"})
-                        //-t 00:'+moment(new Date(detector_timeout * 1000 * 60)).format('mm:ss')+'
-                        s.group[d.ke].mon[d.id].eventBasedRecording.process = spawn(config.ffmpegDir,s.splitForFFPMEG(('-loglevel warning -analyzeduration 1000000 -probesize 1000000 -re -i http://'+config.ip+':'+config.port+'/'+d.auth+'/hls/'+d.ke+'/'+d.id+'/detectorStream.m3u8 -t 00:'+moment(new Date(detector_timeout * 1000 * 60)).format('mm:ss')+' -c:v copy -strftime 1 "'+s.video('getDir',d.mon) + filename + '"').replace(/\s+/g,' ').trim()))
-                        var ffmpegError='';
-                        var error
-                        s.group[d.ke].mon[d.id].eventBasedRecording.process.stderr.on('data',function(data){
-                            s.log(d,{type:"Traditional Recording",msg:data.toString()})
-                        })
-                        s.group[d.ke].mon[d.id].eventBasedRecording.process.on('close',function(){
-                            if(!s.group[d.ke].mon[d.id].eventBasedRecording.allowEnd){
-                                s.log(d,{type:"Traditional Recording",msg:"Detector Recording Process Exited Prematurely. Restarting."})
-                                runRecord()
-                                return
-                            }
-                            d.mid = d.id
-                            s.video('insertCompleted',d,{
-                                file : filename
+                    detector_notrigger_timeout = parseFloat(d.mon.details.detector_notrigger_timeout)*1000*60;
+                    s.group[e.ke].mon[e.id].detector_notrigger_timeout = detector_notrigger_timeout;
+                    clearInterval(s.group[d.ke].mon[d.id].detector_notrigger_timeout)
+                    s.group[d.ke].mon[d.id].detector_notrigger_timeout = setInterval(s.group[d.ke].mon[d.id].detector_notrigger_timeout_function,detector_notrigger_timeout)
+                }
+                if(d.mon.details.detector_webhook=='1'){
+                    var detector_webhook_url = d.mon.details.detector_webhook_url
+                        .replace(/{{TIME}}/g,moment(new Date).format())
+                        .replace(/{{MONITOR_ID}}/g,d.id)
+                        .replace(/{{GROUP_KEY}}/g,d.ke)
+                        .replace(/{{DETAILS}}/g,detailString)
+                    http.get(detector_webhook_url, function(data) {
+                          data.setEncoding('utf8');
+                          var chunks='';
+                          data.on('data', (chunk) => {
+                              chunks+=chunk;
+                          });
+                          data.on('end', () => {
+
+                          });
+
+                    }).on('error', function(e) {
+
+                    }).end();
+                }
+                var detector_timeout
+                if(!d.mon.details.detector_timeout||d.mon.details.detector_timeout===''){
+                    detector_timeout = 10
+                }else{
+                    detector_timeout = parseFloat(d.mon.details.detector_timeout)
+                }
+                if(d.mon.mode=='start'&&d.mon.details.detector_trigger==='1'&&d.mon.details.detector_record_method==='sip'){
+                    //s.group[d.ke].mon[d.id].eventBasedRecording.timeout
+    //                clearTimeout(s.group[d.ke].mon[d.id].eventBasedRecording.timeout)
+                    s.group[d.ke].mon[d.id].eventBasedRecording.timeout = setTimeout(function(){
+                        s.group[d.ke].mon[d.id].eventBasedRecording.allowEnd=true;
+                    },detector_timeout * 950 * 60)
+                    if(!s.group[d.ke].mon[d.id].eventBasedRecording.process){
+                        if(!d.auth){
+                            d.auth=s.gid();
+                        }
+                        if(!s.group[d.ke].users[d.auth]){
+                            s.group[d.ke].users[d.auth]={system:1,details:{},lang:lang}
+                        }
+                        s.group[d.ke].mon[d.id].eventBasedRecording.allowEnd = false;
+                        var runRecord = function(){
+                            var filename = s.moment()+'.mp4'
+                            s.log(d,{type:"Traditional Recording",msg:"Started"})
+                            //-t 00:'+moment(new Date(detector_timeout * 1000 * 60)).format('mm:ss')+'
+                            s.group[d.ke].mon[d.id].eventBasedRecording.process = spawn(config.ffmpegDir,s.splitForFFPMEG(('-loglevel warning -analyzeduration 1000000 -probesize 1000000 -re -i http://'+config.ip+':'+config.port+'/'+d.auth+'/hls/'+d.ke+'/'+d.id+'/detectorStream.m3u8 -t 00:'+moment(new Date(detector_timeout * 1000 * 60)).format('mm:ss')+' -c:v copy -strftime 1 "'+s.video('getDir',d.mon) + filename + '"').replace(/\s+/g,' ').trim()))
+                            var ffmpegError='';
+                            var error
+                            s.group[d.ke].mon[d.id].eventBasedRecording.process.stderr.on('data',function(data){
+                                s.log(d,{type:"Traditional Recording",msg:data.toString()})
                             })
-                            s.log(d,{type:"Traditional Recording",msg:"Detector Recording Complete"})
-                            delete(s.group[d.ke].users[d.auth])
-                            s.log(d,{type:"Traditional Recording",msg:'Clear Recorder Process'})
-                            delete(s.group[d.ke].mon[d.id].eventBasedRecording.process)
-                            delete(s.group[d.ke].mon[d.id].eventBasedRecording.timeout)
-                            clearTimeout(s.group[d.ke].mon[d.id].checker)
-                        })
+                            s.group[d.ke].mon[d.id].eventBasedRecording.process.on('close',function(){
+                                if(!s.group[d.ke].mon[d.id].eventBasedRecording.allowEnd){
+                                    s.log(d,{type:"Traditional Recording",msg:"Detector Recording Process Exited Prematurely. Restarting."})
+                                    runRecord()
+                                    return
+                                }
+                                d.mid = d.id
+                                s.video('insertCompleted',d,{
+                                    file : filename
+                                })
+                                s.log(d,{type:"Traditional Recording",msg:"Detector Recording Complete"})
+                                delete(s.group[d.ke].users[d.auth])
+                                s.log(d,{type:"Traditional Recording",msg:'Clear Recorder Process'})
+                                delete(s.group[d.ke].mon[d.id].eventBasedRecording.process)
+                                delete(s.group[d.ke].mon[d.id].eventBasedRecording.timeout)
+                                clearTimeout(s.group[d.ke].mon[d.id].checker)
+                            })
+                        }
+                        runRecord()
                     }
-                    runRecord()
-                }
-            }else{
-                if(d.mon.mode!=='stop'&&d.mon.details.detector_trigger=='1'&&d.mon.details.detector_record_method==='hot'){
+                }else if(d.mon.mode!=='stop'&&d.mon.details.detector_trigger=='1'&&d.mon.details.detector_record_method==='hot'){
                     if(!d.auth){
                         d.auth=s.gid();
                     }
@@ -2936,81 +2957,80 @@ s.camera=function(x,e,cn,tx){
 
                     }).end();
                 }
-            }
-            //mailer
-            if(config.mail&&!s.group[d.ke].mon[d.id].detector_mail&&d.mon.details.detector_mail==='1'){
-                s.sqlQuery('SELECT mail FROM Users WHERE ke=? AND details NOT LIKE ?',[d.ke,'%"sub"%'],function(err,r){
-                    r=r[0];
-                    var detector_mail_timeout
-                    if(!d.mon.details.detector_mail_timeout||d.mon.details.detector_mail_timeout===''){
-                        detector_mail_timeout = 1000*60*10;
-                    }else{
-                        detector_mail_timeout = parseFloat(d.mon.details.detector_mail_timeout)*1000*60;
-                    }
-                    //lock mailer so you don't get emailed on EVERY trigger event.
-                    s.group[d.ke].mon[d.id].detector_mail=setTimeout(function(){
-                        //unlock so you can mail again.
-                        clearTimeout(s.group[d.ke].mon[d.id].detector_mail);
-                        delete(s.group[d.ke].mon[d.id].detector_mail);
-                    },detector_mail_timeout);
-                    d.frame_filename='Motion_'+(d.mon.name.replace(/[^\w\s]/gi, ''))+'_'+d.id+'_'+d.ke+'_'+s.moment()+'.jpg';
-                    fs.readFile(s.dir.streams+'/'+d.ke+'/'+d.id+'/s.jpg',function(err, frame){
-                        d.mailOptions = {
-                            from: '"ShinobiCCTV" <no-reply@shinobi.video>', // sender address
-                            to: r.mail, // list of receivers
-                            subject: lang.Event+' - '+d.frame_filename, // Subject line
-                            html: '<i>'+lang.EventText1+' '+moment(new Date).format()+'.</i>',
-                        };
-                        if(err){
-                            s.systemLog(lang.EventText2+' '+d.ke+' '+d.id,err)
+                //mailer
+                if(config.mail&&!s.group[d.ke].mon[d.id].detector_mail&&d.mon.details.detector_mail==='1'){
+                    s.sqlQuery('SELECT mail FROM Users WHERE ke=? AND details NOT LIKE ?',[d.ke,'%"sub"%'],function(err,r){
+                        r=r[0];
+                        var detector_mail_timeout
+                        if(!d.mon.details.detector_mail_timeout||d.mon.details.detector_mail_timeout===''){
+                            detector_mail_timeout = 1000*60*10;
                         }else{
-                            d.mailOptions.attachments=[
-                                {
-                                    filename: d.frame_filename,
-                                    content: frame
-                                }
-                            ]
-                            d.mailOptions.html='<i>'+lang.EventText3+'</i>'
+                            detector_mail_timeout = parseFloat(d.mon.details.detector_mail_timeout)*1000*60;
                         }
-                            Object.keys(d.details).forEach(function(v,n){
-                            d.mailOptions.html+='<div><b>'+v+'</b> : '+d.details[v]+'</div>'
-                        })
-                        nodemailer.sendMail(d.mailOptions, (error, info) => {
-                            if (error) {
-                                s.systemLog(lang.MailError,error)
-                                return ;
+                        //lock mailer so you don't get emailed on EVERY trigger event.
+                        s.group[d.ke].mon[d.id].detector_mail=setTimeout(function(){
+                            //unlock so you can mail again.
+                            clearTimeout(s.group[d.ke].mon[d.id].detector_mail);
+                            delete(s.group[d.ke].mon[d.id].detector_mail);
+                        },detector_mail_timeout);
+                        d.frame_filename='Motion_'+(d.mon.name.replace(/[^\w\s]/gi, ''))+'_'+d.id+'_'+d.ke+'_'+s.moment()+'.jpg';
+                        fs.readFile(s.dir.streams+'/'+d.ke+'/'+d.id+'/s.jpg',function(err, frame){
+                            d.mailOptions = {
+                                from: '"ShinobiCCTV" <no-reply@shinobi.video>', // sender address
+                                to: r.mail, // list of receivers
+                                subject: lang.Event+' - '+d.frame_filename, // Subject line
+                                html: '<i>'+lang.EventText1+' '+moment(new Date).format()+'.</i>',
+                            };
+                            if(err){
+                                s.systemLog(lang.EventText2+' '+d.ke+' '+d.id,err)
+                            }else{
+                                d.mailOptions.attachments=[
+                                    {
+                                        filename: d.frame_filename,
+                                        content: frame
+                                    }
+                                ]
+                                d.mailOptions.html='<i>'+lang.EventText3+'</i>'
                             }
-                        });
-                    })
-                });
-            }
-            //save this detection result in SQL, only coords. not image.
-            if(d.mon.details.detector_save==='1'){
-                s.sqlQuery('INSERT INTO Events (ke,mid,details) VALUES (?,?,?)',[d.ke,d.id,detailString])
-            }
-            if(d.mon.details.detector_command_enable==='1'&&!s.group[d.ke].mon[d.id].detector_command){
-                var detector_command_timeout
-                if(!d.mon.details.detector_command_timeout||d.mon.details.detector_command_timeout===''){
-                    detector_command_timeout = 1000*60*10;
-                }else{
-                    detector_command_timeout = parseFloat(d.mon.details.detector_command_timeout)*1000*60;
+                                Object.keys(d.details).forEach(function(v,n){
+                                d.mailOptions.html+='<div><b>'+v+'</b> : '+d.details[v]+'</div>'
+                            })
+                            nodemailer.sendMail(d.mailOptions, (error, info) => {
+                                if (error) {
+                                    s.systemLog(lang.MailError,error)
+                                    return ;
+                                }
+                            });
+                        })
+                    });
                 }
-                s.group[d.ke].mon[d.id].detector_command=setTimeout(function(){
-                    clearTimeout(s.group[d.ke].mon[d.id].detector_command);
-                    delete(s.group[d.ke].mon[d.id].detector_command);
+                if(d.mon.details.detector_command_enable==='1'&&!s.group[d.ke].mon[d.id].detector_command){
+                    var detector_command_timeout
+                    if(!d.mon.details.detector_command_timeout||d.mon.details.detector_command_timeout===''){
+                        detector_command_timeout = 1000*60*10;
+                    }else{
+                        detector_command_timeout = parseFloat(d.mon.details.detector_command_timeout)*1000*60;
+                    }
+                    s.group[d.ke].mon[d.id].detector_command=setTimeout(function(){
+                        clearTimeout(s.group[d.ke].mon[d.id].detector_command);
+                        delete(s.group[d.ke].mon[d.id].detector_command);
 
-                },detector_command_timeout);
-                var detector_command = d.mon.details.detector_command
-                    .replace(/{{TIME}}/g,moment(new Date).format())
-                    .replace(/{{MONITOR_ID}}/g,d.id)
-                    .replace(/{{GROUP_KEY}}/g,d.ke)
-                    .replace(/{{DETAILS}}/g,detailString)
-                if(d.details.confidence){
-                    detector_command = detector_command
-                    .replace(/{{CONFIDENCE}}/g,d.details.confidence)
+                    },detector_command_timeout);
+                    var detector_command = d.mon.details.detector_command
+                        .replace(/{{TIME}}/g,moment(new Date).format())
+                        .replace(/{{MONITOR_ID}}/g,d.id)
+                        .replace(/{{GROUP_KEY}}/g,d.ke)
+                        .replace(/{{DETAILS}}/g,detailString)
+                    if(d.details.confidence){
+                        detector_command = detector_command
+                        .replace(/{{CONFIDENCE}}/g,d.details.confidence)
+                    }
+                    exec(detector_command,{detached: true})
                 }
-                exec(detector_command,{detached: true})
             }
+            //show client machines the event
+            d.cx={f:'detector_trigger',id:d.id,ke:d.ke,details:d.details,doObjectDetection:d.doObjectDetection};
+            s.tx(d.cx,'DETECTOR_'+d.ke+d.id);
         break;
     }
     if(typeof cn==='function'){setTimeout(function(){cn()},1000);}
