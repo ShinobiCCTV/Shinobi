@@ -2502,7 +2502,8 @@ s.camera=function(x,e,cn,tx){
                                         };
                                     }
                                     var regions = s.createPamDiffRegionArray(s.group[e.ke].mon_conf[e.id].details.cords,globalSensitivity,fullFrame);
-                                    var noiseFilterArray = {};
+                                    s.group[e.ke].mon[e.id].noiseFilterArray = {}
+                                    var noiseFilterArray = s.group[e.ke].mon[e.id].noiseFilterArray
                                     Object.keys(regions.notForPam).forEach(function(name){
                                         noiseFilterArray[name]=[];
                                     })
@@ -2534,7 +2535,11 @@ s.camera=function(x,e,cn,tx){
                                         if(noiseFilterArray[trigger.name].length > 2){
                                             var thePreviousTriggerPercent = noiseFilterArray[trigger.name][noiseFilterArray[trigger.name].length - 1];
                                             var triggerDifference = trigger.percent - thePreviousTriggerPercent;
-                                            if(((trigger.percent - thePreviousTriggerPercent) < 6)||(thePreviousTriggerPercent - trigger.percent) > -6){
+                                            var noiseRange = e.details.detector_noise_filter_range
+                                            if(!noiseRange || noiseRange === ''){
+                                                noiseRange = 6
+                                            }
+                                            if(((trigger.percent - thePreviousTriggerPercent) < noiseRange)||(thePreviousTriggerPercent - trigger.percent) > -noiseRange){
                                                 noiseFilterArray[trigger.name].push(trigger.percent);
                                             }
                                         }else{
@@ -2817,30 +2822,30 @@ s.camera=function(x,e,cn,tx){
                 return s.systemLog(lang['No Monitor Found, Ignoring Request'])
             }
             d.mon=s.group[d.ke].mon_conf[d.id];
+            if(!s.group[d.ke].mon[d.id].detector_motion_count){
+                s.group[d.ke].mon[d.id].detector_motion_count=0
+            }
+            s.group[d.ke].mon[d.id].detector_motion_count+=1
+            if(s.group[d.ke].mon[d.id].motion_lock){
+                return
+            }
+            var detector_lock_timeout
+            if(!d.mon.details.detector_lock_timeout||d.mon.details.detector_lock_timeout===''){
+                detector_lock_timeout = 2000
+            }
+            detector_lock_timeout = parseFloat(d.mon.details.detector_lock_timeout);
+            if(!s.group[d.ke].mon[d.id].detector_lock_timeout){
+                s.group[d.ke].mon[d.id].detector_lock_timeout=setTimeout(function(){
+                    clearTimeout(s.group[d.ke].mon[d.id].detector_lock_timeout)
+                    delete(s.group[d.ke].mon[d.id].detector_lock_timeout)
+                },detector_lock_timeout)
+            }else{
+                return
+            }
             if(d.doObjectDetection !== true){
                 //save this detection result in SQL, only coords. not image.
                 if(d.mon.details.detector_save==='1'){
                     s.sqlQuery('INSERT INTO Events (ke,mid,details) VALUES (?,?,?)',[d.ke,d.id,detailString])
-                }
-                if(!s.group[d.ke].mon[d.id].detector_motion_count){
-                    s.group[d.ke].mon[d.id].detector_motion_count=0
-                }
-                s.group[d.ke].mon[d.id].detector_motion_count+=1
-                if(s.group[d.ke].mon[d.id].motion_lock){
-                    return
-                }
-                var detector_lock_timeout
-                if(!d.mon.details.detector_lock_timeout||d.mon.details.detector_lock_timeout===''){
-                    detector_lock_timeout = 2000
-                }
-                detector_lock_timeout = parseFloat(d.mon.details.detector_lock_timeout);
-                if(!s.group[d.ke].mon[d.id].detector_lock_timeout){
-                    s.group[d.ke].mon[d.id].detector_lock_timeout=setTimeout(function(){
-                        clearTimeout(s.group[d.ke].mon[d.id].detector_lock_timeout)
-                        delete(s.group[d.ke].mon[d.id].detector_lock_timeout)
-                    },detector_lock_timeout)
-                }else{
-                    return
                 }
                 if(d.mon.details.detector_notrigger=='1'){
                     var detector_notrigger_timeout
