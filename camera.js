@@ -2305,6 +2305,9 @@ s.camera=function(x,e,cn,tx){
                 //check if ffmpeg is recording
                 s.group[e.ke].mon[e.id].fswatch = fs.watch(e.dir, {encoding : 'utf8'}, (event, filename) => {
                     switch(event){
+                        case'rename':
+                            s.group[e.ke].mon[e.id].open = filename.split('.')[0]
+                        break;
                         case'change':
                             clearTimeout(s.group[e.ke].mon[e.id].checker)
                             clearTimeout(s.group[e.ke].mon[e.id].checkStream)
