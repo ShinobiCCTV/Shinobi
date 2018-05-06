@@ -2524,7 +2524,7 @@ s.camera=function(x,e,cn,tx){
                                             imgHeight:height,
                                             imgWidth:width
                                         }
-                                        detectorObject.doObjectDetection = (e.details.detector_use_detect_object === '1')
+                                        detectorObject.doObjectDetection = (s.ocv && e.details.detector_use_detect_object === '1')
                                         s.camera('motion',detectorObject)
                                         if(detectorObject.doObjectDetection === true){
                                             s.ocvTx({f:'frame',mon:s.group[e.ke].mon_conf[e.id].details,ke:e.ke,id:e.id,time:s.moment(),frame:s.group[e.ke].mon[e.id].lastJpegDetectorFrame});
