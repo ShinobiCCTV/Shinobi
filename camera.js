@@ -2502,10 +2502,10 @@ s.camera=function(x,e,cn,tx){
                                         };
                                     }
                                     var regions = s.createPamDiffRegionArray(s.group[e.ke].mon_conf[e.id].details.cords,globalSensitivity,fullFrame);
-                                    s.group[e.ke].mon[e.id].noiseFilterArray = {}
+                                    if(!s.group[e.ke].mon[e.id].noiseFilterArray)s.group[e.ke].mon[e.id].noiseFilterArray = {}
                                     var noiseFilterArray = s.group[e.ke].mon[e.id].noiseFilterArray
                                     Object.keys(regions.notForPam).forEach(function(name){
-                                        noiseFilterArray[name]=[];
+                                        if(!noiseFilterArray[name])noiseFilterArray[name]=[];
                                     })
                                     s.group[e.ke].mon[e.id].pamDiff = new PamDiff({grayscale: 'luminosity', regions : regions.forPam});
                                     s.group[e.ke].mon[e.id].p2p = new P2P();
@@ -2539,6 +2539,7 @@ s.camera=function(x,e,cn,tx){
                                             if(!noiseRange || noiseRange === ''){
                                                 noiseRange = 6
                                             }
+                                            noiseRange = parseFloat(noiseRange)
                                             if(((trigger.percent - thePreviousTriggerPercent) < noiseRange)||(thePreviousTriggerPercent - trigger.percent) > -noiseRange){
                                                 noiseFilterArray[trigger.name].push(trigger.percent);
                                             }
