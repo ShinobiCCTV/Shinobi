@@ -1321,7 +1321,7 @@ s.ffmpeg=function(e){
             case'mp4':
                 x.cust_stream+=' -movflags +frag_keyframe+empty_moov+default_base_moof -metadata title="Poseidon Stream" -reset_timestamps 1'
                 if(channel.stream_vcodec!=='copy'){
-                    if(x.cust_stream.indexOf('-s ')===-1){x.cust_stream+=' -s '+x.ratio}
+                    if(x.ratio && x.cust_stream.indexOf('-s ')===-1){x.cust_stream+=' -s '+x.ratio}
                     if(channel.stream_quality && channel.stream_quality !== '')x.cust_stream+=' -crf '+channel.stream_quality;
                     x.cust_stream+=x.preset_stream
                     x.cust_stream+=x.stream_video_filters
@@ -1355,7 +1355,7 @@ s.ffmpeg=function(e){
             break;
             case'h264':
                 if(channel.stream_vcodec!=='copy'){
-                    if(x.cust_stream.indexOf('-s ')===-1&&x.ratio){x.cust_stream+=' -s '+x.ratio}
+                    if(x.ratio && x.cust_stream.indexOf('-s ')===-1){x.cust_stream+=' -s '+x.ratio}
                     if(channel.stream_quality && channel.stream_quality !== '')x.cust_stream+=' -crf '+channel.stream_quality;
                     x.cust_stream+=x.preset_stream
                     x.cust_stream+=x.stream_video_filters
@@ -1364,7 +1364,7 @@ s.ffmpeg=function(e){
             break;
             case'flv':
                 if(channel.stream_vcodec!=='copy'){
-                    if(x.cust_stream.indexOf('-s ')===-1&&x.ratio){x.cust_stream+=' -s '+x.ratio}
+                    if(x.ratio && x.cust_stream.indexOf('-s ')===-1){x.cust_stream+=' -s '+x.ratio}
                     if(channel.stream_quality && channel.stream_quality !== '')x.cust_stream+=' -crf '+channel.stream_quality;
                     x.cust_stream+=x.preset_stream
                     x.cust_stream+=x.stream_video_filters
@@ -1376,14 +1376,15 @@ s.ffmpeg=function(e){
                     if(channel.stream_quality && channel.stream_quality !== '')x.cust_stream+=' -crf '+channel.stream_quality;
                     if(x.cust_stream.indexOf('-tune')===-1){x.cust_stream+=' -tune zerolatency'}
                     if(x.cust_stream.indexOf('-g ')===-1){x.cust_stream+=' -g 1'}
-                    if(x.cust_stream.indexOf('-s ')===-1&&x.ratio){x.cust_stream+=' -s '+x.ratio}
+                    if(x.ratio && x.cust_stream.indexOf('-s ')===-1){x.cust_stream+=' -s '+x.ratio}
                     x.cust_stream+=x.stream_video_filters
                 }
                 x.pipe+=x.preset_stream+x.stream_acodec+x.stream_vcodec+' -f hls'+x.cust_stream+' -hls_time '+x.hls_time+' -hls_list_size '+x.hls_list_size+' -start_number 0 -hls_allow_cache 0 -hls_flags +delete_segments+omit_endlist "'+x.channel_sdir+'s.m3u8"';
             break;
             case'mjpeg':
                 if(channel.stream_quality && channel.stream_quality !== '')x.cust_stream+=' -q:v '+channel.stream_quality;
-                x.pipe+=' -c:v mjpeg -f mpjpeg -boundary_tag shinobi'+x.cust_stream+x.stream_video_filters+' -s '+x.ratio+' pipe:'+number;
+                if(x.ratio && x.cust_stream.indexOf('-s ')===-1){x.cust_stream+=' -s '+x.ratio}
+                x.pipe+=' -c:v mjpeg -f mpjpeg -boundary_tag shinobi'+x.cust_stream+x.stream_video_filters+' pipe:'+number;
             break;
             default:
                 x.pipe=''
@@ -1421,14 +1422,6 @@ s.ffmpeg=function(e){
         break;
     }
     //record - resolution
-    switch(s.ratio(e.width,e.height)){
-        case'16:9':
-            x.ratio='640x360';
-        break;
-        default:
-            x.ratio='640x480';
-        break;
-    }
     if(e.width!==''&&e.height!==''&&!isNaN(e.width)&&!isNaN(e.height)){
         x.record_dimensions=' -s '+e.width+'x'+e.height
     }else{
@@ -1633,7 +1626,7 @@ s.ffmpeg=function(e){
         case'mp4':
             x.cust_stream+=' -movflags +frag_keyframe+empty_moov+default_base_moof -metadata title="Poseidon Stream" -reset_timestamps 1'
             if(e.details.stream_vcodec!=='copy'){
-                if(x.cust_stream.indexOf('-s ')===-1){x.cust_stream+=' -s '+x.ratio}
+                if(x.ratio && x.cust_stream.indexOf('-s ')===-1){x.cust_stream+=' -s '+x.ratio}
                 if(e.details.stream_quality && e.details.stream_quality !== '')x.cust_stream+=' -crf '+e.details.stream_quality;
                 x.cust_stream+=x.preset_stream
                 x.cust_stream+=x.stream_video_filters
@@ -1642,7 +1635,7 @@ s.ffmpeg=function(e){
         break;
         case'flv':
             if(e.details.stream_vcodec!=='copy'){
-                if(x.cust_stream.indexOf('-s ')===-1&&x.ratio){x.cust_stream+=' -s '+x.ratio}
+                if(x.ratio && x.cust_stream.indexOf('-s ')===-1){x.cust_stream+=' -s '+x.ratio}
                 if(e.details.stream_quality && e.details.stream_quality !== '')x.cust_stream+=' -crf '+e.details.stream_quality;
                 x.cust_stream+=x.preset_stream
                 x.cust_stream+=x.stream_video_filters
@@ -1654,25 +1647,25 @@ s.ffmpeg=function(e){
                 if(e.details.stream_quality && e.details.stream_quality !== '')x.cust_stream+=' -crf '+e.details.stream_quality;
                 if(x.cust_stream.indexOf('-tune')===-1){x.cust_stream+=' -tune zerolatency'}
                 if(x.cust_stream.indexOf('-g ')===-1){x.cust_stream+=' -g 1'}
-                if(x.cust_stream.indexOf('-s ')===-1&&x.ratio){x.cust_stream+=' -s '+x.ratio}
+                if(x.ratio && x.cust_stream.indexOf('-s ')===-1){x.cust_stream+=' -s '+x.ratio}
                 x.cust_stream+=x.stream_video_filters
             }
             x.pipe+=x.preset_stream+x.stream_acodec+x.stream_vcodec+' -f hls'+x.cust_stream+' -hls_time '+x.hls_time+' -hls_list_size '+x.hls_list_size+' -start_number 0 -hls_allow_cache 0 -hls_flags +delete_segments+omit_endlist "'+e.sdir+'s.m3u8"';
         break;
         case'mjpeg':
             if(e.details.stream_quality && e.details.stream_quality !== '')x.cust_stream+=' -q:v '+e.details.stream_quality;
-            x.pipe+=' -an -c:v mjpeg -f mpjpeg -boundary_tag shinobi'+x.cust_stream+x.stream_video_filters+' -s '+x.ratio+' pipe:1';
+            if(x.ratio && x.cust_stream.indexOf('-s ')===-1){x.cust_stream+=' -s '+x.ratio}
+            x.pipe+=' -an -c:v mjpeg -f mpjpeg -boundary_tag shinobi'+x.cust_stream+x.stream_video_filters+' pipe:1';
         break;
-//        case'pam':
-//            if(e.details.stream_scale_x&&e.details.stream_scale_x!==''&&e.details.stream_scale_y&&e.details.stream_scale_y!==''){
-//                x.cust_stream+=' -s '+x.ratio
-//            }
-//            if(e.details.stream_quality && e.details.stream_quality !== '')x.cust_stream+=' -q:v '+e.details.stream_quality;
-//            x.pipe+=' -an -c:v pam -pix_fmt gray -f image2pipe'+x.cust_stream+x.stream_video_filters+' pipe:1';
-//        break;
+        case'pam':
+            if(x.ratio && x.cust_stream.indexOf('-s ')===-1){x.cust_stream+=' -s '+x.ratio}
+            if(e.details.stream_quality && e.details.stream_quality !== '')x.cust_stream+=' -q:v '+e.details.stream_quality;
+            x.pipe+=' -an -c:v pam -pix_fmt rgba -f image2pipe'+x.cust_stream+x.stream_video_filters+' pipe:1';
+        break;
         case'b64':case'':case undefined:case null://base64
             if(e.details.stream_quality && e.details.stream_quality !== '')x.cust_stream+=' -q:v '+e.details.stream_quality;
-            x.pipe+=' -an -c:v mjpeg -f image2pipe'+x.cust_stream+x.stream_video_filters+' -s '+x.ratio+' pipe:1';
+            if(x.ratio && x.cust_stream.indexOf('-s ')===-1){x.cust_stream+=' -s '+x.ratio}
+            x.pipe+=' -an -c:v mjpeg -f image2pipe'+x.cust_stream+x.stream_video_filters+' pipe:1';
         break;
         default:
             x.pipe=''
@@ -2621,7 +2614,7 @@ s.camera=function(x,e,cn,tx){
 //                                   s.group[e.ke].mon[e.id].p2pStream.on('pam',function(d){
 //                                       resetStreamCheck()
 //                                       s.tx({f:'pam_frame',ke:e.ke,id:e.id,imageData:{
-//                                           data : new Uint8ClampedArray(d.pixels),
+//                                           data : d.pixels,
 //                                           height : d.height,
 //                                           width : d.width
 //                                       }},'MON_STREAM_'+e.id);
