@@ -2910,8 +2910,7 @@ s.camera=function(x,e,cn,tx){
                                     runRecord()
                                     return
                                 }
-                                d.mid = d.id
-                                s.video('insertCompleted',d,{
+                                s.video('insertCompleted',d.mon,{
                                     file : filename
                                 })
                                 s.log(d,{type:"Traditional Recording",msg:"Detector Recording Complete"})
