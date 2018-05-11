@@ -895,7 +895,7 @@ switch($user.details.lang){
                         case'mjpeg':
                             tmp+='<iframe class="stream-element"></iframe>';
                         break;
-                        case'jpeg'://base64
+                        case'jpeg':
                             tmp+='<img class="stream-element">';
                         break;
                         default://base64
@@ -1894,38 +1894,53 @@ $.ccio.globalWebsocket=function(d,user){
         case'pam_frame':
             if(!$.ccio.mon[d.ke+d.id+user.auth_token].ctx||$.ccio.mon[d.ke+d.id+user.auth_token].ctx.length===0){
                 $.ccio.mon[d.ke+d.id+user.auth_token].ctx = $('#monitor_live_'+d.id+user.auth_token+' canvas');
+                $.ccio.mon[d.ke+d.id+user.auth_token].ctxContext = $.ccio.mon[d.ke+d.id+user.auth_token].ctx[0].getContext('2d');
             }
-            var ctx = $.ccio.mon[d.ke+d.id+user.auth_token].ctx[0].getContext('2d');
-            var imageData = ctx.createImageData(d.imageData.width,d.imageData.height)
-            imageData.data.set(d.imageData.data)
+            var ctx = $.ccio.mon[d.ke+d.id+user.auth_token].ctxContext;
+            d.x = 0,d.y = 0;
+            d.ratio = Math.min($.ccio.mon[d.ke+d.id+user.auth_token].ctx.width()/d.imageData.width,$.ccio.mon[d.ke+d.id+user.auth_token].ctx.height()/d.imageData.height);
+            d.height = d.imageData.height*d.ratio;
+            d.width = d.imageData.width*d.ratio;
+            if( d.width < $.ccio.mon[d.ke+d.id+user.auth_token].ctx.width() )
+                d.x = ($.ccio.mon[d.ke+d.id+user.auth_token].ctx.width() / 2) - (d.width / 2);
+            if( d.height < $.ccio.mon[d.ke+d.id+user.auth_token].ctx.height() )
+                d.y = ($.ccio.mon[d.ke+d.id+user.auth_token].ctx.height() / 2) - (d.height / 2);
+            var imageData = ctx.createImageData(d.width,d.height)
+            imageData.data.set(new Uint8ClampedArray(d.imageData.data))
             console.log(imageData)
             ctx.putImageData(imageData, 0, 0);
         break;
         case'monitor_frame':
             try{
+                if($.ccio.mon[d.ke+d.id+user.auth_token].imageLoading === true)return
                 if(!$.ccio.mon[d.ke+d.id+user.auth_token].ctx||$.ccio.mon[d.ke+d.id+user.auth_token].ctx.length===0){
                     $.ccio.mon[d.ke+d.id+user.auth_token].ctx = $('#monitor_live_'+d.id+user.auth_token+' canvas');
                 }
+                var ctx = $.ccio.mon[d.ke+d.id+user.auth_token].ctx[0]
                 if(!$.ccio.mon[d.ke+d.id+user.auth_token].image){
-                    $.ccio.mon[d.ke+d.id+user.auth_token].image = new Image();
-                    $.ccio.mon[d.ke+d.id+user.auth_token].image.onload = function() {
-//                        d.x = 0,d.y = 0;
-//                        d.ratio = Math.min($.ccio.mon[d.ke+d.id+user.auth_token].ctx.width()/$.ccio.mon[d.ke+d.id+user.auth_token].image.width,$.ccio.mon[d.ke+d.id+user.auth_token].ctx.height()/$.ccio.mon[d.ke+d.id+user.auth_token].image.height);
-//                        d.height = $.ccio.mon[d.ke+d.id+user.auth_token].image.height*d.ratio;
-//                        d.width = $.ccio.mon[d.ke+d.id+user.auth_token].image.width*d.ratio;
-//                        if( d.width < $.ccio.mon[d.ke+d.id+user.auth_token].ctx.width() )
-//                            d.x = ($.ccio.mon[d.ke+d.id+user.auth_token].ctx.width() / 2) - (d.width / 2);
-//                        if( d.height < $.ccio.mon[d.ke+d.id+user.auth_token].ctx.height() )
-//                            d.y = ($.ccio.mon[d.ke+d.id+user.auth_token].ctx.height() / 2) - (d.height / 2);
-//                        $.ccio.mon[d.ke+d.id+user.auth_token].ctx[0].getContext("2d").drawImage($.ccio.mon[d.ke+d.id+user.auth_token].image,0,0,$.ccio.mon[d.ke+d.id+user.auth_token].image.width,$.ccio.mon[d.ke+d.id+user.auth_token].image.height,d.x,d.y,d.width,d.height);
-                       
-                        d.height=$.ccio.mon[d.ke+d.id+user.auth_token].ctx.height()
-                        d.width=$.ccio.mon[d.ke+d.id+user.auth_token].ctx.width()
-                        $.ccio.mon[d.ke+d.id+user.auth_token].ctx[0].getContext("2d").drawImage($.ccio.mon[d.ke+d.id+user.auth_token].image,0,0,d.width,d.height);
-                    };
+                    $.ccio.mon[d.ke+d.id+user.auth_token].image = new Image()
+                    var image = $.ccio.mon[d.ke+d.id+user.auth_token].image
+                    image.onload = function() {
+                        $.ccio.mon[d.ke+d.id+user.auth_token].imageLoading = false
+                        d.x = 0
+                        d.y = 0
+//                        d.ratio = Math.min(ctx.width/image.width,ctx.height/image.height)
+//                        d.height = image.height * d.ratio
+//                        d.width = image.width * d.ratio
+//                        if(d.width < ctx.width){
+//                            d.x = (ctx.width / 2) - (d.width / 2)
+//                        }
+//                        if(d.height < ctx.height){
+//                            d.y = (ctx.height / 2) - (d.height / 2)
+//                        }
+//                        ctx.getContext("2d").drawImage(image,d.x,d.y,d.width,d.height)
+                        ctx.getContext("2d").drawImage(image,d.x,d.y,ctx.width,ctx.height)
+                    }
                 }
-                $.ccio.mon[d.ke+d.id+user.auth_token].image.src='data:image/jpeg;base64,'+d.frame;
-                $.ccio.mon[d.ke+d.id+user.auth_token].last_frame='data:image/jpeg;base64,'+d.frame;
+                var base64Frame = 'data:image/jpeg;base64,'+d.frame
+                $.ccio.mon[d.ke+d.id+user.auth_token].imageLoading = true
+                $.ccio.mon[d.ke+d.id+user.auth_token].image.src = base64Frame
+                $.ccio.mon[d.ke+d.id+user.auth_token].last_frame = base64Frame
             }catch(er){
                 console.log(er)
                 $.ccio.log('base64 frame')
@@ -2705,11 +2720,56 @@ $.multimon.e.find('.import_config').click(function(){
                         $.ccio.log(d)
                     })
                 }
-                e.monitorList=JSON.parse($.confirm.e.find('textarea').val());
-                if(e.monitorList.mid){
-                    postMonitor(e.monitorList)
-                }else{
-                    $.each(e.monitorList,function(n,v){
+                var parseZmMonitor = function(Monitor){
+                    console.log(Monitor)
+                    var newMon = $.aM.generateDefaultMonitorSettings()
+                    newMon.details = JSON.parse(newMon.details)
+                    newMon.details.stream_type = 'jpeg'
+                    switch(Monitor.Type.toLowerCase()){
+                        case'ffmpeg':case'libvlc':
+                            newMon.details.auto_host_enable = '1'
+                            newMon.details.auto_host = Monitor.Path
+                            if(newMon.auto_host.indexOf('rtsp://') > -1){
+                                newMon.type = 'h264'
+                            }else{
+                                $.ccio.init('note',{title:'<%-cleanLang(lang['Please Check Your Settings'])%>',text:'<%-cleanLang(lang.migrateText1)%>',type:'error'})
+                            }
+                        break;
+                        case'local':
+                            newMon.details.auto_host = Monitor.Device
+                        break;
+                        case'remote':
+                            
+                        break;
+                    }
+                    newMon.details = JSON.stringify(newMon.details)
+                    console.log(newMon)
+                    return newMon
+                }
+                parsedData=JSON.parse($.confirm.e.find('textarea').val());
+                //zoneminder one monitor
+                if(parsedData.monitor){
+                    $.aM.import({
+                        values : parseZmMonitor(parsedData.monitor.Monitor)
+                    })
+                    $.aM.e.modal('show')
+                }else
+                //zoneminder multiple monitors
+                if(parsedData.monitors){
+                    $.each(parsedData.monitors,function(n,v){
+                        $.aM.import({
+                            values : parseZmMonitor(parsedData.Monitor)
+                        })
+                        parseZmMonitor(v.Monitor)
+                    })
+                }else
+                //shinobi one monitor
+                if(parsedData.mid){
+                    postMonitor(parsedData)
+                }else
+                //shinobi multiple monitors
+                if(parsedData[0] && parsedData[0].mid){
+                    $.each(parsedData,function(n,v){
                         postMonitor(v)
                     })
                 }
@@ -4980,12 +5040,12 @@ $('body')
     e=$(this)
     e.find('.flex-modal-block').css('height',e.height())
 })
-//.on('resize','#monitors_live .monitor_item',function(e){
-//    e.e=$(this).find('.mdl-card__media');
-//    e.c=e.e.find('canvas');
-//    e.c.attr('height',e.e.height());
-//    e.c.attr('width',e.e.width());
-//})
+.on('resize','#monitors_live .monitor_item',function(e){
+    e.e=$(this).find('.stream-block');
+    e.c=e.e.find('canvas');
+    e.c.attr('height',e.e.height());
+    e.c.attr('width',e.e.width());
+})
 .on('keyup','.search-parent .search-controller',function(){
     _this = this;
     $.each($(".search-parent .search-body .search-row"), function() {
