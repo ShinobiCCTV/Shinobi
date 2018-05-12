@@ -35,6 +35,57 @@ switch($user.details.lang){
             t += p.charAt(Math.floor(Math.random() * p.length));
         return t;
     };
+    $.ccio.base64ArrayBuffer = function(arrayBuffer) {
+      var base64    = ''
+      var encodings = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/'
+
+      var bytes         = new Uint8Array(arrayBuffer)
+      var byteLength    = bytes.byteLength
+      var byteRemainder = byteLength % 3
+      var mainLength    = byteLength - byteRemainder
+
+      var a, b, c, d
+      var chunk
+
+      // Main loop deals with bytes in chunks of 3
+      for (var i = 0; i < mainLength; i = i + 3) {
+        // Combine the three bytes into a single integer
+        chunk = (bytes[i] << 16) | (bytes[i + 1] << 8) | bytes[i + 2]
+
+        // Use bitmasks to extract 6-bit segments from the triplet
+        a = (chunk & 16515072) >> 18 // 16515072 = (2^6 - 1) << 18
+        b = (chunk & 258048)   >> 12 // 258048   = (2^6 - 1) << 12
+        c = (chunk & 4032)     >>  6 // 4032     = (2^6 - 1) << 6
+        d = chunk & 63               // 63       = 2^6 - 1
+
+        // Convert the raw binary segments to the appropriate ASCII encoding
+        base64 += encodings[a] + encodings[b] + encodings[c] + encodings[d]
+      }
+
+      // Deal with the remaining bytes and padding
+      if (byteRemainder == 1) {
+        chunk = bytes[mainLength]
+
+        a = (chunk & 252) >> 2 // 252 = (2^6 - 1) << 2
+
+        // Set the 4 least significant bits to zero
+        b = (chunk & 3)   << 4 // 3   = 2^2 - 1
+
+        base64 += encodings[a] + encodings[b] + '=='
+      } else if (byteRemainder == 2) {
+        chunk = (bytes[mainLength] << 8) | bytes[mainLength + 1]
+
+        a = (chunk & 64512) >> 10 // 64512 = (2^6 - 1) << 10
+        b = (chunk & 1008)  >>  4 // 1008  = (2^6 - 1) << 4
+
+        // Set the 2 least significant bits to zero
+        c = (chunk & 15)    <<  2 // 15    = 2^4 - 1
+
+        base64 += encodings[a] + encodings[b] + encodings[c] + '='
+      }
+
+      return base64
+    }
     $.ccio.init=function(x,d,user,k){
         if(!k){k={}};k.tmp='';
         if(d&&d.user){
@@ -1777,6 +1828,7 @@ $.ccio.globalWebsocket=function(d,user){
                         }
                         $.ccio.mon[d.ke+d.id+user.auth_token].Base64 = io(url,{transports: ['websocket'], forceNew: false})
                         var ws = $.ccio.mon[d.ke+d.id+user.auth_token].Base64
+                        var buffer
                         ws.on('diconnect',function(){
                             console.log('Base64 Stream Disconnected')
                         })
@@ -1789,37 +1841,42 @@ $.ccio.globalWebsocket=function(d,user){
                                 id: d.id,
 //                                channel: channel
                             })
-                            ws.on('data',function(base64){
+                            if(!$.ccio.mon[d.ke+d.id+user.auth_token].ctx||$.ccio.mon[d.ke+d.id+user.auth_token].ctx.length===0){
+                                $.ccio.mon[d.ke+d.id+user.auth_token].ctx = $('#monitor_live_'+d.id+user.auth_token+' canvas');
+                            }
+                            var ctx = $.ccio.mon[d.ke+d.id+user.auth_token].ctx[0]
+                            var ctx2d = ctx.getContext("2d")
+                            $.ccio.mon[d.ke+d.id+user.auth_token].image = new Image()
+                            var image = $.ccio.mon[d.ke+d.id+user.auth_token].image
+                            image.onload = function() {
+                                $.ccio.mon[d.ke+d.id+user.auth_token].imageLoading = false
+                                d.x = 0
+                                d.y = 0
+        //                        d.ratio = Math.min(ctx.width/image.width,ctx.height/image.height)
+        //                        d.height = image.height * d.ratio
+        //                        d.width = image.width * d.ratio
+        //                        if(d.width < ctx.width){
+        //                            d.x = (ctx.width / 2) - (d.width / 2)
+        //                        }
+        //                        if(d.height < ctx.height){
+        //                            d.y = (ctx.height / 2) - (d.height / 2)
+        //                        }
+        //                        ctx.getContext("2d").drawImage(image,d.x,d.y,d.width,d.height)
+                                ctx.getContext("2d").drawImage(image,d.x,d.y,ctx.width,ctx.height)
+                                URL.revokeObjectURL($.ccio.mon[d.ke+d.id+user.auth_token].imageUrl)
+                            }
+                            ws.on('data',function(imageData){
                                 try{
-                                    if($.ccio.mon[d.ke+d.id+user.auth_token].imageLoading === true)return
-                                    if(!$.ccio.mon[d.ke+d.id+user.auth_token].ctx||$.ccio.mon[d.ke+d.id+user.auth_token].ctx.length===0){
-                                        $.ccio.mon[d.ke+d.id+user.auth_token].ctx = $('#monitor_live_'+d.id+user.auth_token+' canvas');
-                                    }
-                                    var ctx = $.ccio.mon[d.ke+d.id+user.auth_token].ctx[0]
-                                    if(!$.ccio.mon[d.ke+d.id+user.auth_token].image){
-                                        $.ccio.mon[d.ke+d.id+user.auth_token].image = new Image()
-                                        var image = $.ccio.mon[d.ke+d.id+user.auth_token].image
-                                        image.onload = function() {
-                                            $.ccio.mon[d.ke+d.id+user.auth_token].imageLoading = false
-                                            d.x = 0
-                                            d.y = 0
-                    //                        d.ratio = Math.min(ctx.width/image.width,ctx.height/image.height)
-                    //                        d.height = image.height * d.ratio
-                    //                        d.width = image.width * d.ratio
-                    //                        if(d.width < ctx.width){
-                    //                            d.x = (ctx.width / 2) - (d.width / 2)
-                    //                        }
-                    //                        if(d.height < ctx.height){
-                    //                            d.y = (ctx.height / 2) - (d.height / 2)
-                    //                        }
-                    //                        ctx.getContext("2d").drawImage(image,d.x,d.y,d.width,d.height)
-                                            ctx.getContext("2d").drawImage(image,d.x,d.y,ctx.width,ctx.height)
-                                        }
-                                    }
-                                    var base64Frame = 'data:image/jpeg;base64,'+base64
+                                    if($.ccio.mon[d.ke+d.id+user.auth_token].imageLoading === true)return console.log('drop');
+//                                    var base64Frame = 'data:image/jpeg;base64,'+$.ccio.base64ArrayBuffer(imageData)
                                     $.ccio.mon[d.ke+d.id+user.auth_token].imageLoading = true
-                                    $.ccio.mon[d.ke+d.id+user.auth_token].image.src = base64Frame
-                                    $.ccio.mon[d.ke+d.id+user.auth_token].last_frame = base64Frame
+//                                    $.ccio.mon[d.ke+d.id+user.auth_token].image.src = base64Frame
+                                    var image = ctx2d.createImageData(ctx.width, ctx.height)
+                                    var arrayBufferView = new Uint8Array(imageData);
+                                    var blob = new Blob( [ arrayBufferView ], { type: "image/jpeg" } );
+                                    $.ccio.mon[d.ke+d.id+user.auth_token].imageUrl = URL.createObjectURL( blob );
+                                    $.ccio.mon[d.ke+d.id+user.auth_token].image.src = $.ccio.mon[d.ke+d.id+user.auth_token].imageUrl
+                                    $.ccio.mon[d.ke+d.id+user.auth_token].last_frame = 'data:image/jpeg;base64,'+$.ccio.base64ArrayBuffer(imageData)
                                 }catch(er){
                                     console.log(er)
                                     $.ccio.log('base64 frame')
@@ -3640,10 +3697,11 @@ $.aM.f.on('change','[selector]',function(){
     e.v=e.e.val();
     e.a=e.e.attr('selector')
     e.triggerChange=e.e.attr('triggerchange')
+    e.triggerChangeIgnore=e.e.attr('triggerChangeIgnore')
     $.aM.f.find('.'+e.a+'_input').hide()
     $.aM.f.find('.'+e.a+'_'+e.v).show();
     $.aM.f.find('.'+e.a+'_text').text($(this).find('option:selected').text())
-    if(e.triggerChange&&e.triggerChange!==''){
+    if(e.triggerChange && e.triggerChange !== '' && !e.triggerChangeIgnore || (e.triggerChangeIgnore && e.triggerChangeIgnore.split(',').indexOf(e.v) === -1)){
         console.log(e.triggerChange)
         $(e.triggerChange).trigger('change')
     }

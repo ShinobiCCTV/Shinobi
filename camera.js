@@ -2630,7 +2630,7 @@ s.camera=function(x,e,cn,tx){
                                           buffer.push(d);
                                       }
                                       if((d[d.length-2] === 0xFF && d[d.length-1] === 0xD9)){
-                                          s.group[e.ke].mon[e.id].emitter.emit('data',Buffer.concat(buffer).toString('base64'));
+                                          s.group[e.ke].mon[e.id].emitter.emit('data',Buffer.concat(buffer));
                                           buffer=null;
                                       }
                                    }
@@ -3159,7 +3159,6 @@ var tx;
     })
     //unique Base64 socket stream
     cn.on('Base64',function(d){
-        console.log(d)
         if(!s.group[d.ke]||!s.group[d.ke].mon||!s.group[d.ke].mon[d.id]){
             cn.disconnect();return;
         }
@@ -3200,31 +3199,36 @@ var tx;
                 tx(base64)
             })
          }
-        s.sqlQuery('SELECT ke,uid,auth,mail,details FROM Users WHERE ke=? AND auth=? AND uid=?',[d.ke,d.auth,d.uid],function(err,r) {
-            if(r&&r[0]){
-                d.success(r)
-            }else{
-                s.sqlQuery('SELECT * FROM API WHERE ke=? AND code=? AND uid=?',[d.ke,d.auth,d.uid],function(err,r) {
-                    if(r&&r[0]){
-                        r=r[0]
-                        r.details=JSON.parse(r.details)
-                        if(r.details.auth_socket==='1'){
-                            s.sqlQuery('SELECT ke,uid,auth,mail,details FROM Users WHERE ke=? AND uid=?',[r.ke,r.uid],function(err,r) {
-                                if(r&&r[0]){
-                                    d.success(r)
-                                }else{
-                                    d.failed('User not found')
-                                }
-                            })
+        //check if auth key is user's temporary session key
+        if(s.group[d.ke]&&s.group[d.ke].users&&s.group[d.ke].users[d.auth]){
+            d.success(s.group[d.ke].users[d.auth]);
+        }else{
+            s.sqlQuery('SELECT ke,uid,auth,mail,details FROM Users WHERE ke=? AND auth=? AND uid=?',[d.ke,d.auth,d.uid],function(err,r) {
+                if(r&&r[0]){
+                    d.success(r)
+                }else{
+                    s.sqlQuery('SELECT * FROM API WHERE ke=? AND code=? AND uid=?',[d.ke,d.auth,d.uid],function(err,r) {
+                        if(r&&r[0]){
+                            r=r[0]
+                            r.details=JSON.parse(r.details)
+                            if(r.details.auth_socket==='1'){
+                                s.sqlQuery('SELECT ke,uid,auth,mail,details FROM Users WHERE ke=? AND uid=?',[r.ke,r.uid],function(err,r) {
+                                    if(r&&r[0]){
+                                        d.success(r)
+                                    }else{
+                                        d.failed('User not found')
+                                    }
+                                })
+                            }else{
+                                d.failed('Permissions for this key do not allow authentication with Websocket')
+                            }
                         }else{
-                            d.failed('Permissions for this key do not allow authentication with Websocket')
+                            d.failed('Not an API key')
                         }
-                    }else{
-                        d.failed('Not an API key')
-                    }
-                })
-            }
-        })
+                    })
+                }
+            })
+        }
     })
     //unique FLV socket stream
     cn.on('FLV',function(d){
@@ -3269,31 +3273,35 @@ var tx;
                 tx({time:toUTC(),buffer:buffer})
             })
          }
-        s.sqlQuery('SELECT ke,uid,auth,mail,details FROM Users WHERE ke=? AND auth=? AND uid=?',[d.ke,d.auth,d.uid],function(err,r) {
-            if(r&&r[0]){
-                d.success(r)
-            }else{
-                s.sqlQuery('SELECT * FROM API WHERE ke=? AND code=? AND uid=?',[d.ke,d.auth,d.uid],function(err,r) {
-                    if(r&&r[0]){
-                        r=r[0]
-                        r.details=JSON.parse(r.details)
-                        if(r.details.auth_socket==='1'){
-                            s.sqlQuery('SELECT ke,uid,auth,mail,details FROM Users WHERE ke=? AND uid=?',[r.ke,r.uid],function(err,r) {
-                                if(r&&r[0]){
-                                    d.success(r)
-                                }else{
-                                    d.failed('User not found')
-                                }
-                            })
+        if(s.group[d.ke]&&s.group[d.ke].users&&s.group[d.ke].users[d.auth]){
+            d.success(s.group[d.ke].users[d.auth]);
+        }else{
+            s.sqlQuery('SELECT ke,uid,auth,mail,details FROM Users WHERE ke=? AND auth=? AND uid=?',[d.ke,d.auth,d.uid],function(err,r) {
+                if(r&&r[0]){
+                    d.success(r)
+                }else{
+                    s.sqlQuery('SELECT * FROM API WHERE ke=? AND code=? AND uid=?',[d.ke,d.auth,d.uid],function(err,r) {
+                        if(r&&r[0]){
+                            r=r[0]
+                            r.details=JSON.parse(r.details)
+                            if(r.details.auth_socket==='1'){
+                                s.sqlQuery('SELECT ke,uid,auth,mail,details FROM Users WHERE ke=? AND uid=?',[r.ke,r.uid],function(err,r) {
+                                    if(r&&r[0]){
+                                        d.success(r)
+                                    }else{
+                                        d.failed('User not found')
+                                    }
+                                })
+                            }else{
+                                d.failed('Permissions for this key do not allow authentication with Websocket')
+                            }
                         }else{
-                            d.failed('Permissions for this key do not allow authentication with Websocket')
+                            d.failed('Not an API key')
                         }
-                    }else{
-                        d.failed('Not an API key')
-                    }
-                })
-            }
-        })
+                    })
+                }
+            })
+        }
     })
     //unique MP4 socket stream
     cn.on('MP4',function(d){
@@ -3383,31 +3391,35 @@ var tx;
                 }
             })
         }
-        s.sqlQuery('SELECT ke,uid,auth,mail,details FROM Users WHERE ke=? AND auth=? AND uid=?',[d.ke,d.auth,d.uid],function(err,r) {
-            if(r&&r[0]){
-                d.success(r)
-            }else{
-                s.sqlQuery('SELECT * FROM API WHERE ke=? AND code=? AND uid=?',[d.ke,d.auth,d.uid],function(err,r) {
-                    if(r&&r[0]){
-                        r=r[0]
-                        r.details=JSON.parse(r.details)
-                        if(r.details.auth_socket==='1'){
-                            s.sqlQuery('SELECT ke,uid,auth,mail,details FROM Users WHERE ke=? AND uid=?',[r.ke,r.uid],function(err,r) {
-                                if(r&&r[0]){
-                                    d.success(r)
-                                }else{
-                                    d.failed('User not found')
-                                }
-                            })
+        if(s.group[d.ke]&&s.group[d.ke].users&&s.group[d.ke].users[d.auth]){
+            d.success(s.group[d.ke].users[d.auth]);
+        }else{
+            s.sqlQuery('SELECT ke,uid,auth,mail,details FROM Users WHERE ke=? AND auth=? AND uid=?',[d.ke,d.auth,d.uid],function(err,r) {
+                if(r&&r[0]){
+                    d.success(r)
+                }else{
+                    s.sqlQuery('SELECT * FROM API WHERE ke=? AND code=? AND uid=?',[d.ke,d.auth,d.uid],function(err,r) {
+                        if(r&&r[0]){
+                            r=r[0]
+                            r.details=JSON.parse(r.details)
+                            if(r.details.auth_socket==='1'){
+                                s.sqlQuery('SELECT ke,uid,auth,mail,details FROM Users WHERE ke=? AND uid=?',[r.ke,r.uid],function(err,r) {
+                                    if(r&&r[0]){
+                                        d.success(r)
+                                    }else{
+                                        d.failed('User not found')
+                                    }
+                                })
+                            }else{
+                                d.failed('Permissions for this key do not allow authentication with Websocket')
+                            }
                         }else{
-                            d.failed('Permissions for this key do not allow authentication with Websocket')
+                            d.failed('Not an API key')
                         }
-                    }else{
-                        d.failed('Not an API key')
-                    }
-                })
-            }
-        })
+                    })
+                }
+            })
+        }
     })
     //main socket control functions
     cn.on('f',function(d){
