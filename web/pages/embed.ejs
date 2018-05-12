@@ -168,6 +168,62 @@ $(document).ready(function(){
             };
             $.shinobi.init=function(d){
                   switch($.shinobi.mon[d.id].details.stream_type){
+                    case'b64':
+                        if($.shinobi.mon[d.id].Base64 && $.shinobi.mon[d.id].Base64.connected){
+                            $.shinobi.mon[d.id].Base64.disconnect()
+                        }
+                        $.shinobi.mon[d.id].Base64 = io('<%=data.url%>',{transports: ['websocket'], forceNew: false})
+                        var ws = $.shinobi.mon[d.id].Base64
+                        ws.on('diconnect',function(){
+                            console.log('Base64 Stream Disconnected')
+                        })
+                        ws.on('connect',function(){
+                            ws.emit('Base64',{
+                                auth:'<%=data.auth%>',
+                                ke:d.ke,
+                                uid:'<%=data.uid%>',
+                                id:d.id,
+                                url: '<%=data.url%>'
+                            })
+                            ws.on('data',function(base64){
+                                console.log(base64)
+                                try{
+                                    if($.shinobi.mon[d.id].imageLoading === true)return
+                                    if(!$.shinobi.mon[d.id].ctx||$.shinobi.mon[d.id].ctx.length===0){
+                                        $.shinobi.mon[d.id].ctx = $('#SHINOBI_'+d.ke+'_'+d.id+' .stream-element')
+                                    }
+                                    var ctx = $.shinobi.mon[d.id].ctx[0]
+                                    if(!$.shinobi.mon[d.id].image){
+                                        $.shinobi.mon[d.id].image = new Image()
+                                        var image = $.shinobi.mon[d.id].image
+                                        image.onload = function() {
+                                            $.shinobi.mon[d.id].imageLoading = false
+                                            d.x = 0
+                                            d.y = 0
+                    //                        d.ratio = Math.min(ctx.width/image.width,ctx.height/image.height)
+                    //                        d.height = image.height * d.ratio
+                    //                        d.width = image.width * d.ratio
+                    //                        if(d.width < ctx.width){
+                    //                            d.x = (ctx.width / 2) - (d.width / 2)
+                    //                        }
+                    //                        if(d.height < ctx.height){
+                    //                            d.y = (ctx.height / 2) - (d.height / 2)
+                    //                        }
+                    //                        ctx.getContext("2d").drawImage(image,d.x,d.y,d.width,d.height)
+                                            ctx.getContext("2d").drawImage(image,d.x,d.y,ctx.width,ctx.height)
+                                        }
+                                    }
+                                    var base64Frame = 'data:image/jpeg;base64,'+base64
+                                    $.shinobi.mon[d.id].imageLoading = true
+                                    $.shinobi.mon[d.id].image.src = base64Frame
+                                    $.shinobi.mon[d.id].last_frame = base64Frame
+                                }catch(er){
+                                    console.log(er)
+                                    $.ccio.log('base64 frame')
+                                }
+                            })
+                        })
+                    break;
                     case'mp4':
                         var stream = $('#SHINOBI_'+d.ke+'_'+d.id+' .stream-element');
                         if($.shinobi.mon[d.id].details.stream_flv_type==='ws'){
@@ -175,14 +231,6 @@ $(document).ready(function(){
                                 $.shinobi.mon[d.id].Poseidon.destroy()
                             }
                             var createPoseidon = function(){
-                                console.log({
-                                    video: stream[0],
-                                    auth_token:'<%=data.auth%>',
-                                    ke:d.ke,
-                                    uid:'<%=data.uid%>',
-                                    id:d.id,
-                                    url: '<%=data.url%>'
-                                })
                                 $.shinobi.mon[d.id].Poseidon = new Poseidon({
                                     video: stream[0],
                                     auth_token:'<%=data.auth%>',
