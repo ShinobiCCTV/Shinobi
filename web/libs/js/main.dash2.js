@@ -1871,7 +1871,6 @@ $.ccio.globalWebsocket=function(d,user){
 //                                    var base64Frame = 'data:image/jpeg;base64,'+$.ccio.base64ArrayBuffer(imageData)
                                     $.ccio.mon[d.ke+d.id+user.auth_token].imageLoading = true
 //                                    $.ccio.mon[d.ke+d.id+user.auth_token].image.src = base64Frame
-                                    var image = ctx2d.createImageData(ctx.width, ctx.height)
                                     var arrayBufferView = new Uint8Array(imageData);
                                     var blob = new Blob( [ arrayBufferView ], { type: "image/jpeg" } );
                                     $.ccio.mon[d.ke+d.id+user.auth_token].imageUrl = URL.createObjectURL( blob );
