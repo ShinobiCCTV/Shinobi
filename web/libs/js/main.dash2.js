@@ -1772,8 +1772,8 @@ $.ccio.globalWebsocket=function(d,user){
                         $.ccio.init('jpegMode',$.ccio.mon[d.ke+d.id+user.auth_token]);
                     break;
                     case'b64':
-                        if($.ccio.mon[d.ke+d.mid+user.auth_token].Base64 && $.ccio.mon[d.ke+d.mid+user.auth_token].Base64.connected){
-                            $.ccio.mon[d.ke+d.mid+user.auth_token].Base64.disconnect()
+                        if($.ccio.mon[d.ke+d.id+user.auth_token].Base64 && $.ccio.mon[d.ke+d.id+user.auth_token].Base64.connected){
+                            $.ccio.mon[d.ke+d.id+user.auth_token].Base64.disconnect()
                         }
                         $.ccio.mon[d.ke+d.id+user.auth_token].Base64 = io(url,{transports: ['websocket'], forceNew: false})
                         var ws = $.ccio.mon[d.ke+d.id+user.auth_token].Base64
