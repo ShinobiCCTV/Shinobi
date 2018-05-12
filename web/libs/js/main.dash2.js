@@ -362,6 +362,12 @@ switch($user.details.lang){
                     clearTimeout($.ccio.mon[d.ke+d.mid+user.auth_token].jpegInterval);
                     clearInterval($.ccio.mon[d.ke+d.mid+user.auth_token].signal);
                     clearInterval($.ccio.mon[d.ke+d.mid+user.auth_token].m3uCheck);
+                    if($.ccio.mon[d.ke+d.mid+user.auth_token].Base64 && $.ccio.mon[d.ke+d.mid+user.auth_token].Base64.connected){
+                        $.ccio.mon[d.ke+d.mid+user.auth_token].Base64.disconnect()
+                    }
+                    if($.ccio.mon[d.ke+d.mid+user.auth_token].Poseidon){
+                        $.ccio.mon[d.ke+d.mid+user.auth_token].Poseidon.destroy()
+                    }
                 }
             break;
             case'note':
@@ -1757,13 +1763,70 @@ $.ccio.globalWebsocket=function(d,user){
                     prefix = 'wss'
                 }
                 if(url==''){
-                    url = prefix+'://'+location.host
+                    url = prefix+'://'+location.host+location.pathname
                 }else{
                     url = prefix+'://'+url.split('://')[1]
                 }
                 switch(d.d.stream_type){
                     case'jpeg':
                         $.ccio.init('jpegMode',$.ccio.mon[d.ke+d.id+user.auth_token]);
+                    break;
+                    case'b64':
+                        if($.ccio.mon[d.ke+d.mid+user.auth_token].Base64 && $.ccio.mon[d.ke+d.mid+user.auth_token].Base64.connected){
+                            $.ccio.mon[d.ke+d.mid+user.auth_token].Base64.disconnect()
+                        }
+                        $.ccio.mon[d.ke+d.id+user.auth_token].Base64 = io(url,{transports: ['websocket'], forceNew: false})
+                        var ws = $.ccio.mon[d.ke+d.id+user.auth_token].Base64
+                        ws.on('diconnect',function(){
+                            console.log('Base64 Stream Disconnected')
+                        })
+                        ws.on('connect',function(){
+                            ws.emit('Base64',{
+                                url: url,
+                                auth: user.auth_token,
+                                uid: user.uid,
+                                ke: d.ke,
+                                id: d.id,
+//                                channel: channel
+                            })
+                            ws.on('data',function(base64){
+                                try{
+                                    if($.ccio.mon[d.ke+d.id+user.auth_token].imageLoading === true)return
+                                    if(!$.ccio.mon[d.ke+d.id+user.auth_token].ctx||$.ccio.mon[d.ke+d.id+user.auth_token].ctx.length===0){
+                                        $.ccio.mon[d.ke+d.id+user.auth_token].ctx = $('#monitor_live_'+d.id+user.auth_token+' canvas');
+                                    }
+                                    var ctx = $.ccio.mon[d.ke+d.id+user.auth_token].ctx[0]
+                                    if(!$.ccio.mon[d.ke+d.id+user.auth_token].image){
+                                        $.ccio.mon[d.ke+d.id+user.auth_token].image = new Image()
+                                        var image = $.ccio.mon[d.ke+d.id+user.auth_token].image
+                                        image.onload = function() {
+                                            $.ccio.mon[d.ke+d.id+user.auth_token].imageLoading = false
+                                            d.x = 0
+                                            d.y = 0
+                    //                        d.ratio = Math.min(ctx.width/image.width,ctx.height/image.height)
+                    //                        d.height = image.height * d.ratio
+                    //                        d.width = image.width * d.ratio
+                    //                        if(d.width < ctx.width){
+                    //                            d.x = (ctx.width / 2) - (d.width / 2)
+                    //                        }
+                    //                        if(d.height < ctx.height){
+                    //                            d.y = (ctx.height / 2) - (d.height / 2)
+                    //                        }
+                    //                        ctx.getContext("2d").drawImage(image,d.x,d.y,d.width,d.height)
+                                            ctx.getContext("2d").drawImage(image,d.x,d.y,ctx.width,ctx.height)
+                                        }
+                                    }
+                                    var base64Frame = 'data:image/jpeg;base64,'+base64
+                                    $.ccio.mon[d.ke+d.id+user.auth_token].imageLoading = true
+                                    $.ccio.mon[d.ke+d.id+user.auth_token].image.src = base64Frame
+                                    $.ccio.mon[d.ke+d.id+user.auth_token].last_frame = base64Frame
+                                }catch(er){
+                                    console.log(er)
+                                    $.ccio.log('base64 frame')
+                                }
+                                $.ccio.init('signal',d);
+                            })
+                        })
                     break;
                     case'mp4':
                         var stream = d.e.find('.stream-element');

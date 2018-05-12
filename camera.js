@@ -2621,21 +2621,19 @@ s.camera=function(x,e,cn,tx){
 //                                    })
 //                               break;
                                case'b64':case undefined:case null:case'':
+                                   var buffer
                                    e.frame_to_stream=function(d){
-                                       resetStreamCheck()
-                                       if(s.group[e.ke]&&s.group[e.ke].mon[e.id]&&s.group[e.ke].mon[e.id].watch&&Object.keys(s.group[e.ke].mon[e.id].watch).length>0){
-                                          if(!e.buffer){
-                                              e.buffer=[d]
-                                          }else{
-                                              e.buffer.push(d);
-                                          }
-                                          if((d[d.length-2] === 0xFF && d[d.length-1] === 0xD9)){
-                                              e.buffer=Buffer.concat(e.buffer);
-                                              s.tx({f:'monitor_frame',ke:e.ke,id:e.id,frame:e.buffer.toString('base64'),frame_format:'b64'},'MON_STREAM_'+e.id);
-                                              e.buffer=null;
-                                          }
-                                        }
-                                    }
+                                      resetStreamCheck()
+                                      if(!buffer){
+                                          buffer=[d]
+                                      }else{
+                                          buffer.push(d);
+                                      }
+                                      if((d[d.length-2] === 0xFF && d[d.length-1] === 0xD9)){
+                                          s.group[e.ke].mon[e.id].emitter.emit('data',Buffer.concat(buffer).toString('base64'));
+                                          buffer=null;
+                                      }
+                                   }
                                break;
                            }
                             if(e.frame_to_stream){
@@ -3159,6 +3157,75 @@ var tx;
             }
         }
     })
+    //unique Base64 socket stream
+    cn.on('Base64',function(d){
+        console.log(d)
+        if(!s.group[d.ke]||!s.group[d.ke].mon||!s.group[d.ke].mon[d.id]){
+            cn.disconnect();return;
+        }
+        cn.ip=cn.request.connection.remoteAddress;
+        var toUTC = function(){
+            return new Date().toISOString();
+        }
+        var tx=function(z){cn.emit('data',z);}
+        d.failed=function(msg){
+            tx({f:'stop_reconnect',msg:msg,token_used:d.auth,ke:d.ke});
+            cn.disconnect();
+        }
+        d.success=function(r){
+            r=r[0];
+            var Emitter,chunkChannel
+            if(!d.channel){
+                Emitter = s.group[d.ke].mon[d.id].emitter
+                chunkChannel = 'MAIN'
+            }else{
+                Emitter = s.group[d.ke].mon[d.id].emitterChannel[parseInt(d.channel)+config.pipeAddition]
+                chunkChannel = parseInt(d.channel)+config.pipeAddition
+            }
+            if(!Emitter){
+                cn.disconnect();return;
+            }
+            if(!d.channel)d.channel = 'MAIN';
+            cn.ke=d.ke,
+            cn.uid=d.uid,
+            cn.auth=d.auth;
+            cn.channel=d.channel;
+            cn.removeListenerOnDisconnect=true;
+            cn.socketVideoStream=d.id;
+            var contentWriter
+            cn.closeSocketVideoStream = function(){
+                Emitter.removeListener('data', contentWriter);
+            }
+            Emitter.on('data',contentWriter = function(base64){
+                tx(base64)
+            })
+         }
+        s.sqlQuery('SELECT ke,uid,auth,mail,details FROM Users WHERE ke=? AND auth=? AND uid=?',[d.ke,d.auth,d.uid],function(err,r) {
+            if(r&&r[0]){
+                d.success(r)
+            }else{
+                s.sqlQuery('SELECT * FROM API WHERE ke=? AND code=? AND uid=?',[d.ke,d.auth,d.uid],function(err,r) {
+                    if(r&&r[0]){
+                        r=r[0]
+                        r.details=JSON.parse(r.details)
+                        if(r.details.auth_socket==='1'){
+                            s.sqlQuery('SELECT ke,uid,auth,mail,details FROM Users WHERE ke=? AND uid=?',[r.ke,r.uid],function(err,r) {
+                                if(r&&r[0]){
+                                    d.success(r)
+                                }else{
+                                    d.failed('User not found')
+                                }
+                            })
+                        }else{
+                            d.failed('Permissions for this key do not allow authentication with Websocket')
+                        }
+                    }else{
+                        d.failed('Not an API key')
+                    }
+                })
+            }
+        })
+    })
     //unique FLV socket stream
     cn.on('FLV',function(d){
         if(!s.group[d.ke]||!s.group[d.ke].mon||!s.group[d.ke].mon[d.id]){
@@ -3193,8 +3260,12 @@ var tx;
             cn.channel=d.channel;
             cn.removeListenerOnDisconnect=true;
             cn.socketVideoStream=d.id;
+            var contentWriter
+            cn.closeSocketVideoStream = function(){
+                Emitter.removeListener('data', contentWriter);
+            }
             tx({time:toUTC(),buffer:s.group[d.ke].mon[d.id].firstStreamChunk[chunkChannel]})
-            Emitter.on('data',s.group[d.ke].mon[d.id].contentWriter[chunkChannel]=function(buffer){
+            Emitter.on('data',contentWriter = function(buffer){
                 tx({time:toUTC(),buffer:buffer})
             })
          }
@@ -3262,11 +3333,14 @@ var tx;
                 cn.emit('mime', mp4frag.mime);
                 mp4frag.removeListener('initialized', onInitialized);
             };
-
             //event listener
             var onSegment = function(data){
                 cn.emit('segment', data);
             };
+            cn.closeSocketVideoStream = function(){
+                mp4frag.removeListener('segment', onSegment)
+                mp4frag.removeListener('initialized', onInitialized)
+            }
             cn.on('MP4Command',function(msg){
                 switch (msg) {
                     case 'mime' ://client is requesting mime
@@ -3304,8 +3378,7 @@ var tx;
                         mp4frag.on('segment', onSegment);
                     break;
                     case 'stop' ://client requesting to stop receiving segments
-                        mp4frag.removeListener('segment', onSegment);
-                        mp4frag.removeListener('initialized', onInitialized);
+                        cn.closeSocketVideoStream()
                     break;
                 }
             })
@@ -4198,10 +4271,8 @@ var tx;
         }
     })
     cn.on('disconnect', function () {
-        if(cn.removeListenerOnDisconnect){
-            s.group[cn.ke].mon[cn.socketVideoStream].emitter.removeListener('data',s.group[cn.ke].mon[cn.socketVideoStream].contentWriter[cn.channel])
-        }
         if(cn.socketVideoStream){
+            cn.closeSocketVideoStream()
             return
         }
         if(cn.ke){
