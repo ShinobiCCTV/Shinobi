@@ -415,6 +415,13 @@ s.fromLong=function(ipl) {
       (ipl >> 8 & 255) + '.' +
       (ipl & 255) );
 };
+s.getFunctionParamNames = function(func) {
+  var fnStr = func.toString().replace(/((\/\/.*$)|(\/\*[\s\S]*?\*\/))/mg, '');
+  var result = fnStr.slice(fnStr.indexOf('(')+1, fnStr.indexOf(')')).match(/([^\s,]+)/g);
+  if(result === null)
+     result = [];
+  return result;
+}
 s.createPamDiffRegionArray = function(regions,globalSensitivity,fullFrame){
     var pamDiffCompliantArray = [],
         arrayForOtherStuff = [],
@@ -559,6 +566,7 @@ if(!config.ffmpegDir){
         }
     }
 }
+//ffmpeg version
 s.ffmpegVersion=execSync(config.ffmpegDir+" -version").toString().split('Copyright')[0].replace('ffmpeg version','').trim()
 console.log('FFMPEG version : '+s.ffmpegVersion)
 if(s.ffmpegVersion.indexOf(': 2.')>-1){
@@ -1895,6 +1903,35 @@ s.camera=function(x,e,cn,tx){
         }
     });
     switch(x){
+        case'buildOptionsFromUrl':
+            var monitorConfig = cn
+            URLobject=URL.parse(e)
+            if(monitorConfig.details.control_url_method === 'ONVIF' && monitorConfig.details.control_base_url === ''){
+                URLobject.port = 8000
+            }else if(!URLobject.port){
+                URLobject.port = 80
+            }
+            options = {
+                host: URLobject.hostname,
+                port: URLobject.port,
+                method: monitorConfig.details.control_url_method,
+                path: URLobject.pathname,
+            };
+            if(URLobject.query){
+                options.path=options.path+'?'+URLobject.query
+            }
+            if(URLobject.username&&URLobject.password){
+                options.username = URLobject.username
+                options.password = URLobject.password
+                options.auth=URLobject.username+':'+URLobject.password
+            }else if(URLobject.auth){
+                var auth = URLobject.auth.split(':')
+                options.auth=URLobject.auth
+                options.username = auth[0]
+                options.password = auth[1]
+            }
+            return options
+        break;
         case'control':
             if(!s.group[e.ke]||!s.group[e.ke].mon[e.id]){return}
             var monitorConfig = s.group[e.ke].mon_conf[e.id];
@@ -1908,36 +1945,8 @@ s.camera=function(x,e,cn,tx){
                 monitorConfig.details.control_url_stop_timeout = 1000
             }
             if(!monitorConfig.details.control_url_method||monitorConfig.details.control_url_method===''){monitorConfig.details.control_url_method="GET"}
-            var buildOptionsFromUrl=function(url){
-                URLobject=URL.parse(url)
-                if(monitorConfig.details.control_url_method === 'ONVIF' && monitorConfig.details.control_base_url === ''){
-                    URLobject.port = 8000
-                }else if(!URLobject.port){
-                    URLobject.port = 80
-                }
-                options = {
-                    host: URLobject.hostname,
-                    port: URLobject.port,
-                    method: monitorConfig.details.control_url_method,
-                    path: URLobject.pathname,
-                };
-                if(URLobject.query){
-                    options.path=options.path+'?'+URLobject.query
-                }
-                if(URLobject.username&&URLobject.password){
-                    options.username = URLobject.username
-                    options.password = URLobject.password
-                    options.auth=URLobject.username+':'+URLobject.password
-                }else if(URLobject.auth){
-                    var auth = URLobject.auth.split(':')
-                    options.auth=URLobject.auth
-                    options.username = auth[0]
-                    options.password = auth[1]
-                }
-                return options
-            }
             var controlURL = e.base+monitorConfig.details['control_url_'+e.direction]
-            var controlURLOptions = buildOptionsFromUrl(controlURL)
+            var controlURLOptions = s.camera('buildOptionsFromUrl',controlURL,monitorConfig)
             if(monitorConfig.details.control_url_stop_timeout === '0' && monitorConfig.details.control_stop === '1' && s.group[e.ke].mon[e.id].ptzMoving === true){
                 e.direction = 'stopMove'
                 s.group[e.ke].mon[e.id].ptzMoving = false
@@ -2016,7 +2025,7 @@ s.camera=function(x,e,cn,tx){
             }else{
                 var stopCamera = function(){
                     var stopURL = e.base+monitorConfig.details['control_url_'+e.direction+'_stop']
-                    var options = buildOptionsFromUrl(stopURL)
+                    var options = s.camera('buildOptionsFromUrl',stopURL,monitorConfig)
                     var requestOptions = {
                         url : stopURL,
                         method : options.method,
@@ -2078,7 +2087,6 @@ s.camera=function(x,e,cn,tx){
         case'snapshot'://get snapshot from monitor URL
             if(config.doSnapshot===true){
                 if(e.mon.mode!=='stop'){
-                    try{e.mon.details=JSON.parse(e.mon.details)}catch(er){}
                     if(e.mon.details.snap==='1'){
                         fs.readFile(s.dir.streams+e.ke+'/'+e.mid+'/s.jpg',function(err,data){
                             if(err){s.tx({f:'monitor_snapshot',snapshot:e.mon.name,snapshot_format:'plc',mid:e.mid,ke:e.ke},'GRP_'+e.ke);return};
@@ -6005,23 +6013,29 @@ app.all(['/streamIn/:ke/:id','/streamIn/:ke/:id/:feed'], function (req, res) {
 })
 //MP4 Stream
 app.get(['/:auth/mp4/:ke/:id/:channel/s.mp4','/:auth/mp4/:ke/:id/s.mp4','/:auth/mp4/:ke/:id/:channel/s.ts','/:auth/mp4/:ke/:id/s.ts'], function (req, res) {
-    res.header("Access-Control-Allow-Origin",req.headers.origin);
     s.auth(req.params,function(user){
         var Channel = 'MAIN'
         if(req.params.channel){
             Channel = parseInt(req.params.channel)+config.pipeAddition
         }
         var mp4frag = s.group[req.params.ke].mon[req.params.id].mp4frag[Channel];
+        var errorMessage = 'MP4 Stream is not enabled'
         if(!mp4frag){
-            res.status(503);
-            res.end('MP4 Stream is not enabled');
+            res.status(503);``
+            res.end('503 : initialization : '+errorMessage);
         }else{
             var init = mp4frag.initialization;
             if (!init) {
-                //browser may have requested init segment before it was ready
                 res.status(503);
-                res.end('resource not ready');
+                res.end('404 : Not Found : '+errorMessage);
             } else {
+                res.locals.mp4frag = mp4frag
+                res.set('Access-Control-Allow-Origin', '*')
+                res.set('Connection', 'close')
+                res.set('Cache-Control', 'private, no-cache, no-store, must-revalidate')
+                res.set('Expires', '-1')
+                res.set('Pragma', 'no-cache')
+                res.set('Content-Type', 'video/mp4')
                 res.status(200);
                 res.write(init);
                 mp4frag.pipe(res);
@@ -6110,6 +6124,85 @@ app.get('/:auth/probe/:ke',function (req,res){
                     res.end(s.s(req.ret, null, 3));
                 })
             break;
+        }
+    },res,req);
+})
+//ONVIF requesting with Shinobi API structure
+app.get('/:auth/onvif/:ke/:id/:action',function (req,res){
+    var response = {ok:false};
+    res.setHeader('Content-Type', 'application/json');
+    res.header("Access-Control-Allow-Origin",req.headers.origin);
+    s.auth(req.params,function(user){
+        var errorMessage = function(msg,error){
+            response.ok = false
+            response.msg = msg
+            response.error = error
+            res.end(s.s(response,null,3))
+        }
+        var actionCallback = function(err,onvifActionResponse){
+            if(err && !onvifActionResponse){
+                return errorMessage('Device responded with an error',err)
+            }else if(err){
+                response.error = err
+            }else{
+                response.ok = true
+            }
+            response.responseFromDevice = onvifActionResponse
+            res.end(s.s(response,null,3))
+        }
+        var doAction = function(Camera){
+            var action = Camera[req.params.action]
+            if(!action){
+                errorMessage('This is not an available ONVIF function. See http://agsh.github.io/onvif/ for functions.')
+            }else{
+                var argNames = s.getFunctionParamNames(action)
+                var options = null
+                if(argNames[0] === 'configurationToken'){
+                    var configurationToken = req.query.configurationToken || req.body.configurationToken
+                    Camera[req.params.action](configurationToken,actionCallback)
+                }else if(argNames[0] === 'options'){
+                    options = {}
+                    if(req.query.options){
+                        try{
+                            options = JSON.parse(req.query.options)
+                        }catch(err){
+                            return errorMessage('JSON not formated correctly',err)
+                        }
+                    }else if(req.body.options){
+                        try{
+                            options = JSON.parse(req.body.options)
+                        }catch(err){
+                            return errorMessage('JSON not formated correctly',err)
+                        }
+                    }
+                    Camera[req.params.action](options,actionCallback)
+                }else{
+                    Camera[req.params.action](actionCallback)
+                }
+            }
+        }
+        if(!s.group[req.params.ke].mon[req.params.id].onvifConnection){
+            //prepeare onvif connection
+            var controlURL
+            var monitorConfig = s.group[req.params.ke].mon_conf[req.params.id]
+            if(!monitorConfig.details.control_base_url||monitorConfig.details.control_base_url===''){
+                controlURL = s.init('url_no_path',monitorConfig)
+            }else{
+                controlURL = monitorConfig.details.control_base_url
+            }
+            var controlURLOptions = s.camera('buildOptionsFromUrl',controlURL,monitorConfig)
+            //create onvif connection
+            s.group[req.params.ke].mon[req.params.id].onvifConnection = new Cam({
+              hostname: controlURLOptions.host,
+              port: controlURLOptions.port,
+              username: controlURLOptions.username,
+              password: controlURLOptions.password
+            }, function(err) {
+                return errorMessage('Device responded with an error',err)
+                doAction(this)
+            })
+        }else{
+            doAction(s.group[req.params.ke].mon[req.params.id].onvifConnection)
         }
     },res,req);
 })
