@@ -51,7 +51,7 @@ var webdav = require("webdav");
 var jsonfile = require("jsonfile");
 var connectionTester = require('connection-tester');
 var events = require('events');
-var Cam = require('onvif').Cam;
+var onvif = require('node-onvif');
 var knex = require('knex');
 var Mp4Frag = require('mp4frag');
 var P2P = require('pipe2pam');
@@ -6128,7 +6128,7 @@ app.get('/:auth/probe/:ke',function (req,res){
     },res,req);
 })
 //ONVIF requesting with Shinobi API structure
-app.get('/:auth/onvif/:ke/:id/:action',function (req,res){
+app.get(['/:auth/onvif/:ke/:id/:action','/:auth/onvif/:ke/:id/:service/:action'],function (req,res){
     var response = {ok:false};
     res.setHeader('Content-Type', 'application/json');
     res.header("Access-Control-Allow-Origin",req.headers.origin);
@@ -6139,46 +6139,85 @@ app.get('/:auth/onvif/:ke/:id/:action',function (req,res){
             response.error = error
             res.end(s.s(response,null,3))
         }
-        var actionCallback = function(err,onvifActionResponse){
-            if(err && !onvifActionResponse){
-                return errorMessage('Device responded with an error',err)
-            }else if(err){
-                response.error = err
+        var actionCallback = function(onvifActionResponse){
+            response.ok = true
+            if(onvifActionResponse.data){
+                response.responseFromDevice = onvifActionResponse.data
             }else{
-                response.ok = true
+                response.responseFromDevice = onvifActionResponse
             }
-            response.responseFromDevice = onvifActionResponse
+            if(onvifActionResponse.soap)response.soap = onvifActionResponse.soap
             res.end(s.s(response,null,3))
         }
+        var isEmpty = function(obj) {
+            for(var key in obj) {
+                if(obj.hasOwnProperty(key))
+                    return false;
+            }
+            return true;
+        }
         var doAction = function(Camera){
-            var action = Camera[req.params.action]
-            if(!action){
-                errorMessage('This is not an available ONVIF function. See http://agsh.github.io/onvif/ for functions.')
+            var completeAction = function(command){
+                if(command.then){
+                    command.then(actionCallback).catch(function(error){
+                        errorMessage('Device responded with an error',error)
+                    })
+                }else{
+                    response.ok = true
+                    response.repsonseFromDevice = command
+                    res.end(s.s(response,null,3))
+                }
+            }
+            var action
+            if(req.params.service){
+                if(!Camera.services[req.params.service]){
+                    return errorMessage('This is not an available service. Please use one of the following : '+Object.keys(Camera.services).join(', '))
+                }
+                action = Camera.services[req.params.service][req.params.action]
+            }else{
+                action = Camera[req.params.action]
+            }
+            if(!action || typeof action !== 'function'){
+                errorMessage(req.params.action+' is not an available ONVIF function. See https://github.com/futomi/node-onvif for functions.')
             }else{
                 var argNames = s.getFunctionParamNames(action)
-                var options = null
-                if(argNames[0] === 'configurationToken'){
-                    var configurationToken = req.query.configurationToken || req.body.configurationToken
-                    Camera[req.params.action](configurationToken,actionCallback)
-                }else if(argNames[0] === 'options'){
+                var options
+                var command
+                if(argNames[0] === 'options' || argNames[0] === 'params'){
                     options = {}
                     if(req.query.options){
+                        var jsonRevokedText = 'JSON not formated correctly'
                         try{
                             options = JSON.parse(req.query.options)
                         }catch(err){
-                            return errorMessage('JSON not formated correctly',err)
+                            return errorMessage(jsonRevokedText,err)
                         }
                     }else if(req.body.options){
                         try{
                             options = JSON.parse(req.body.options)
                         }catch(err){
-                            return errorMessage('JSON not formated correctly',err)
+                            return errorMessage(jsonRevokedText,err)
+                        }
+                    }else if(req.query.params){
+                        try{
+                            options = JSON.parse(req.query.params)
+                        }catch(err){
+                            return errorMessage(jsonRevokedText,err)
+                        }
+                    }else if(req.body.params){
+                        try{
+                            options = JSON.parse(req.body.params)
+                        }catch(err){
+                            return errorMessage(jsonRevokedText,err)
                         }
                     }
-                    Camera[req.params.action](options,actionCallback)
-                }else{
-                    Camera[req.params.action](actionCallback)
                 }
+                if(req.params.service){
+                    command = Camera.services[req.params.service][req.params.action](options)
+                }else{
+                    command = Camera[req.params.action](options)
+                }
+                completeAction(command)
             }
         }
         if(!s.group[req.params.ke].mon[req.params.id].onvifConnection){
@@ -6192,15 +6231,17 @@ app.get('/:auth/onvif/:ke/:id/:action',function (req,res){
             }
             var controlURLOptions = s.camera('buildOptionsFromUrl',controlURL,monitorConfig)
             //create onvif connection
-            s.group[req.params.ke].mon[req.params.id].onvifConnection = new Cam({
-              hostname: controlURLOptions.host,
-              port: controlURLOptions.port,
-              username: controlURLOptions.username,
-              password: controlURLOptions.password
-            }, function(err) {
-                return errorMessage('Device responded with an error',err)
-                doAction(this)
-            })
+            s.group[req.params.ke].mon[req.params.id].onvifConnection = new onvif.OnvifDevice({
+                xaddr : 'http://' + controlURLOptions.host + ':' + controlURLOptions.port + '/onvif/device_service',
+                user : controlURLOptions.username,
+                pass : controlURLOptions.password
+            });
+            var device = s.group[req.params.ke].mon[req.params.id].onvifConnection
+            device.init().then((info) => {
+              if(info)doAction(device)
+            }).catch(function(error){
+                return errorMessage('Device responded with an error',error)
+            });
         }else{
             doAction(s.group[req.params.ke].mon[req.params.id].onvifConnection)
         }
