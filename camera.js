@@ -1955,11 +1955,11 @@ s.camera=function(x,e,cn,tx){
             }
             if(monitorConfig.details.control_url_method === 'ONVIF'){
                 try{
-                    var move = function(onvifConnection){
-                        var Camera = onvifConnection;
+                    var move = function(device){
+                        var stopOptions = {ProfileToken : device.current_profile.token,'PanTilt': true,'Zoom': true}
                         switch(e.direction){
                             case'center':
-//                                Camera.gotoHomePosition()
+//                                device.services.ptz.gotoHomePosition()
                                 msg = {type:'Center button inactive'}
                                 s.log(e,msg)
                                 cn(msg)
@@ -1968,60 +1968,79 @@ s.camera=function(x,e,cn,tx){
                                 msg = {type:'Control Trigger Ended'}
                                 s.log(e,msg)
                                 cn(msg)
-                                Camera.stop()
+                                device.services.ptz.stop(stopOptions).then((result) => {
+//                                    console.log(JSON.stringify(result['data'], null, '  '));
+                                }).catch((error) => {
+//                                    console.error(error);
+                                });
                             break;
                             default:
-                                var controlOptions = {}
+                                var controlOptions = {
+                                    ProfileToken : device.current_profile.token,
+                                    Velocity : {}
+                                }
                                 var onvifDirections = {
-                                    "left" : [-1,'x'],
-                                    "right" : [1,'x'],
-                                    "down" : [-1,'y'],
-                                    "up" : [1,'y'],
-                                    "zoom_in" : [1,'zoom'],
-                                    "zoom_out" : [-1,'zoom']
+                                    "left" : [-1.0,'x'],
+                                    "right" : [1.0,'x'],
+                                    "down" : [-1.0,'y'],
+                                    "up" : [1.0,'y'],
+                                    "zoom_in" : [1.0,'zoom'],
+                                    "zoom_out" : [-1.0,'zoom']
                                 }
                                 var direction = onvifDirections[e.direction]
-                                controlOptions[direction[1]] = direction[0]
+                                controlOptions.Velocity[direction[1]] = direction[0];
+                                (['x','y','z']).forEach(function(axis){
+                                    if(!controlOptions.Velocity[axis])
+                                        controlOptions.Velocity[axis] = 0
+                                })
                                 if(monitorConfig.details.control_stop=='1'){
-                                    Camera.continuousMove(controlOptions,function(err){
+                                    device.services.ptz.continuousMove(controlOptions).then(function(err){
                                         s.log(e,{type:'Control Trigger Started'});
                                         if(monitorConfig.details.control_url_stop_timeout !== '0'){
                                             setTimeout(function(){
                                                 msg = {type:'Control Trigger Ended'}
                                                 s.log(e,msg)
                                                 cn(msg)
-                                                Camera.stop()
+                                                device.services.ptz.stop(stopOptions).then((result) => {
+//                                                    console.log(JSON.stringify(result['data'], null, '  '));
+                                                }).catch((error) => {
+                                                    console.log(error);
+                                                });
                                             },monitorConfig.details.control_url_stop_timeout)
                                         }
-                                    })
+                                    }).catch(function(err){
+                                        console.log(err)
+                                    });
                                 }else{
-                                    Camera.absoluteMove(controlOptions,function(err){
+                                    device.services.ptz.absoluteMove(controlOptions).then(function(err){
                                         msg = {type:'Control Triggered'}
                                         s.log(e,msg);
                                         cn(msg)
-                                    })
+                                    }).catch(function(err){
+                                        console.log(err)
+                                    });
                                 }
                             break;
                         }
                     }
-                    if(!s.group[e.ke].mon[e.id].onvifConnection){
-                        //create onvif connection
-                        s.group[e.ke].mon[e.id].onvifConnection = new onvif.OnvifDevice({
+                    //create onvif connection
+                    if(!s.group[req.params.ke].mon[req.params.id].onvifConnection){
+                        s.group[req.params.ke].mon[req.params.id].onvifConnection = new onvif.OnvifDevice({
                             xaddr : 'http://' + controlURLOptions.host + ':' + controlURLOptions.port + '/onvif/device_service',
                             user : controlURLOptions.username,
                             pass : controlURLOptions.password
                         })
-                        var device = s.group[e.ke].mon[e.id].onvifConnection
-                        device.init().then((info) => {
-                            if(info)doAction(device)
+                        s.group[req.params.ke].mon[req.params.id].onvifConnection.init().then((info) => {
+                            move(s.group[req.params.ke].mon[req.params.id].onvifConnection)
                         }).catch(function(error){
-                            return errorMessage('Device responded with an error',error)
+                            console.log(error)
+                            s.log(e,{type:lang['Control Error'],msg:error})
                         })
                     }else{
-                        move(s.group[e.ke].mon[e.id].onvifConnection)
+                        move(s.group[req.params.ke].mon[req.params.id].onvifConnection)
                     }
                 }catch(err){
-                    delete(s.group[e.ke].mon[e.id].onvifConnection)
+                    console.log(err)
                     msg = {type:lang['Control Error'],msg:{msg:lang.ControlErrorText2,error:err,options:controlURLOptions,direction:e.direction}}
                     s.log(e,msg)
                     cn(msg)
