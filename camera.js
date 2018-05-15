@@ -2024,20 +2024,20 @@ s.camera=function(x,e,cn,tx){
                         }
                     }
                     //create onvif connection
-                    if(!s.group[req.params.ke].mon[req.params.id].onvifConnection){
-                        s.group[req.params.ke].mon[req.params.id].onvifConnection = new onvif.OnvifDevice({
+                    if(!s.group[e.ke].mon[e.id].onvifConnection){
+                        s.group[e.ke].mon[e.id].onvifConnection = new onvif.OnvifDevice({
                             xaddr : 'http://' + controlURLOptions.host + ':' + controlURLOptions.port + '/onvif/device_service',
                             user : controlURLOptions.username,
                             pass : controlURLOptions.password
                         })
-                        s.group[req.params.ke].mon[req.params.id].onvifConnection.init().then((info) => {
-                            move(s.group[req.params.ke].mon[req.params.id].onvifConnection)
+                        s.group[e.ke].mon[e.id].onvifConnection.init().then((info) => {
+                            move(s.group[e.ke].mon[e.id].onvifConnection)
                         }).catch(function(error){
                             console.log(error)
                             s.log(e,{type:lang['Control Error'],msg:error})
                         })
                     }else{
-                        move(s.group[req.params.ke].mon[req.params.id].onvifConnection)
+                        move(s.group[e.ke].mon[e.id].onvifConnection)
                     }
                 }catch(err){
                     console.log(err)
