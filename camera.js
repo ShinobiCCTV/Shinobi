@@ -5343,39 +5343,48 @@ app.get(['/:auth/monitor/:ke','/:auth/monitor/:ke/:id'], function (req,res){
                 if(s.group[v.ke]&&s.group[v.ke].mon[v.mid]&&s.group[v.ke].mon[v.mid].watch){
                     r[n].currentlyWatching=Object.keys(s.group[v.ke].mon[v.mid].watch).length
                 }
-                r[n].subStream={}
-                var details = JSON.parse(r[n].details)
-                if(details.snap==='1'){
-                    r[n].subStream.jpeg = '/'+req.params.auth+'/jpeg/'+v.ke+'/'+v.mid+'/s.jpg'
-                }
-                if(details.stream_channels&&details.stream_channels!==''){
-                    try{
-                        details.stream_channels=JSON.parse(details.stream_channels)
-                        r[n].channels=[]
-                        details.stream_channels.forEach(function(b,m){
-                            var streamURL
-                            switch(b.stream_type){
-                                case'mjpeg':
-                                    streamURL='/'+req.params.auth+'/mjpeg/'+v.ke+'/'+v.mid+'/'+m
-                                break;
-                                case'hls':
-                                    streamURL='/'+req.params.auth+'/hls/'+v.ke+'/'+v.mid+'/'+m+'/s.m3u8'
-                                break;
-                                case'h264':
-                                    streamURL='/'+req.params.auth+'/h264/'+v.ke+'/'+v.mid+'/'+m
-                                break;
-                                case'flv':
-                                    streamURL='/'+req.params.auth+'/flv/'+v.ke+'/'+v.mid+'/'+m+'/s.flv'
-                                break;
-                                case'mp4':
-                                    streamURL='/'+req.params.auth+'/mp4/'+v.ke+'/'+v.mid+'/'+m+'/s.mp4'
-                                break;
-                            }
-                            r[n].channels.push(streamURL)
-                        })
-                    }catch(err){
-                        s.log(req.params,{type:'Broken Monitor Object',msg:'Stream Channels Field is damaged. Skipping.'})
+                var buildStreamURL = function(type,channelNumber){
+                    var streamURL
+                    if(channelNumber){channelNumber = '/'+channelNumber}else{channelNumber=''}
+                    switch(type){
+                        case'mjpeg':
+                            streamURL='/'+req.params.auth+'/mjpeg/'+v.ke+'/'+v.mid+channelNumber
+                        break;
+                        case'hls':
+                            streamURL='/'+req.params.auth+'/hls/'+v.ke+'/'+v.mid+channelNumber+'/s.m3u8'
+                        break;
+                        case'h264':
+                            streamURL='/'+req.params.auth+'/h264/'+v.ke+'/'+v.mid+channelNumber
+                        break;
+                        case'flv':
+                            streamURL='/'+req.params.auth+'/flv/'+v.ke+'/'+v.mid+channelNumber+'/s.flv'
+                        break;
+                        case'mp4':
+                            streamURL='/'+req.params.auth+'/mp4/'+v.ke+'/'+v.mid+channelNumber+'/s.mp4'
+                        break;
                     }
+                    if(streamURL){
+                        if(!r[n].streamsSortedByType[type]){
+                            r[n].streamsSortedByType[type]=[]
+                        }
+                        r[n].streamsSortedByType[type].push(streamURL)
+                        r[n].streams.push(streamURL)
+                    }
+                    return streamURL
+                }
+                var details = JSON.parse(r[n].details);
+                if(!details.tv_channel_id||details.tv_channel_id==='')details.tv_channel_id = 'temp_'+s.gid(5)
+                if(details.snap==='1'){
+                    r[n].snapshot = '/'+req.params.auth+'/jpeg/'+v.ke+'/'+v.mid+'/s.jpg'
+                }
+                r[n].streams=[]
+                r[n].streamsSortedByType={}
+                buildStreamURL(details.stream_type)
+                if(details.stream_channels&&details.stream_channels!==''){
+                    details.stream_channels=JSON.parse(details.stream_channels)
+                    details.stream_channels.forEach(function(b,m){
+                        buildStreamURL(b.stream_type,m.toString())
+                    })
                 }
             })
             if(r.length===1){r=r[0];}
