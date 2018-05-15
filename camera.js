@@ -2005,13 +2005,17 @@ s.camera=function(x,e,cn,tx){
                         }
                     }
                     if(!s.group[e.ke].mon[e.id].onvifConnection){
-                        s.group[e.ke].mon[e.id].onvifConnection = new Cam({
-                          hostname: controlURLOptions.host,
-                          port: controlURLOptions.port,
-                          username: controlURLOptions.username,
-                          password: controlURLOptions.password
-                        }, function(err) {
-                            move(this)
+                        //create onvif connection
+                        s.group[e.ke].mon[e.id].onvifConnection = new onvif.OnvifDevice({
+                            xaddr : 'http://' + controlURLOptions.host + ':' + controlURLOptions.port + '/onvif/device_service',
+                            user : controlURLOptions.username,
+                            pass : controlURLOptions.password
+                        })
+                        var device = s.group[e.ke].mon[e.id].onvifConnection
+                        device.init().then((info) => {
+                            if(info)doAction(device)
+                        }).catch(function(error){
+                            return errorMessage('Device responded with an error',error)
                         })
                     }else{
                         move(s.group[e.ke].mon[e.id].onvifConnection)
@@ -3961,35 +3965,37 @@ var tx;
                     d.cams=[]
                     d.IP_LIST.forEach(function(ip_entry,n) {
                         d.PORT_LIST.forEach(function(port_entry,nn) {
-                           new Cam({
-                                hostname: ip_entry,
-                                username: d.USERNAME,
-                                password: d.PASSWORD,
-                                port: port_entry,
-                                timeout : 5000
-                            }, function CamFunc(err,data) {
-                                if (err) return;
-                                data={f:'onvif',ip:ip_entry,port:port_entry}
-                                var cam_obj = this;
-                                cam_obj.getSystemDateAndTime(function(er, date, xml) {
-                                    if (!er) data.date = date;
-                                   cam_obj.getDeviceInformation(function(er, info, xml) {
-                                        if (!er) data.info = info;
-                                        try {
-                                            cam_obj.getStreamUri({
-                                                protocol: 'RTSP'
-                                            },function(er, stream, xml) {
-                                                if (!er) data.url = stream;
-                                                tx(data)
-                                            });
-                                        }catch(err){
-                                            tx(data);
-                                        }
-                                   });
+                            var device = new onvif.OnvifDevice({
+                                xaddr : 'http://' + ip_entry + ':' + port_entry + '/onvif/device_service',
+                                user : d.USERNAME,
+                                pass : d.PASSWORD
+                            })
+                            device.init().then((info) => {
+                                var data = {
+                                    f : 'onvif',
+                                    ip : ip_entry,
+                                    port : port_entry,
+                                    info : info
+                                }
+                                device.services.device.getSystemDateAndTime().then((date) => {
+                                    data.date = date
+                                    device.services.media.getStreamUri({
+                                        ProfileToken : device.current_profile.token,
+                                        Protocol : 'RTSP'
+                                    }).then((stream) => {
+                                        data.uri = stream.data.GetStreamUriResponse.MediaUri.Uri
+                                        tx(data)
+                                    }).catch((error) => {
+//                                        console.log(error)
+                                    });
+                                }).catch((error) => {
+//                                    console.log(error)
                                 });
-                            });
-                        }); // foreach
-                    }); // foreach
+                            }).catch(function(error){
+//                                console.log(error)
+                            })
+                        });
+                    });
 //                    tx({f:'onvif_end'})
                 break;
             }
@@ -6128,7 +6134,7 @@ app.get('/:auth/probe/:ke',function (req,res){
     },res,req);
 })
 //ONVIF requesting with Shinobi API structure
-app.get(['/:auth/onvif/:ke/:id/:action','/:auth/onvif/:ke/:id/:service/:action'],function (req,res){
+app.all(['/:auth/onvif/:ke/:id/:action','/:auth/onvif/:ke/:id/:service/:action'],function (req,res){
     var response = {ok:false};
     res.setHeader('Content-Type', 'application/json');
     res.header("Access-Control-Allow-Origin",req.headers.origin);
@@ -6235,13 +6241,13 @@ app.get(['/:auth/onvif/:ke/:id/:action','/:auth/onvif/:ke/:id/:service/:action']
                 xaddr : 'http://' + controlURLOptions.host + ':' + controlURLOptions.port + '/onvif/device_service',
                 user : controlURLOptions.username,
                 pass : controlURLOptions.password
-            });
+            })
             var device = s.group[req.params.ke].mon[req.params.id].onvifConnection
             device.init().then((info) => {
-              if(info)doAction(device)
+                if(info)doAction(device)
             }).catch(function(error){
                 return errorMessage('Device responded with an error',error)
-            });
+            })
         }else{
             doAction(s.group[req.params.ke].mon[req.params.id].onvifConnection)
         }

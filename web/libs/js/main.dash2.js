@@ -2418,13 +2418,12 @@ $user.ws.on('f',function (d){
             $.oB.e.find('._notfound').remove()
             $.oB.e.find('[type="submit"]').prop('disabled',false)
             d.info=$.ccio.init('jsontoblock',d.info)
-            if(d.url){
-                d.stream=d.url.uri
-                d.info+=$.ccio.init('jsontoblock',d.url)
+            if(d.uri){
+                d.stream=d.uri
             }else{
                 d.stream='URL not Found'
             }
-            $('#onvif_probe .output_data').append('<tr onvif_row="'+tempID+'"><td><a class="btn btn-sm btn-primary copy">&nbsp;<i class="fa fa-copy"></i>&nbsp;</a></td><td class="ip">'+d.ip+'</td><td class="port">'+d.port+'</td><td>'+$.ccio.init('jsontoblock',d.info)+'</td><td class="url">'+d.stream+'</td><td class="date">'+d.date+'</td></tr>')
+            $('#onvif_probe .output_data').append('<tr onvif_row="'+tempID+'"><td><a class="btn btn-sm btn-primary copy">&nbsp;<i class="fa fa-copy"></i>&nbsp;</a></td><td class="ip">'+d.ip+'</td><td class="port">'+d.port+'</td><td>'+$.ccio.init('jsontoblock',d.info)+'</td><td class="url">'+d.stream+'</td></tr>')
         break;
     }
     delete(d);
@@ -2479,8 +2478,7 @@ $.oB.e.on('click','.copy',function(){
     e.e = $(this).parents('[onvif_row]');
     var id = e.e.attr('onvif_row');
     var onvifRecord = $.oB.foundMonitors[id];
-    console.log(onvifRecord)
-    var streamURL = onvifRecord.url.uri;
+    var streamURL = onvifRecord.uri;
     if($.oB.e.find('[name="user"]').val()!==''){
         streamURL = streamURL.split('://')
         streamURL = streamURL[0]+'://'+$.oB.e.find('[name="user"]').val()+':'+$.oB.e.find('[name="pass"]').val()+'@'+streamURL[1];
