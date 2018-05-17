@@ -3358,6 +3358,10 @@ $.aM.e.on('change','[detail="auto_host"]',function(e){
         //parse URL
         var parsedURL = document.createElement('a');
         parsedURL.href = url;
+        var pathname = parsedURL.pathname
+        if(url.indexOf('?') > -1){
+            pathname += '?'+url.split('?')[1]
+        }
         if(isRTSP){
             $.aM.e.find('[name="protocol"]').val('rtsp').change()
             $.aM.e.find('[detail="rtsp_transport"]').val('tcp').change()
@@ -3371,7 +3375,7 @@ $.aM.e.on('change','[detail="auto_host"]',function(e){
         $.aM.e.find('[detail="mpass"]').val(parsedURL.password).change()
         $.aM.e.find('[name="host"]').val(parsedURL.hostname).change()
         $.aM.e.find('[name="port"]').val(parsedURL.port).change()
-        $.aM.e.find('[name="path"]').val(parsedURL.pathname).change()
+        $.aM.e.find('[name="path"]').val(pathname).change()
         delete(parsedURL)
     }
 })
