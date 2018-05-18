@@ -145,10 +145,11 @@ if(config.renderPaths===undefined){config.renderPaths={}}
     if(config.renderPaths.mjpeg===undefined){config.renderPaths.mjpeg='pages/mjpeg'}
     //gridstack only page
     if(config.renderPaths.grid===undefined){config.renderPaths.grid='pages/grid'}
+//Use Child Nodes
+if(config.useChildNodes===undefined)config.useChildNodes = false;
 
 s={
     factorAuth : {},
-    child_help : false,
     totalmem : os.totalmem(),
     platform : os.platform(),
     s : JSON.stringify,
@@ -291,7 +292,7 @@ s.ffmpegKill=function(){
 process.on('exit',s.ffmpegKill.bind(null,{cleanup:true}));
 process.on('SIGINT',s.ffmpegKill.bind(null, {exit:true}));
 //key for child servers
-s.child_nodes={};
+s.childNodes={};
 s.child_key='3123asdasdf1dtj1hjk23sdfaasd12asdasddfdbtnkkfgvesra3asdsd3123afdsfqw345';
 s.checkRelativePath=function(x){
     if(x.charAt(0)!=='/'){
@@ -490,8 +491,8 @@ s.kill=function(x,e,p){
             clearTimeout(s.group[e.ke].mon[e.id].record.capturing);
 //            if(s.group[e.ke].mon[e.id].record.request){s.group[e.ke].mon[e.id].record.request.abort();delete(s.group[e.ke].mon[e.id].record.request);}
         };
-        if(s.group[e.ke].mon[e.id].child_node){
-            s.cx({f:'kill',d:s.init('noReference',e)},s.group[e.ke].mon[e.id].child_node_id)
+        if(s.group[e.ke].mon[e.id].childNode){
+            s.cx({f:'kill',d:s.init('noReference',e)},s.group[e.ke].mon[e.id].childNode_id)
         }else{
             if(!x||x===1){return};
             p=x.pid;
@@ -696,10 +697,10 @@ s.init=function(x,e,k,fn){
             }
         break;
         case'sync':
-            e.cn=Object.keys(s.child_nodes);
+            e.cn=Object.keys(s.childNodes);
             e.cn.forEach(function(v){
                 if(s.group[e.ke]){
-                   s.cx({f:'sync',sync:s.init('noReference',s.group[e.ke].mon[e.mid]),ke:e.ke,mid:e.mid},s.child_nodes[v].cnid);
+                   s.cx({f:'sync',sync:s.init('noReference',s.group[e.ke].mon[e.mid]),ke:e.ke,mid:e.mid},s.childNodes[v].cnid);
                 }
             });
         break;
@@ -980,8 +981,8 @@ s.video=function(x,e,k){
                     e.filename=s.group[e.ke].mon[e.id].open;
                     e.ext=s.group[e.ke].mon[e.id].open_ext
                 }
-                if(s.group[e.ke].mon[e.id].child_node){
-                    s.cx({f:'close',d:s.init('noReference',e)},s.group[e.ke].mon[e.id].child_node_id);
+                if(s.group[e.ke].mon[e.id].childNode){
+                    s.cx({f:'close',d:s.init('noReference',e)},s.group[e.ke].mon[e.id].childNode_id);
                 }else{
                     k.file = e.filename+'.'+e.ext
                     k.dir = e.dir.toString()
@@ -1035,9 +1036,14 @@ s.video=function(x,e,k){
                     }else{
                         s.video('delete',e);
                         s.log(e,{type:lang['File Not Exist'],msg:lang.FileNotExistText,ffmpeg:s.group[e.ke].mon[e.id].ffmpeg})
-                        if(e.mode&&config.restart.onVideoNotExist===true&&e.fn){
+                        if(e.mode && config.restart.onVideoNotExist === true){
                             delete(s.group[e.ke].mon[e.id].open);
-                            s.log(e,{type:lang['Camera is not recording'],msg:{msg:lang.CameraNotRecordingText}});
+                            s.log(e,{
+                                type : lang['Camera is not recording'],
+                                msg : {
+                                    msg : lang.CameraNotRecordingText
+                                }
+                            });
                             if(s.group[e.ke].mon[e.id].started===1){
                                 s.camera('restart',e)
                             }
@@ -2320,7 +2326,7 @@ s.camera=function(x,e,cn,tx){
                 clearTimeout(s.group[e.ke].mon[e.id].checkStream)
                 s.group[e.ke].mon[e.id].checkStream=setTimeout(function(){
                     if(s.group[e.ke].mon[e.id].started===1){
-                        e.fn();
+                        launchMonitorProcesses();
                         s.log(e,{type:lang['Camera is not streaming'],msg:{msg:lang['Restarting Process']}});
                     }
                 },60000*1);
@@ -2337,7 +2343,7 @@ s.camera=function(x,e,cn,tx){
                             clearTimeout(s.group[e.ke].mon[e.id].checkStream)
                             s.group[e.ke].mon[e.id].checker=setTimeout(function(){
                                 if(s.group[e.ke].mon[e.id].started===1){
-                                    e.fn();
+                                    launchMonitorProcesses();
                                     s.log(e,{type:lang['Camera is not recording'],msg:{msg:lang['Restarting Process']}});
                                 }
                             },60000 * e.cutoff * 1.1);
@@ -2359,25 +2365,25 @@ s.camera=function(x,e,cn,tx){
             }
             s.camera('snapshot',{mid:e.id,ke:e.ke,mon:e})
             //check host to see if has password and user in it
-            e.hosty=e.host.split('@');if(e.hosty[1]){e.hosty=e.hosty[1];}else{e.hosty=e.hosty[0];};
+            e.hosty = e.host.split('@');if(e.hosty[1]){e.hosty=e.hosty[1];}else{e.hosty=e.hosty[0];};
 
-                e.error_fatal=function(x){
+                var errorFatal = function(x){
                     clearTimeout(s.group[e.ke].mon[e.id].err_fatal_timeout);
-                    ++e.error_fatal_count;
+                    ++errorFatalCount;
                     if(s.group[e.ke].mon[e.id].started===1){
                         s.group[e.ke].mon[e.id].err_fatal_timeout=setTimeout(function(){
-                            if(e.details.fatal_max!==0&&e.error_fatal_count>e.details.fatal_max){
+                            if(e.details.fatal_max!==0&&errorFatalCount>e.details.fatal_max){
                                 s.camera('stop',{id:e.id,ke:e.ke})
                             }else{
-                                e.fn()
+                                launchMonitorProcesses()
                             };
                         },5000);
                     }else{
                         s.kill(s.group[e.ke].mon[e.id].spawn,e);
                     }
                 }
-                e.error_fatal_count=0;
-                e.fn=function(){//this function loops to create new files
+                errorFatalCount = 0;
+                launchMonitorProcesses = function(){//this function loops to create new files
                     setStreamDir()
                     clearTimeout(s.group[e.ke].mon[e.id].checker)
                     if(s.group[e.ke].mon[e.id].started===1){
@@ -2397,7 +2403,7 @@ s.camera=function(x,e,cn,tx){
                                     if(e.details.loglevel!=='quiet'){
                                         s.log(e,{type:lang['Process Unexpected Exit'],msg:{msg:lang['Process Crashed for Monitor']+' : '+e.id,cmd:s.group[e.ke].mon[e.id].ffmpeg}});
                                     }
-                                    e.error_fatal();
+                                    errorFatal();
                                 }
                             }
                             s.group[e.ke].mon[e.id].spawn.on('end',s.group[e.ke].mon[e.id].spawn_exit)
@@ -2486,7 +2492,7 @@ s.camera=function(x,e,cn,tx){
                                         }
                                         if(e.details.fatal_max!==0&&e.error_count>e.details.fatal_max){
                                             clearTimeout(s.group[e.ke].mon[e.id].record.capturing);
-                                            e.fn();
+                                            launchMonitorProcesses();
                                         }
                                     });
                               }
@@ -2494,7 +2500,7 @@ s.camera=function(x,e,cn,tx){
                             }
                             if(!s.group[e.ke]||!s.group[e.ke].mon[e.id]){s.init(0,e)}
                             s.group[e.ke].mon[e.id].spawn.on('error',function(er){
-                                s.log(e,{type:'Spawn Error',msg:er});e.error_fatal()
+                                s.log(e,{type:'Spawn Error',msg:er});errorFatal()
                             });
                             if(e.details.detector==='1'){
                                 s.ocvTx({f:'init_monitor',id:e.id,ke:e.ke})
@@ -2743,7 +2749,7 @@ s.camera=function(x,e,cn,tx){
                                         case e.chk('Connection refused'):
                                         case e.chk('Connection timed out'):
                                             //restart
-                                            setTimeout(function(){s.log(e,{type:lang["Can't Connect"],msg:lang['Retrying...']});e.error_fatal();},1000)
+                                            setTimeout(function(){s.log(e,{type:lang["Can't Connect"],msg:lang['Retrying...']});errorFatal();},1000)
                                         break;
 //                                        case e.chk('No such file or directory'):
 //                                        case e.chk('Unable to open RTSP for listening'):
@@ -2753,13 +2759,13 @@ s.camera=function(x,e,cn,tx){
 //                                        case e.chk('reset by peer'):
 //                                           if(e.frames===0&&x==='record'){s.video('delete',e)};
 //                                            setTimeout(function(){
-//                                                if(!s.group[e.ke].mon[e.id].spawn){e.fn()}
+//                                                if(!s.group[e.ke].mon[e.id].spawn){launchMonitorProcesses()}
 //                                            },2000)
 //                                        break;
                                         case e.chk('mjpeg_decode_dc'):
                                         case e.chk('bad vlc'):
                                         case e.chk('error dc'):
-                                            e.fn()
+                                            launchMonitorProcesses()
                                         break;
                                         case /T[0-9][0-9]-[0-9][0-9]-[0-9][0-9]./.test(d):
                                             var filename = d.split('.')[0]+'.'+e.ext
@@ -2792,7 +2798,7 @@ s.camera=function(x,e,cn,tx){
                                 });
                             }
                           }else{
-                            s.log(e,{type:lang["Can't Connect"],msg:lang['Retrying...']});e.error_fatal();return;
+                            s.log(e,{type:lang["Can't Connect"],msg:lang['Retrying...']});errorFatal();return;
                         }
                     }
                     if(e.type!=='socket'&&e.type!=='dashcam'&&e.protocol!=='udp'&&e.type!=='local'||e.details.skip_ping === '1'){
@@ -2805,37 +2811,37 @@ s.camera=function(x,e,cn,tx){
                 }
                 }
                 //start drawing files
-                if(s.child_help===true){
-                    e.ch=Object.keys(s.child_nodes);
+                if(config.useChildNodes === true){
+                    e.ch=Object.keys(s.childNodes);
                     if(e.ch.length>0){
                         e.ch_stop=0;
-                        e.fn=function(n){
+                        launchMonitorProcesses=function(n){
                         connectionTester.test(e.hosty,e.port,2000,function(err,o){
                             if(o.success===true){
                                 s.video('open',e);
                                 e.frames=0;
                                 s.group[e.ke].mon[e.id].spawn={};
-                                s.group[e.ke].mon[e.id].child_node=n;
-                                s.cx({f:'spawn',d:s.init('noReference',e),mon:s.init('noReference',s.group[e.ke].mon[e.mid])},s.group[e.ke].mon[e.mid].child_node_id)
+                                s.group[e.ke].mon[e.id].childNode=n;
+                                s.cx({f:'spawn',d:s.init('noReference',e),mon:s.init('noReference',s.group[e.ke].mon[e.mid])},s.group[e.ke].mon[e.mid].childNode_id)
                             }else{
 //                                s.systemLog('Cannot Connect, Retrying...',e.id);
-                                e.error_fatal();return;
+                                errorFatal();return;
                             }
                         })
                         }
                         e.ch.forEach(function(n){
-                            if(e.ch_stop===0&&s.child_nodes[n].cpu<80){
+                            if(e.ch_stop===0&&s.childNodes[n].cpu<80){
                                 e.ch_stop=1;
-                                s.group[e.ke].mon[e.mid].child_node=n;
-                                s.group[e.ke].mon[e.mid].child_node_id=s.child_nodes[n].cnid;
-                                e.fn(n);
+                                s.group[e.ke].mon[e.mid].childNode=n;
+                                s.group[e.ke].mon[e.mid].childNode_id=s.childNodes[n].cnid;
+                                launchMonitorProcesses(n);
                             }
                         })
                     }else{
-                        e.fn();
+                        launchMonitorProcesses();
                     }
                 }else{
-                    e.fn();
+                    launchMonitorProcesses();
                 }
         break;
         case'motion':
@@ -4247,15 +4253,15 @@ var tx;
                 cn.name=d.u.name;
                 cn.shinobi_child=1;
                 tx=function(z){cn.emit('c',z);}
-                if(!s.child_nodes[cn.ip]){s.child_nodes[cn.ip]=d.u;};
-                s.child_nodes[cn.ip].cnid=cn.id;
-                s.child_nodes[cn.ip].cpu=0;
-                tx({f:'init_success',child_nodes:s.child_nodes});
+                if(!s.childNodes[cn.ip]){s.childNodes[cn.ip]=d.u;};
+                s.childNodes[cn.ip].cnid=cn.id;
+                s.childNodes[cn.ip].cpu=0;
+                tx({f:'init_success',childNodes:s.childNodes});
             }else{
                 if(d.f!=='s.tx'){s.systemLog('CRON',d)};
                 switch(d.f){
                     case'cpu':
-                        s.child_nodes[cn.ip].cpu=d.cpu;
+                        s.childNodes[cn.ip].cpu=d.cpu;
                     break;
                     case'sql':
                         s.sqlQuery(d.query,d.values);
@@ -4347,7 +4353,7 @@ var tx;
             delete(s.api[cn.id])
         }
         if(cn.shinobi_child){
-            delete(s.child_nodes[cn.ip]);
+            delete(s.childNodes[cn.ip]);
         }
     })
 });
@@ -6196,16 +6202,22 @@ app.all(['/:auth/onvif/:ke/:id/:action','/:auth/onvif/:ke/:id/:service/:action']
                     command.then(actionCallback).catch(function(error){
                         errorMessage('Device responded with an error',error)
                     })
-                }else{
+                }else if(command){
                     response.ok = true
                     response.repsonseFromDevice = command
+                    res.end(s.s(response,null,3))
+                }else{
+                    response.error = 'Big Errors, Please report it to Shinobi Development'
                     res.end(s.s(response,null,3))
                 }
             }
             var action
             if(req.params.service){
-                if(!Camera.services[req.params.service]){
+                if(Camera.services[req.params.service] === undefined){
                     return errorMessage('This is not an available service. Please use one of the following : '+Object.keys(Camera.services).join(', '))
+                }
+                if(Camera.services[req.params.service] === null){
+                    return errorMessage('This service is not activated. Maybe you are not connected through ONVIF. You can test by attempting to use the "Control" feature with ONVIF in Shinobi.')
                 }
                 action = Camera.services[req.params.service][req.params.action]
             }else{
