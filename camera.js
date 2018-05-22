@@ -1098,6 +1098,8 @@ s.video=function(x,e,k){
                             })
                         })
                         .on('close',function(){
+                            clearTimeout(s.group[e.ke].mon[e.id].checker)
+                            clearTimeout(s.group[e.ke].mon[e.id].checkStream)
                             s.cx({
                                 f:'created_file',
                                 mid:e.id,
@@ -6444,6 +6446,8 @@ if(config.childNodes.enabled === true && config.childNodes.mode === 'master'){
                                 size:d.filesize,
                                 end:moment(d.endTime).format()
                             },'GRP_'+d.ke,'video_view');
+                            clearTimeout(s.group[d.ke].mon[d.mid].checker)
+                            clearTimeout(s.group[d.ke].mon[d.mid].checkStream)
                         break;
                     }
                 }
