@@ -273,20 +273,17 @@ s.sqlQuery = function(query,values,onMoveOn,hideLog){
                 s.systemLog('s.sqlQuery QUERY',query)
                 s.systemLog('s.sqlQuery ERROR',err)
             }
-            if(onMoveOn)
-                if(typeof onMoveOn === 'function'){
-                    switch(databaseOptions.client){
-                        case'sqlite3':
-                            if(!r)r=[]
-                        break;
-                        default:
-                            if(r)r=r[0]
-                        break;
-                    }
-                    onMoveOn(err,r)
-                }else{
-                    console.log(onMoveOn)
+            if(onMoveOn && typeof onMoveOn === 'function'){
+                switch(databaseOptions.client){
+                    case'sqlite3':
+                        if(!r)r=[]
+                    break;
+                    default:
+                        if(r)r=r[0]
+                    break;
                 }
+                onMoveOn(err,r)
+            }
         })
 }
 //kill any ffmpeg running
@@ -928,24 +925,20 @@ s.video=function(x,e,k){
                         s.group[e.ke].sizePurging=true
                         //set queue processor
                         var finish=function(){
-//                                        console.log('checkQueueOne',s.group[e.ke].sizePurgeQueue.length)
                             //remove value just used from queue
                             s.group[e.ke].sizePurgeQueue = s.group[e.ke].sizePurgeQueue.splice(1,s.group[e.ke].sizePurgeQueue.length+10)
                             //do next one
                             if(s.group[e.ke].sizePurgeQueue.length>0){
                                 checkQueue()
                             }else{
-//                                            console.log('checkQueueFinished',s.group[e.ke].sizePurgeQueue.length)
                                 s.group[e.ke].sizePurging=false
                                 s.init('diskUsedEmit',e)
                             }
                         }
                         var checkQueue=function(){
-//                                        console.log('checkQueue',config.cron.deleteOverMaxOffset)
                             //get first in queue
                             var currentPurge = s.group[e.ke].sizePurgeQueue[0]
                             var deleteVideos = function(){
-//                                            console.log(s.group[e.ke].usedSpace>(s.group[e.ke].sizeLimit*config.cron.deleteOverMaxOffset))
                                 //run purge command
                                 if(s.group[e.ke].usedSpace>(s.group[e.ke].sizeLimit*config.cron.deleteOverMaxOffset)){
                                         s.sqlQuery('SELECT * FROM Videos WHERE status != 0 AND details NOT LIKE \'%"archived":"1"%\' AND ke=? ORDER BY `time` ASC LIMIT 2',[e.ke],function(err,evs){
@@ -1088,7 +1081,6 @@ s.video=function(x,e,k){
                     if(!e.ext){e.ext = k.file.split('.')[1]}
                     //send event for completed recording
                     if(config.childNodes.enabled === true && config.childNodes.mode === 'child' && config.childNodes.host){
-                        console.log('File Up',k.dir+k.file)
                         fs.createReadStream(k.dir+k.file)
                         .on('data',function(data){
                             s.cx({
@@ -1171,13 +1163,9 @@ s.video=function(x,e,k){
                         e.filesize,
                         e.endTime,
                     ]
-                    s.sqlQuery('INSERT INTO Videos (mid,ke,time,ext,status,details,size,end) VALUES (?,?,?,?,?,?,?,?)',save,function(){
-                        
-                    })
+                    s.sqlQuery('INSERT INTO Videos (mid,ke,time,ext,status,details,size,end) VALUES (?,?,?,?,?,?,?,?)',save)
                     //send new diskUsage values
                     s.video('diskUseUpdate',e,k)
-                }else{
-                    console.log(k)
                 }
             }
         break;
@@ -2638,15 +2626,6 @@ s.camera=function(x,e,cn,tx){
                                     })
                                     theNoise = theNoise / noiseFilterArray[trigger.name].length;
                                     var triggerPercentWithoutNoise = trigger.percent - theNoise;
-//                                        console.log('------',trigger.name)
-//                                        console.log('noiseMadeFromThis',noiseFilterArray[trigger.name])
-//                                        console.log('theNoise',theNoise)
-//                                        console.log('trigger.percent - thePreviousTriggerPercent',(trigger.percent - thePreviousTriggerPercent))
-//                                        console.log('thePreviousTriggerPercent - trigger.percent',(thePreviousTriggerPercent - trigger.percent))
-//                                        console.log('triggerPercentWithoutNoise',triggerPercentWithoutNoise)
-//                                        console.log('thePreviousTriggerPercent',thePreviousTriggerPercent)
-//                                        console.log('trigger.percent',trigger.percent)
-//                                        console.log('sensitivity',regions.notForPam[trigger.name].sensitivity)
                                     if(triggerPercentWithoutNoise > regions.notForPam[trigger.name].sensitivity){
                                         sendTrigger(trigger);
                                     }
@@ -2861,25 +2840,12 @@ s.camera=function(x,e,cn,tx){
             }
             }
             //start drawing files
-            console.log(config.childNodes)
-            console.log(config.childNodes.mode)
-            console.log(config.childNodes.enabled)
-            console.log(config.childNodes.enabled === true && config.childNodes.mode === 'master')
             if(config.childNodes.enabled === true && config.childNodes.mode === 'master'){
                 var childNodeList = Object.keys(s.childNodes)
-                console.log(childNodeList)
                 if(childNodeList.length>0){
                     e.ch_stop = 0;
                     launchMonitorProcesses = function(n){
                         startVideoProcessor = function(){
-                            console.log({
-                                //function
-                                f : 'spawn',
-                                //data, options
-                                d : s.init('noReference',s.group[e.ke].mon_conf[e.id]),
-                                //monitor object
-                                mon : s.init('noReference',s.group[e.ke].mon_conf[e.id])
-                            })
                             s.cx({
                                 //function
                                 f : 'spawn',
@@ -6419,7 +6385,6 @@ if(config.childNodes.enabled === true && config.childNodes.mode === 'master'){
                     };
                     s.childNodes[cn.ip].cnid = cn.id
                     s.childNodes[cn.ip].cpu = 0
-                    console.log(s.childNodes)
                     tx({
                         f : 'init_success',
                         childNodes : s.childNodes
@@ -6494,7 +6459,7 @@ if(config.childNodes.enabled === true && config.childNodes.mode === 'child' && c
             var onMoveOn = values;
             var values = [];
         }
-        if(!onMoveOn){onMoveOn=function(){}}
+        if(typeof onMoveOn !== 'function'){onMoveOn=function(){}}
         s.queuedSqlCallbacks[callbackId] = onMoveOn
         s.cx({f:'sql',query:query,values:values,callbackId:callbackId});
     }
@@ -6512,7 +6477,6 @@ if(config.childNodes.enabled === true && config.childNodes.mode === 'child' && c
     childIO.on('c', function (d) {
         switch(d.f){
             case'sqlCallback':
-                console.log('sqlCallback',d.rows)
                 if(s.queuedSqlCallbacks[d.callbackId]){
                     s.queuedSqlCallbacks[d.callbackId](d.err,d.rows)
                     delete(s.queuedSqlCallbacks[d.callbackId])
@@ -6533,17 +6497,12 @@ if(config.childNodes.enabled === true && config.childNodes.mode === 'child' && c
                 });
             break;
             case'delete'://delete video
-                d.dir=s.dir.videos+d.ke+'/'+d.mid+'/'+d.file;
-                if(fs.existsSync(d.dir)){
-                    fs.unlink(d.dir);
-                }
+                s.file('delete',s.dir.videos+d.ke+'/'+d.mid+'/'+d.file)
             break;
             case'insertCompleted'://close video
-                console.log('sqlCallback',d)
                 s.video('insertCompleted',d.d,d.k)
             break;
             case'spawn'://start video
-                console.log('spawn',d.d.mode)
                 s.camera(d.d.mode,d.d)
             break;
         }
