@@ -34,7 +34,6 @@ var moment = require('moment');
 var request = require("request");
 var express = require('express');
 var app = express();
-var appHTTPS = express();
 var http = require('http');
 var https = require('https');
 var server = http.createServer(app);
@@ -145,8 +144,19 @@ if(config.renderPaths===undefined){config.renderPaths={}}
     if(config.renderPaths.mjpeg===undefined){config.renderPaths.mjpeg='pages/mjpeg'}
     //gridstack only page
     if(config.renderPaths.grid===undefined){config.renderPaths.grid='pages/grid'}
-//Use Child Nodes
-if(config.useChildNodes===undefined)config.useChildNodes = false;
+//Child Nodes
+if(config.childNodes===undefined)config.childNodes = {};
+    //enabled
+    if(config.childNodes.enabled===undefined)config.childNodes.enabled = false;
+    //mode, set value as `child` for all other machines in the cluster
+    if(config.childNodes.mode===undefined)config.childNodes.mode = 'master';
+    //child node connection port
+    if(config.childNodes.port===undefined)config.childNodes.port = 8288;
+    //child node connection key
+    if(config.childNodes.key===undefined)config.childNodes.key = [
+        '3123asdasdf1dtj1hjk23sdfaasd12asdasddfdbtnkkfgvesra3asdsd3123afdsfqw345'
+    ];
+
 
 s={
     factorAuth : {},
@@ -291,9 +301,6 @@ s.ffmpegKill=function(){
 };
 process.on('exit',s.ffmpegKill.bind(null,{cleanup:true}));
 process.on('SIGINT',s.ffmpegKill.bind(null, {exit:true}));
-//key for child servers
-s.childNodes={};
-s.child_key='3123asdasdf1dtj1hjk23sdfaasd12asdasddfdbtnkkfgvesra3asdsd3123afdsfqw345';
 s.checkRelativePath=function(x){
     if(x.charAt(0)!=='/'){
         x=__dirname+'/'+x
@@ -319,8 +326,6 @@ s.ocvTx=function(data){
 }
 //send data to socket client function
 s.tx=function(z,y,x){if(x){return x.broadcast.to(y).emit('f',z)};io.to(y).emit('f',z);}
-//send data to child node function (experimental)
-s.cx=function(z,y,x){if(x){return x.broadcast.to(y).emit('c',z)};io.to(y).emit('c',z);}
 s.txWithSubPermissions=function(z,y,permissionChoices){
     if(typeof permissionChoices==='string'){
         permissionChoices=[permissionChoices]
@@ -638,6 +643,7 @@ s.init=function(x,e,k,fn){
             if(!s.group[e.ke].mon[e.mid].mp4frag){s.group[e.ke].mon[e.mid].mp4frag={}};
             if(!s.group[e.ke].mon[e.mid].firstStreamChunk){s.group[e.ke].mon[e.mid].firstStreamChunk={}};
             if(!s.group[e.ke].mon[e.mid].contentWriter){s.group[e.ke].mon[e.mid].contentWriter={}};
+            if(!s.group[e.ke].mon[e.mid].childNodeStreamWriters){s.group[e.ke].mon[e.mid].childNodeStreamWriters={}};
             if(!s.group[e.ke].mon[e.mid].eventBasedRecording){s.group[e.ke].mon[e.mid].eventBasedRecording={}};
             if(!s.group[e.ke].mon[e.mid].watch){s.group[e.ke].mon[e.mid].watch={}};
             if(!s.group[e.ke].mon[e.mid].fixingVideos){s.group[e.ke].mon[e.mid].fixingVideos={}};
@@ -700,7 +706,7 @@ s.init=function(x,e,k,fn){
             e.cn=Object.keys(s.childNodes);
             e.cn.forEach(function(v){
                 if(s.group[e.ke]){
-                   s.cx({f:'sync',sync:s.init('noReference',s.group[e.ke].mon[e.mid]),ke:e.ke,mid:e.mid},s.childNodes[v].cnid);
+                   s.cx({f:'sync',sync:s.init('noReference',s.group[e.ke].mon_conf[e.mid]),ke:e.ke,mid:e.mid},s.childNodes[v].cnid);
                 }
             });
         break;
@@ -1055,89 +1061,124 @@ s.video=function(x,e,k){
         break;
         case'insertCompleted':
             k.dir = e.dir.toString()
-            //get file directory
-            k.fileExists = fs.existsSync(k.dir+k.file)
-            if(k.fileExists!==true){
-                k.dir=s.dir.videos+'/'+e.ke+'/'+e.id+'/'
-                k.fileExists=fs.existsSync(k.dir+k.file)
-                if(k.fileExists!==true){
-                    s.dir.addStorage.forEach(function(v){
-                        if(k.fileExists!==true){
-                            k.dir=s.checkCorrectPathEnding(v.path)+e.ke+'/'+e.id+'/'
-                            k.fileExists=fs.existsSync(k.dir+k.file)
-                        }
-                    })
-                }
-            }
-            if(k.fileExists===true){
-                //close video row
-                k.stat = fs.statSync(k.dir+k.file)
-                e.filesize = k.stat.size
-                e.filesizeMB = parseFloat((e.filesize/1000000).toFixed(2))
-                e.startTime = s.nameToTime(k.file)
-                e.endTime = s.moment(k.stat.mtime,'YYYY-MM-DD HH:mm:ss')
-                if(!e.ext){e.ext = k.file.split('.')[1]}
-                //send event for completed recording
-                s.txWithSubPermissions({
-                    f:'video_build_success',
-                    hrefNoAuth:'/videos/'+e.ke+'/'+e.mid+'/'+k.file,
-                    filename:k.file,
-                    mid:e.mid,
-                    ke:e.ke,
-                    time:moment(e.startTime).format(),
-                    size:e.filesize,
-                    end:moment(e.endTime).format()
-                },'GRP_'+e.ke,'video_view');
-
-                //cloud auto savers
-                //webdav
-//                var webDAV = s.group[e.ke].webdav
-//                if(webDAV&&s.group[e.ke].init.use_webdav!=='0'&&s.group[e.ke].init.webdav_save=="1"){
-//                   fs.readFile(k.dir+k.file,function(err,data){
-//                       var webdavUploadDir = s.group[e.ke].init.webdav_dir+e.ke+'/'+e.mid+'/'
-//                       fs.readFile(k.dir+k.file,function(err,data){
-//                           webDAV.putFileContents(webdavUploadDir+k.file,"binary",data).catch(function(err) {
-//                               if(err){
-//                                   webDAV.createDirectory(webdavUploadDir).catch(function(err) {
-//                                       s.log(e,{type:lang['Webdav Error'],msg:{msg:lang.WebdavErrorText+' <b>/'+webdavUploadDir+'</b>',info:err}})
-//                                   })
-//                                   webDAV.putFileContents(webdavUploadDir+k.file,"binary",data).catch(function(err) {
-//                                       s.log(e,{type:lang['Webdav Error'],msg:{msg:lang.WebdavErrorText+' <b>/'+webdavUploadDir+'</b>',info:err}})
-//                                   })
-//                                   s.log(e,{type:lang['Webdav Error'],msg:{msg:lang.WebdavErrorText+' <b>/'+webdavUploadDir+'</b>',info:err}})
-//                               }
-//                           });
-//                        });
-//                    });
-//                }
-                if(s.group[e.ke].webdav&&s.group[e.ke].init.use_webdav!=='0'&&s.group[e.ke].init.webdav_save=="1"){
-                   fs.readFile(k.dir+k.file,function(err,data){
-                       s.group[e.ke].webdav.putFileContents(s.group[e.ke].init.webdav_dir+e.ke+'/'+e.mid+'/'+k.file,"binary",data)
-                    .catch(function(err) {
-                           s.log(e,{type:lang['Webdav Error'],msg:{msg:lang.WebdavErrorText+' <b>/'+e.ke+'/'+e.id+'</b>',info:err},ffmpeg:s.group[e.ke].mon[e.id].ffmpeg})
-                        console.error(err);
-                       });
-                    });
-                }
-                k.details = {}
-                if(e.details&&e.details.dir&&e.details.dir!==''){
-                    k.details.dir=e.details.dir
-                }
-                var save = [
-                    e.mid,
-                    e.ke,
-                    e.startTime,
-                    e.ext,
-                    1,
-                    s.s(k.details),
-                    e.filesize,
-                    e.endTime,
-                ]
-                s.sqlQuery('INSERT INTO Videos (mid,ke,time,ext,status,details,size,end) VALUES (?,?,?,?,?,?,?,?)',save)
-                //send new diskUsage values
-                s.video('diskUseUpdate',e,k)
+            if(s.group[e.ke].mon[e.id].childNode){
+                s.cx({f:'insertCompleted',d:s.init('noReference',e),k:k},s.group[e.ke].mon[e.id].childNode_id);
             }else{
-                console.log(k)
+                //get file directory
+                k.fileExists = fs.existsSync(k.dir+k.file)
+                if(k.fileExists!==true){
+                    k.dir = s.dir.videos+'/'+e.ke+'/'+e.id+'/'
+                    k.fileExists = fs.existsSync(k.dir+k.file)
+                    if(k.fileExists !== true){
+                        s.dir.addStorage.forEach(function(v){
+                            if(k.fileExists !== true){
+                                k.dir = s.checkCorrectPathEnding(v.path)+e.ke+'/'+e.id+'/'
+                                k.fileExists = fs.existsSync(k.dir+k.file)
+                            }
+                        })
+                    }
+                }
+                if(k.fileExists===true){
+                    //close video row
+                    k.stat = fs.statSync(k.dir+k.file)
+                    e.filesize = k.stat.size
+                    e.filesizeMB = parseFloat((e.filesize/1000000).toFixed(2))
+                    e.startTime = s.nameToTime(k.file)
+                    e.endTime = s.moment(k.stat.mtime,'YYYY-MM-DD HH:mm:ss')
+                    if(!e.ext){e.ext = k.file.split('.')[1]}
+                    //send event for completed recording
+                    if(config.childNodes.enabled === true && config.childNodes.mode === 'child' && config.childNodes.host){
+                        console.log('File Up',k.dir+k.file)
+                        fs.createReadStream(k.dir+k.file)
+                        .on('data',function(data){
+                            s.cx({
+                                f:'created_file_chunk',
+                                mid:e.id,
+                                ke:e.ke,
+                                chunk:data,
+                                filename:k.file,
+                                d:s.init('clean',e),
+                                filesize:e.filesize,
+                                time:moment(e.startTime).format(),
+                                end:moment(e.endTime).format()
+                            })
+                        })
+                        .on('close',function(){
+                            s.cx({
+                                f:'created_file',
+                                mid:e.id,
+                                ke:e.ke,
+                                filename:k.file,
+                                d:s.init('clean',e),
+                                filesize:e.filesize,
+                                time:moment(e.startTime).format(),
+                                end:moment(e.endTime).format()
+                            })
+                        });
+                    }else{
+                        s.txWithSubPermissions({
+                            f:'video_build_success',
+                            hrefNoAuth:'/videos/'+e.ke+'/'+e.mid+'/'+k.file,
+                            filename:k.file,
+                            mid:e.mid,
+                            ke:e.ke,
+                            time:moment(e.startTime).format(),
+                            size:e.filesize,
+                            end:moment(e.endTime).format()
+                        },'GRP_'+e.ke,'video_view');
+                    }
+                    //cloud auto savers
+                    //webdav
+    //                var webDAV = s.group[e.ke].webdav
+    //                if(webDAV&&s.group[e.ke].init.use_webdav!=='0'&&s.group[e.ke].init.webdav_save=="1"){
+    //                   fs.readFile(k.dir+k.file,function(err,data){
+    //                       var webdavUploadDir = s.group[e.ke].init.webdav_dir+e.ke+'/'+e.mid+'/'
+    //                       fs.readFile(k.dir+k.file,function(err,data){
+    //                           webDAV.putFileContents(webdavUploadDir+k.file,"binary",data).catch(function(err) {
+    //                               if(err){
+    //                                   webDAV.createDirectory(webdavUploadDir).catch(function(err) {
+    //                                       s.log(e,{type:lang['Webdav Error'],msg:{msg:lang.WebdavErrorText+' <b>/'+webdavUploadDir+'</b>',info:err}})
+    //                                   })
+    //                                   webDAV.putFileContents(webdavUploadDir+k.file,"binary",data).catch(function(err) {
+    //                                       s.log(e,{type:lang['Webdav Error'],msg:{msg:lang.WebdavErrorText+' <b>/'+webdavUploadDir+'</b>',info:err}})
+    //                                   })
+    //                                   s.log(e,{type:lang['Webdav Error'],msg:{msg:lang.WebdavErrorText+' <b>/'+webdavUploadDir+'</b>',info:err}})
+    //                               }
+    //                           });
+    //                        });
+    //                    });
+    //                }
+                    if(s.group[e.ke].webdav&&s.group[e.ke].init.use_webdav!=='0'&&s.group[e.ke].init.webdav_save=="1"){
+                       fs.readFile(k.dir+k.file,function(err,data){
+                           s.group[e.ke].webdav.putFileContents(s.group[e.ke].init.webdav_dir+e.ke+'/'+e.mid+'/'+k.file,"binary",data)
+                        .catch(function(err) {
+                               s.log(e,{type:lang['Webdav Error'],msg:{msg:lang.WebdavErrorText+' <b>/'+e.ke+'/'+e.id+'</b>',info:err},ffmpeg:s.group[e.ke].mon[e.id].ffmpeg})
+                            console.error(err);
+                           });
+                        });
+                    }
+                    k.details = {}
+                    if(e.details&&e.details.dir&&e.details.dir!==''){
+                        k.details.dir=e.details.dir
+                    }
+                    var save = [
+                        e.mid,
+                        e.ke,
+                        e.startTime,
+                        e.ext,
+                        1,
+                        s.s(k.details),
+                        e.filesize,
+                        e.endTime,
+                    ]
+                    s.sqlQuery('INSERT INTO Videos (mid,ke,time,ext,status,details,size,end) VALUES (?,?,?,?,?,?,?,?)',save,function(){
+                        
+                    })
+                    //send new diskUsage values
+                    s.video('diskUseUpdate',e,k)
+                }else{
+                    console.log(k)
+                }
             }
         break;
     }
@@ -2198,41 +2239,51 @@ s.camera=function(x,e,cn,tx){
         break;
         case'idle':case'stop'://stop monitor
             if(!s.group[e.ke]||!s.group[e.ke].mon[e.id]){return}
-            if(s.group[e.ke].mon[e.id].eventBasedRecording.process){
-                clearTimeout(s.group[e.ke].mon[e.id].eventBasedRecording.timeout)
-                s.group[e.ke].mon[e.id].eventBasedRecording.allowEnd=true;
-                s.group[e.ke].mon[e.id].eventBasedRecording.process.kill('SIGTERM');
-            }
-            if(s.group[e.ke].mon[e.id].fswatch){s.group[e.ke].mon[e.id].fswatch.close();delete(s.group[e.ke].mon[e.id].fswatch)}
-            if(s.group[e.ke].mon[e.id].fswatchStream){s.group[e.ke].mon[e.id].fswatchStream.close();delete(s.group[e.ke].mon[e.id].fswatchStream)}
-            if(s.group[e.ke].mon[e.id].last_frame){delete(s.group[e.ke].mon[e.id].last_frame)}
-            if(s.group[e.ke].mon[e.id].started!==1){return}
-            s.kill(s.group[e.ke].mon[e.id].spawn,e);
-            if(e.neglectTriggerTimer===1){
-                delete(e.neglectTriggerTimer);
+            if(config.childNodes.enabled === true && config.childNodes.mode === 'master' && s.group[e.ke].mon[e.id].childNode && s.group[e.ke].mon[e.id].childNode_id){
+                s.cx({
+                    //function
+                    f : 'spawn',
+                    //data, options
+                    d : s.init('noReference',s.group[e.ke].mon_conf[e.id]),
+                    mon : s.init('noReference',s.group[e.ke].mon_conf[e.id])
+                },s.group[e.ke].mon[e.id].childNode_id)
             }else{
-                clearTimeout(s.group[e.ke].mon[e.id].trigger_timer)
-                delete(s.group[e.ke].mon[e.id].trigger_timer)
-            }
-            clearInterval(s.group[e.ke].mon[e.id].running);
-            clearInterval(s.group[e.ke].mon[e.id].detector_notrigger_timeout)
-            clearTimeout(s.group[e.ke].mon[e.id].err_fatal_timeout);
-            s.group[e.ke].mon[e.id].started=0;
-            if(s.group[e.ke].mon[e.id].record){s.group[e.ke].mon[e.id].record.yes=0}
-            s.tx({f:'monitor_stopping',mid:e.id,ke:e.ke,time:s.moment()},'GRP_'+e.ke);
-            s.camera('snapshot',{mid:e.id,ke:e.ke,mon:e})
-            if(x==='stop'){
-                s.log(e,{type:lang['Monitor Stopped'],msg:lang.MonitorStoppedText});
-                clearTimeout(s.group[e.ke].mon[e.id].delete)
-                if(e.delete===1){
-                    s.group[e.ke].mon[e.id].delete=setTimeout(function(){
-                        delete(s.group[e.ke].mon[e.id]);
-                        delete(s.group[e.ke].mon_conf[e.id]);
-                    },1000*60);
+                if(s.group[e.ke].mon[e.id].eventBasedRecording.process){
+                    clearTimeout(s.group[e.ke].mon[e.id].eventBasedRecording.timeout)
+                    s.group[e.ke].mon[e.id].eventBasedRecording.allowEnd=true;
+                    s.group[e.ke].mon[e.id].eventBasedRecording.process.kill('SIGTERM');
                 }
-            }else{
-                s.tx({f:'monitor_idle',mid:e.id,ke:e.ke,time:s.moment()},'GRP_'+e.ke);
-                s.log(e,{type:lang['Monitor Idling'],msg:lang.MonitorIdlingText});
+                if(s.group[e.ke].mon[e.id].fswatch){s.group[e.ke].mon[e.id].fswatch.close();delete(s.group[e.ke].mon[e.id].fswatch)}
+                if(s.group[e.ke].mon[e.id].fswatchStream){s.group[e.ke].mon[e.id].fswatchStream.close();delete(s.group[e.ke].mon[e.id].fswatchStream)}
+                if(s.group[e.ke].mon[e.id].last_frame){delete(s.group[e.ke].mon[e.id].last_frame)}
+                if(s.group[e.ke].mon[e.id].started!==1){return}
+                s.kill(s.group[e.ke].mon[e.id].spawn,e);
+                if(e.neglectTriggerTimer===1){
+                    delete(e.neglectTriggerTimer);
+                }else{
+                    clearTimeout(s.group[e.ke].mon[e.id].trigger_timer)
+                    delete(s.group[e.ke].mon[e.id].trigger_timer)
+                }
+                clearInterval(s.group[e.ke].mon[e.id].running);
+                clearInterval(s.group[e.ke].mon[e.id].detector_notrigger_timeout)
+                clearTimeout(s.group[e.ke].mon[e.id].err_fatal_timeout);
+                s.group[e.ke].mon[e.id].started=0;
+                if(s.group[e.ke].mon[e.id].record){s.group[e.ke].mon[e.id].record.yes=0}
+                s.tx({f:'monitor_stopping',mid:e.id,ke:e.ke,time:s.moment()},'GRP_'+e.ke);
+                s.camera('snapshot',{mid:e.id,ke:e.ke,mon:e})
+                if(x==='stop'){
+                    s.log(e,{type:lang['Monitor Stopped'],msg:lang.MonitorStoppedText});
+                    clearTimeout(s.group[e.ke].mon[e.id].delete)
+                    if(e.delete===1){
+                        s.group[e.ke].mon[e.id].delete=setTimeout(function(){
+                            delete(s.group[e.ke].mon[e.id]);
+                            delete(s.group[e.ke].mon_conf[e.id]);
+                        },1000*60);
+                    }
+                }else{
+                    s.tx({f:'monitor_idle',mid:e.id,ke:e.ke,time:s.moment()},'GRP_'+e.ke);
+                    s.log(e,{type:lang['Monitor Idling'],msg:lang.MonitorIdlingText});
+                }
             }
         break;
         case'start':case'record'://watch or record monitor url
@@ -2252,7 +2303,7 @@ s.camera=function(x,e,cn,tx){
             }else{
                 s.group[e.ke].mon[e.mid].record.yes=0;
             }
-            if(e.details&&e.details.dir&&e.details.dir!==''){
+            if(e.details && e.details.dir && e.details.dir !== '' && config.childNodes.mode !== 'child'){
                 //addStorage choice
                 e.dir=s.checkCorrectPathEnding(e.details.dir)+e.ke+'/';
                 if (!fs.existsSync(e.dir)){
@@ -2322,93 +2373,92 @@ s.camera=function(x,e,cn,tx){
             //cutoff time and recording check interval
             if(!e.details.cutoff||e.details.cutoff===''){e.cutoff=15}else{e.cutoff=parseFloat(e.details.cutoff)};
             if(isNaN(e.cutoff)===true){e.cutoff=15}
-            var resetStreamCheck=function(){
-                clearTimeout(s.group[e.ke].mon[e.id].checkStream)
-                s.group[e.ke].mon[e.id].checkStream=setTimeout(function(){
-                    if(s.group[e.ke].mon[e.id].started===1){
-                        launchMonitorProcesses();
-                        s.log(e,{type:lang['Camera is not streaming'],msg:{msg:lang['Restarting Process']}});
-                    }
-                },60000*1);
-            }
-            if(s.platform!=='darwin' && (x==='record' || (x==='start'&&e.details.detector_record_method==='sip'))){
-                //check if ffmpeg is recording
-                s.group[e.ke].mon[e.id].fswatch = fs.watch(e.dir, {encoding : 'utf8'}, (event, filename) => {
-                    switch(event){
-                        case'rename':
-                            s.group[e.ke].mon[e.id].open = filename.split('.')[0]
-                        break;
-                        case'change':
-                            clearTimeout(s.group[e.ke].mon[e.id].checker)
-                            clearTimeout(s.group[e.ke].mon[e.id].checkStream)
-                            s.group[e.ke].mon[e.id].checker=setTimeout(function(){
-                                if(s.group[e.ke].mon[e.id].started===1){
-                                    launchMonitorProcesses();
-                                    s.log(e,{type:lang['Camera is not recording'],msg:{msg:lang['Restarting Process']}});
-                                }
-                            },60000 * e.cutoff * 1.1);
-                        break;
-                    }
-                });
-            }
-            if(
-                //is MacOS
-                s.platform !== 'darwin' &&
-                //is Watch-Only or Record
-                (x === 'start' || x === 'record') &&
-                //if JPEG API enabled or Stream Type is HLS
-                (e.details.stream_type === 'jpeg' || e.details.stream_type === 'hls' || e.details.snap === '1')
-            ){
-                s.group[e.ke].mon[e.id].fswatchStream = fs.watch(e.sdir, {encoding : 'utf8'}, () => {
-                    resetStreamCheck()
-                })
-            }
-            s.camera('snapshot',{mid:e.id,ke:e.ke,mon:e})
-            //check host to see if has password and user in it
-            e.hosty = e.host.split('@');if(e.hosty[1]){e.hosty=e.hosty[1];}else{e.hosty=e.hosty[0];};
-
-                var errorFatal = function(x){
-                    clearTimeout(s.group[e.ke].mon[e.id].err_fatal_timeout);
-                    ++errorFatalCount;
-                    if(s.group[e.ke].mon[e.id].started===1){
-                        s.group[e.ke].mon[e.id].err_fatal_timeout=setTimeout(function(){
-                            if(e.details.fatal_max!==0&&errorFatalCount>e.details.fatal_max){
-                                s.camera('stop',{id:e.id,ke:e.ke})
-                            }else{
-                                launchMonitorProcesses()
-                            };
-                        },5000);
-                    }else{
-                        s.kill(s.group[e.ke].mon[e.id].spawn,e);
-                    }
-                }
-                errorFatalCount = 0;
-                launchMonitorProcesses = function(){//this function loops to create new files
-                    setStreamDir()
-                    clearTimeout(s.group[e.ke].mon[e.id].checker)
-                    if(s.group[e.ke].mon[e.id].started===1){
-                    e.error_count=0;
-                    s.group[e.ke].mon[e.id].error_socket_timeout_count=0;
-                    if(e.details.fatal_max===''){e.details.fatal_max=10}else{e.details.fatal_max=parseFloat(e.details.fatal_max)}
+            var errorFatal = function(x){
+                clearTimeout(s.group[e.ke].mon[e.id].err_fatal_timeout);
+                ++errorFatalCount;
+                if(s.group[e.ke].mon[e.id].started===1){
+                    s.group[e.ke].mon[e.id].err_fatal_timeout=setTimeout(function(){
+                        if(e.details.fatal_max!==0&&errorFatalCount>e.details.fatal_max){
+                            s.camera('stop',{id:e.id,ke:e.ke})
+                        }else{
+                            launchMonitorProcesses()
+                        };
+                    },5000);
+                }else{
                     s.kill(s.group[e.ke].mon[e.id].spawn,e);
-                    e.draw=function(err,o){
-                        if(o.success===true){
-                            e.frames=0;
-                            if(!s.group[e.ke].mon[e.id].record){s.group[e.ke].mon[e.id].record={yes:1}};
-                            //launch ffmpeg (main)
-                            s.group[e.ke].mon[e.id].spawn = s.ffmpeg(e);
-                            //on unexpected exit restart
-                            s.group[e.ke].mon[e.id].spawn_exit=function(){
-                                if(s.group[e.ke].mon[e.id].started===1){
-                                    if(e.details.loglevel!=='quiet'){
-                                        s.log(e,{type:lang['Process Unexpected Exit'],msg:{msg:lang['Process Crashed for Monitor']+' : '+e.id,cmd:s.group[e.ke].mon[e.id].ffmpeg}});
+                }
+            }
+            errorFatalCount = 0;
+            launchMonitorProcesses = function(){
+                var resetStreamCheck=function(){
+                    clearTimeout(s.group[e.ke].mon[e.id].checkStream)
+                    s.group[e.ke].mon[e.id].checkStream=setTimeout(function(){
+                        if(s.group[e.ke].mon[e.id].started===1){
+                            launchMonitorProcesses();
+                            s.log(e,{type:lang['Camera is not streaming'],msg:{msg:lang['Restarting Process']}});
+                        }
+                    },60000*1);
+                }
+                if(s.platform!=='darwin' && (x==='record' || (x==='start'&&e.details.detector_record_method==='sip'))){
+                    //check if ffmpeg is recording
+                    s.group[e.ke].mon[e.id].fswatch = fs.watch(e.dir, {encoding : 'utf8'}, (event, filename) => {
+                        switch(event){
+                            case'rename':
+                                s.group[e.ke].mon[e.id].open = filename.split('.')[0]
+                            break;
+                            case'change':
+                                clearTimeout(s.group[e.ke].mon[e.id].checker)
+                                clearTimeout(s.group[e.ke].mon[e.id].checkStream)
+                                s.group[e.ke].mon[e.id].checker=setTimeout(function(){
+                                    if(s.group[e.ke].mon[e.id].started===1){
+                                        launchMonitorProcesses();
+                                        s.log(e,{type:lang['Camera is not recording'],msg:{msg:lang['Restarting Process']}});
                                     }
-                                    errorFatal();
+                                },60000 * e.cutoff * 1.1);
+                            break;
+                        }
+                    });
+                }
+                if(
+                    //is MacOS
+                    s.platform !== 'darwin' &&
+                    //is Watch-Only or Record
+                    (x === 'start' || x === 'record') &&
+                    //if JPEG API enabled or Stream Type is HLS
+                    (e.details.stream_type === 'jpeg' || e.details.stream_type === 'hls' || e.details.snap === '1')
+                ){
+                    s.group[e.ke].mon[e.id].fswatchStream = fs.watch(e.sdir, {encoding : 'utf8'}, () => {
+                        resetStreamCheck()
+                    })
+                }
+                s.camera('snapshot',{mid:e.id,ke:e.ke,mon:e})
+                //check host to see if has password and user in it
+                e.hosty = e.host.split('@');if(e.hosty[1]){e.hosty=e.hosty[1];}else{e.hosty=e.hosty[0];};
+                setStreamDir()
+                clearTimeout(s.group[e.ke].mon[e.id].checker)
+                if(s.group[e.ke].mon[e.id].started===1){
+                e.error_count=0;
+                s.group[e.ke].mon[e.id].error_socket_timeout_count=0;
+                if(e.details.fatal_max===''){e.details.fatal_max=10}else{e.details.fatal_max=parseFloat(e.details.fatal_max)}
+                s.kill(s.group[e.ke].mon[e.id].spawn,e);
+                startVideoProcessor=function(err,o){
+                    if(o.success===true){
+                        e.frames=0;
+                        if(!s.group[e.ke].mon[e.id].record){s.group[e.ke].mon[e.id].record={yes:1}};
+                        //launch ffmpeg (main)
+                        s.group[e.ke].mon[e.id].spawn = s.ffmpeg(e);
+                        //on unexpected exit restart
+                        s.group[e.ke].mon[e.id].spawn_exit=function(){
+                            if(s.group[e.ke].mon[e.id].started===1){
+                                if(e.details.loglevel!=='quiet'){
+                                    s.log(e,{type:lang['Process Unexpected Exit'],msg:{msg:lang['Process Crashed for Monitor']+' : '+e.id,cmd:s.group[e.ke].mon[e.id].ffmpeg}});
                                 }
+                                errorFatal();
                             }
-                            s.group[e.ke].mon[e.id].spawn.on('end',s.group[e.ke].mon[e.id].spawn_exit)
-                            s.group[e.ke].mon[e.id].spawn.on('exit',s.group[e.ke].mon[e.id].spawn_exit)
-                            //
+                        }
+                        s.group[e.ke].mon[e.id].spawn.on('end',s.group[e.ke].mon[e.id].spawn_exit)
+                        s.group[e.ke].mon[e.id].spawn.on('exit',s.group[e.ke].mon[e.id].spawn_exit)
+                        //
 //                            s.group[e.ke].mon[e.id].spawn.stdio[5].on('data',function(data){
 //                                data = data.toString();
 //                                console.log('---')
@@ -2419,175 +2469,175 @@ s.camera=function(x,e,cn,tx){
 //                                })
 //                                console.log(json)
 //                            })
-                            //emitter for mjpeg
-                            if(!e.details.stream_mjpeg_clients||e.details.stream_mjpeg_clients===''||isNaN(e.details.stream_mjpeg_clients)===false){e.details.stream_mjpeg_clients=20;}else{e.details.stream_mjpeg_clients=parseInt(e.details.stream_mjpeg_clients)}
-                            s.group[e.ke].mon[e.id].emitter = new events.EventEmitter().setMaxListeners(e.details.stream_mjpeg_clients);
-                            s.log(e,{type:'FFMPEG Process Started',msg:{cmd:s.group[e.ke].mon[e.id].ffmpeg}});
-                            s.tx({f:'monitor_starting',mode:x,mid:e.id,time:s.moment()},'GRP_'+e.ke);
-                            //start workers
-                            if(e.type==='jpeg'){
-                                if(!e.details.sfps||e.details.sfps===''){
-                                    var capture_fps=parseFloat(e.details.sfps);
-                                    if(isNaN(capture_fps)){capture_fps=1}
-                                }
-                                if(s.group[e.ke].mon[e.id].spawn){
-                                    s.group[e.ke].mon[e.id].spawn.stdin.on('error',function(err){
-                                        if(err&&e.details.loglevel!=='quiet'){
-                                            s.log(e,{type:'STDIN ERROR',msg:err});
-                                        }
-                                    })
-                                }else{
-                                    if(x==='record'){
-                                        s.log(e,{type:lang.FFmpegCantStart,msg:lang.FFmpegCantStartText});
-                                        return
-                                    }
-                                }
-                                e.captureOne=function(f){
-                                    s.group[e.ke].mon[e.id].record.request=request({url:e.url,method:'GET',encoding: null,timeout:15000},function(err,data){
-                                        if(err){
-                                            return;
-                                        }
-                                    }).on('data',function(d){
-                                          if(!e.buffer0){
-                                              e.buffer0=[d]
-                                          }else{
-                                              e.buffer0.push(d);
-                                          }
-                                          if((d[d.length-2] === 0xFF && d[d.length-1] === 0xD9)){
-                                              e.buffer0=Buffer.concat(e.buffer0);
-                                              ++e.frames;
-                                              if(s.group[e.ke].mon[e.id].spawn&&s.group[e.ke].mon[e.id].spawn.stdin){
-                                                s.group[e.ke].mon[e.id].spawn.stdin.write(e.buffer0);
-                                            }
-                                            if(s.group[e.ke].mon[e.id].started===1){
-                                                s.group[e.ke].mon[e.id].record.capturing=setTimeout(function(){
-                                                   e.captureOne()
-                                                },1000/capture_fps);
-                                            }
-                                              e.buffer0=null;
-                                        }
-                                        if(!e.timeOut){
-                                            e.timeOut=setTimeout(function(){e.error_count=0;delete(e.timeOut);},3000);
-                                        }
-
-                                    }).on('error', function(err){
-                                        ++e.error_count;
-                                        clearTimeout(e.timeOut);delete(e.timeOut);
-                                        if(e.details.loglevel!=='quiet'){
-                                            s.log(e,{type:lang['JPEG Error'],msg:{msg:lang.JPEGErrorText,info:err}});
-                                            switch(err.code){
-                                                case'ESOCKETTIMEDOUT':
-                                                case'ETIMEDOUT':
-                                                    ++s.group[e.ke].mon[e.id].error_socket_timeout_count
-                                                    if(e.details.fatal_max!==0&&s.group[e.ke].mon[e.id].error_socket_timeout_count>e.details.fatal_max){
-                                                        s.log(e,{type:lang['Fatal Maximum Reached'],msg:{code:'ESOCKETTIMEDOUT',msg:lang.FatalMaximumReachedText}});
-                                                        s.camera('stop',e)
-                                                    }else{
-                                                        s.log(e,{type:lang['Restarting Process'],msg:{code:'ESOCKETTIMEDOUT',msg:lang.FatalMaximumReachedText}});
-                                                        s.camera('restart',e)
-                                                    }
-                                                    return;
-                                                break;
-                                            }
-                                        }
-                                        if(e.details.fatal_max!==0&&e.error_count>e.details.fatal_max){
-                                            clearTimeout(s.group[e.ke].mon[e.id].record.capturing);
-                                            launchMonitorProcesses();
-                                        }
-                                    });
-                              }
-                              e.captureOne()
+                        //emitter for mjpeg
+                        if(!e.details.stream_mjpeg_clients||e.details.stream_mjpeg_clients===''||isNaN(e.details.stream_mjpeg_clients)===false){e.details.stream_mjpeg_clients=20;}else{e.details.stream_mjpeg_clients=parseInt(e.details.stream_mjpeg_clients)}
+                        s.group[e.ke].mon[e.id].emitter = new events.EventEmitter().setMaxListeners(e.details.stream_mjpeg_clients);
+                        s.log(e,{type:'FFMPEG Process Started',msg:{cmd:s.group[e.ke].mon[e.id].ffmpeg}});
+                        s.tx({f:'monitor_starting',mode:x,mid:e.id,time:s.moment()},'GRP_'+e.ke);
+                        //start workers
+                        if(e.type==='jpeg'){
+                            if(!e.details.sfps||e.details.sfps===''){
+                                var capture_fps=parseFloat(e.details.sfps);
+                                if(isNaN(capture_fps)){capture_fps=1}
                             }
-                            if(!s.group[e.ke]||!s.group[e.ke].mon[e.id]){s.init(0,e)}
-                            s.group[e.ke].mon[e.id].spawn.on('error',function(er){
-                                s.log(e,{type:'Spawn Error',msg:er});errorFatal()
-                            });
-                            if(e.details.detector==='1'){
-                                s.ocvTx({f:'init_monitor',id:e.id,ke:e.ke})
-                                //frames from motion detect
-                                if(e.details.detector_pam==='1'){
-                                    var width,
-                                        height,
-                                        globalSensitivity,
-                                        fullFrame = false
-                                    if(s.group[e.ke].mon_conf[e.id].details.detector_scale_x===''||s.group[e.ke].mon_conf[e.id].details.detector_scale_y===''){
-                                        width = s.group[e.ke].mon_conf[e.id].details.detector_scale_x;
-                                        height = s.group[e.ke].mon_conf[e.id].details.detector_scale_y;
-                                    }else{
-                                        width = e.width
-                                        height = e.height
+                            if(s.group[e.ke].mon[e.id].spawn){
+                                s.group[e.ke].mon[e.id].spawn.stdin.on('error',function(err){
+                                    if(err&&e.details.loglevel!=='quiet'){
+                                        s.log(e,{type:'STDIN ERROR',msg:err});
                                     }
-                                    if(e.details.detector_sensitivity===''){
-                                        globalSensitivity = 10
-                                    }else{
-                                        globalSensitivity = parseInt(e.details.detector_sensitivity)
+                                })
+                            }else{
+                                if(x==='record'){
+                                    s.log(e,{type:lang.FFmpegCantStart,msg:lang.FFmpegCantStartText});
+                                    return
+                                }
+                            }
+                            e.captureOne=function(f){
+                                s.group[e.ke].mon[e.id].record.request=request({url:e.url,method:'GET',encoding: null,timeout:15000},function(err,data){
+                                    if(err){
+                                        return;
                                     }
-                                    if(e.details.detector_frame==='1'){
-                                        fullFrame={
-                                            name:'FULL_FRAME',
-                                            sensitivity:globalSensitivity,
-                                            points:[
-                                                [0,0],
-                                                [0,height],
-                                                [width,height],
-                                                [width,0]
-                                            ]
-                                        };
+                                }).on('data',function(d){
+                                      if(!e.buffer0){
+                                          e.buffer0=[d]
+                                      }else{
+                                          e.buffer0.push(d);
+                                      }
+                                      if((d[d.length-2] === 0xFF && d[d.length-1] === 0xD9)){
+                                          e.buffer0=Buffer.concat(e.buffer0);
+                                          ++e.frames;
+                                          if(s.group[e.ke].mon[e.id].spawn&&s.group[e.ke].mon[e.id].spawn.stdin){
+                                            s.group[e.ke].mon[e.id].spawn.stdin.write(e.buffer0);
+                                        }
+                                        if(s.group[e.ke].mon[e.id].started===1){
+                                            s.group[e.ke].mon[e.id].record.capturing=setTimeout(function(){
+                                               e.captureOne()
+                                            },1000/capture_fps);
+                                        }
+                                          e.buffer0=null;
                                     }
-                                    var regions = s.createPamDiffRegionArray(s.group[e.ke].mon_conf[e.id].details.cords,globalSensitivity,fullFrame);
-                                    if(!s.group[e.ke].mon[e.id].noiseFilterArray)s.group[e.ke].mon[e.id].noiseFilterArray = {}
-                                    var noiseFilterArray = s.group[e.ke].mon[e.id].noiseFilterArray
-                                    Object.keys(regions.notForPam).forEach(function(name){
-                                        if(!noiseFilterArray[name])noiseFilterArray[name]=[];
-                                    })
-                                    s.group[e.ke].mon[e.id].pamDiff = new PamDiff({grayscale: 'luminosity', regions : regions.forPam});
-                                    s.group[e.ke].mon[e.id].p2p = new P2P();
-                                    var sendTrigger = function(trigger){
-                                        var detectorObject = {
-                                            f:'trigger',
-                                            id:e.id,
-                                            ke:e.ke,
+                                    if(!e.timeOut){
+                                        e.timeOut=setTimeout(function(){e.error_count=0;delete(e.timeOut);},3000);
+                                    }
+
+                                }).on('error', function(err){
+                                    ++e.error_count;
+                                    clearTimeout(e.timeOut);delete(e.timeOut);
+                                    if(e.details.loglevel!=='quiet'){
+                                        s.log(e,{type:lang['JPEG Error'],msg:{msg:lang.JPEGErrorText,info:err}});
+                                        switch(err.code){
+                                            case'ESOCKETTIMEDOUT':
+                                            case'ETIMEDOUT':
+                                                ++s.group[e.ke].mon[e.id].error_socket_timeout_count
+                                                if(e.details.fatal_max!==0&&s.group[e.ke].mon[e.id].error_socket_timeout_count>e.details.fatal_max){
+                                                    s.log(e,{type:lang['Fatal Maximum Reached'],msg:{code:'ESOCKETTIMEDOUT',msg:lang.FatalMaximumReachedText}});
+                                                    s.camera('stop',e)
+                                                }else{
+                                                    s.log(e,{type:lang['Restarting Process'],msg:{code:'ESOCKETTIMEDOUT',msg:lang.FatalMaximumReachedText}});
+                                                    s.camera('restart',e)
+                                                }
+                                                return;
+                                            break;
+                                        }
+                                    }
+                                    if(e.details.fatal_max!==0&&e.error_count>e.details.fatal_max){
+                                        clearTimeout(s.group[e.ke].mon[e.id].record.capturing);
+                                        launchMonitorProcesses();
+                                    }
+                                });
+                          }
+                          e.captureOne()
+                        }
+                        if(!s.group[e.ke]||!s.group[e.ke].mon[e.id]){s.init(0,e)}
+                        s.group[e.ke].mon[e.id].spawn.on('error',function(er){
+                            s.log(e,{type:'Spawn Error',msg:er});errorFatal()
+                        });
+                        if(e.details.detector==='1'){
+                            s.ocvTx({f:'init_monitor',id:e.id,ke:e.ke})
+                            //frames from motion detect
+                            if(e.details.detector_pam==='1'){
+                                var width,
+                                    height,
+                                    globalSensitivity,
+                                    fullFrame = false
+                                if(s.group[e.ke].mon_conf[e.id].details.detector_scale_x===''||s.group[e.ke].mon_conf[e.id].details.detector_scale_y===''){
+                                    width = s.group[e.ke].mon_conf[e.id].details.detector_scale_x;
+                                    height = s.group[e.ke].mon_conf[e.id].details.detector_scale_y;
+                                }else{
+                                    width = e.width
+                                    height = e.height
+                                }
+                                if(e.details.detector_sensitivity===''){
+                                    globalSensitivity = 10
+                                }else{
+                                    globalSensitivity = parseInt(e.details.detector_sensitivity)
+                                }
+                                if(e.details.detector_frame==='1'){
+                                    fullFrame={
+                                        name:'FULL_FRAME',
+                                        sensitivity:globalSensitivity,
+                                        points:[
+                                            [0,0],
+                                            [0,height],
+                                            [width,height],
+                                            [width,0]
+                                        ]
+                                    };
+                                }
+                                var regions = s.createPamDiffRegionArray(s.group[e.ke].mon_conf[e.id].details.cords,globalSensitivity,fullFrame);
+                                if(!s.group[e.ke].mon[e.id].noiseFilterArray)s.group[e.ke].mon[e.id].noiseFilterArray = {}
+                                var noiseFilterArray = s.group[e.ke].mon[e.id].noiseFilterArray
+                                Object.keys(regions.notForPam).forEach(function(name){
+                                    if(!noiseFilterArray[name])noiseFilterArray[name]=[];
+                                })
+                                s.group[e.ke].mon[e.id].pamDiff = new PamDiff({grayscale: 'luminosity', regions : regions.forPam});
+                                s.group[e.ke].mon[e.id].p2p = new P2P();
+                                var sendTrigger = function(trigger){
+                                    var detectorObject = {
+                                        f:'trigger',
+                                        id:e.id,
+                                        ke:e.ke,
+                                        name:trigger.name,
+                                        details:{
+                                            plug:'built-in',
                                             name:trigger.name,
-                                            details:{
-                                                plug:'built-in',
-                                                name:trigger.name,
-                                                reason:'motion',
-                                                confidence:trigger.percent,
-                                            },
-                                            plates:[],
-                                            imgHeight:height,
-                                            imgWidth:width
-                                        }
-                                        detectorObject.doObjectDetection = (s.ocv && e.details.detector_use_detect_object === '1')
-                                        s.camera('motion',detectorObject)
-                                        if(detectorObject.doObjectDetection === true){
-                                            s.ocvTx({f:'frame',mon:s.group[e.ke].mon_conf[e.id].details,ke:e.ke,id:e.id,time:s.moment(),frame:s.group[e.ke].mon[e.id].lastJpegDetectorFrame});
-                                        }
+                                            reason:'motion',
+                                            confidence:trigger.percent,
+                                        },
+                                        plates:[],
+                                        imgHeight:height,
+                                        imgWidth:width
                                     }
-                                    var filterTheNoise = function(trigger){
-                                        if(noiseFilterArray[trigger.name].length > 2){
-                                            var thePreviousTriggerPercent = noiseFilterArray[trigger.name][noiseFilterArray[trigger.name].length - 1];
-                                            var triggerDifference = trigger.percent - thePreviousTriggerPercent;
-                                            var noiseRange = e.details.detector_noise_filter_range
-                                            if(!noiseRange || noiseRange === ''){
-                                                noiseRange = 6
-                                            }
-                                            noiseRange = parseFloat(noiseRange)
-                                            if(((trigger.percent - thePreviousTriggerPercent) < noiseRange)||(thePreviousTriggerPercent - trigger.percent) > -noiseRange){
-                                                noiseFilterArray[trigger.name].push(trigger.percent);
-                                            }
-                                        }else{
+                                    detectorObject.doObjectDetection = (s.ocv && e.details.detector_use_detect_object === '1')
+                                    s.camera('motion',detectorObject)
+                                    if(detectorObject.doObjectDetection === true){
+                                        s.ocvTx({f:'frame',mon:s.group[e.ke].mon_conf[e.id].details,ke:e.ke,id:e.id,time:s.moment(),frame:s.group[e.ke].mon[e.id].lastJpegDetectorFrame});
+                                    }
+                                }
+                                var filterTheNoise = function(trigger){
+                                    if(noiseFilterArray[trigger.name].length > 2){
+                                        var thePreviousTriggerPercent = noiseFilterArray[trigger.name][noiseFilterArray[trigger.name].length - 1];
+                                        var triggerDifference = trigger.percent - thePreviousTriggerPercent;
+                                        var noiseRange = e.details.detector_noise_filter_range
+                                        if(!noiseRange || noiseRange === ''){
+                                            noiseRange = 6
+                                        }
+                                        noiseRange = parseFloat(noiseRange)
+                                        if(((trigger.percent - thePreviousTriggerPercent) < noiseRange)||(thePreviousTriggerPercent - trigger.percent) > -noiseRange){
                                             noiseFilterArray[trigger.name].push(trigger.percent);
                                         }
-                                        if(noiseFilterArray[trigger.name].length > 10){
-                                            noiseFilterArray[trigger.name] = noiseFilterArray[trigger.name].splice(1,10)
-                                        }
-                                        var theNoise = 0;
-                                        noiseFilterArray[trigger.name].forEach(function(v,n){
-                                            theNoise += v;
-                                        })
-                                        theNoise = theNoise / noiseFilterArray[trigger.name].length;
-                                        var triggerPercentWithoutNoise = trigger.percent - theNoise;
+                                    }else{
+                                        noiseFilterArray[trigger.name].push(trigger.percent);
+                                    }
+                                    if(noiseFilterArray[trigger.name].length > 10){
+                                        noiseFilterArray[trigger.name] = noiseFilterArray[trigger.name].splice(1,10)
+                                    }
+                                    var theNoise = 0;
+                                    noiseFilterArray[trigger.name].forEach(function(v,n){
+                                        theNoise += v;
+                                    })
+                                    theNoise = theNoise / noiseFilterArray[trigger.name].length;
+                                    var triggerPercentWithoutNoise = trigger.percent - theNoise;
 //                                        console.log('------',trigger.name)
 //                                        console.log('noiseMadeFromThis',noiseFilterArray[trigger.name])
 //                                        console.log('theNoise',theNoise)
@@ -2597,54 +2647,54 @@ s.camera=function(x,e,cn,tx){
 //                                        console.log('thePreviousTriggerPercent',thePreviousTriggerPercent)
 //                                        console.log('trigger.percent',trigger.percent)
 //                                        console.log('sensitivity',regions.notForPam[trigger.name].sensitivity)
-                                        if(triggerPercentWithoutNoise > regions.notForPam[trigger.name].sensitivity){
-                                            sendTrigger(trigger);
-                                        }
+                                    if(triggerPercentWithoutNoise > regions.notForPam[trigger.name].sensitivity){
+                                        sendTrigger(trigger);
                                     }
-                                    if(e.details.detector_noise_filter==='1'){
-                                        s.group[e.ke].mon[e.id].pamDiff.on('diff', (data) => {
-                                            data.trigger.forEach(filterTheNoise)
-                                        })
-                                    }else{
-                                        s.group[e.ke].mon[e.id].pamDiff.on('diff', (data) => {
-                                            data.trigger.forEach(sendTrigger)
-                                        })
-                                    }
-                                    
-                                    s.group[e.ke].mon[e.id].spawn.stdio[3].pipe(s.group[e.ke].mon[e.id].p2p).pipe(s.group[e.ke].mon[e.id].pamDiff)
-                                    if(e.details.detector_use_detect_object === '1'){
-                                        s.group[e.ke].mon[e.id].spawn.stdio[4].on('data',function(d){
-                                            s.group[e.ke].mon[e.id].lastJpegDetectorFrame = d
-                                        })
-                                    }
+                                }
+                                if(e.details.detector_noise_filter==='1'){
+                                    s.group[e.ke].mon[e.id].pamDiff.on('diff', (data) => {
+                                        data.trigger.forEach(filterTheNoise)
+                                    })
                                 }else{
-                                    s.group[e.ke].mon[e.id].spawn.stdio[3].on('data',function(d){
-                                        s.ocvTx({f:'frame',mon:s.group[e.ke].mon_conf[e.id].details,ke:e.ke,id:e.id,time:s.moment(),frame:d});
+                                    s.group[e.ke].mon[e.id].pamDiff.on('diff', (data) => {
+                                        data.trigger.forEach(sendTrigger)
                                     })
                                 }
+
+                                s.group[e.ke].mon[e.id].spawn.stdio[3].pipe(s.group[e.ke].mon[e.id].p2p).pipe(s.group[e.ke].mon[e.id].pamDiff)
+                                if(e.details.detector_use_detect_object === '1'){
+                                    s.group[e.ke].mon[e.id].spawn.stdio[4].on('data',function(d){
+                                        s.group[e.ke].mon[e.id].lastJpegDetectorFrame = d
+                                    })
+                                }
+                            }else{
+                                s.group[e.ke].mon[e.id].spawn.stdio[3].on('data',function(d){
+                                    s.ocvTx({f:'frame',mon:s.group[e.ke].mon_conf[e.id].details,ke:e.ke,id:e.id,time:s.moment(),frame:d});
+                                })
                             }
-                            //frames to stream
-                           switch(e.details.stream_type){
-                               case'mp4':
-                                   s.group[e.ke].mon[e.id].mp4frag['MAIN'] = new Mp4Frag();
-                                   s.group[e.ke].mon[e.id].spawn.stdio[1].pipe(s.group[e.ke].mon[e.id].mp4frag['MAIN'])
-                               break;
-                               case'flv':
-                                   e.frame_to_stream=function(d){
-                                       if(!s.group[e.ke].mon[e.id].firstStreamChunk['MAIN'])s.group[e.ke].mon[e.id].firstStreamChunk['MAIN'] = d;
-                                       e.frame_to_stream=function(d){
-                                           resetStreamCheck()
-                                           s.group[e.ke].mon[e.id].emitter.emit('data',d);
-                                       }
-                                       e.frame_to_stream(d)
-                                   }
-                               break;
-                               case'mjpeg':
+                        }
+                        //frames to stream
+                       switch(e.details.stream_type){
+                           case'mp4':
+                               s.group[e.ke].mon[e.id].mp4frag['MAIN'] = new Mp4Frag();
+                               s.group[e.ke].mon[e.id].spawn.stdio[1].pipe(s.group[e.ke].mon[e.id].mp4frag['MAIN'])
+                           break;
+                           case'flv':
+                               e.frame_to_stream=function(d){
+                                   if(!s.group[e.ke].mon[e.id].firstStreamChunk['MAIN'])s.group[e.ke].mon[e.id].firstStreamChunk['MAIN'] = d;
                                    e.frame_to_stream=function(d){
                                        resetStreamCheck()
                                        s.group[e.ke].mon[e.id].emitter.emit('data',d);
                                    }
-                               break;
+                                   e.frame_to_stream(d)
+                               }
+                           break;
+                           case'mjpeg':
+                               e.frame_to_stream=function(d){
+                                   resetStreamCheck()
+                                   s.group[e.ke].mon[e.id].emitter.emit('data',d);
+                               }
+                           break;
 //                               case'pam':
 //                                   s.group[e.ke].mon[e.id].p2pStream = new P2P();
 //                                   s.group[e.ke].mon[e.id].spawn.stdout.pipe(s.group[e.ke].mon[e.id].p2pStream)
@@ -2657,72 +2707,72 @@ s.camera=function(x,e,cn,tx){
 //                                       }},'MON_STREAM_'+e.id);
 //                                    })
 //                               break;
-                               case'b64':case undefined:case null:case'':
-                                   var buffer
-                                   e.frame_to_stream=function(d){
-                                      resetStreamCheck()
-                                      if(!buffer){
-                                          buffer=[d]
-                                      }else{
-                                          buffer.push(d);
-                                      }
-                                      if((d[d.length-2] === 0xFF && d[d.length-1] === 0xD9)){
-                                          s.group[e.ke].mon[e.id].emitter.emit('data',Buffer.concat(buffer));
-                                          buffer=null;
-                                      }
-                                   }
-                               break;
-                           }
-                            if(e.frame_to_stream){
-                                s.group[e.ke].mon[e.id].spawn.stdout.on('data',e.frame_to_stream);
-                            }
-                            if(e.details.stream_channels&&e.details.stream_channels!==''){
-                                var createStreamEmitter = function(channel,number){
-                                    var pipeNumber = number+config.pipeAddition;
-                                    if(!s.group[e.ke].mon[e.id].emitterChannel[pipeNumber]){
-                                        s.group[e.ke].mon[e.id].emitterChannel[pipeNumber] = new events.EventEmitter().setMaxListeners(0);
-                                    }
-                                   var frame_to_stream
-                                   switch(channel.stream_type){
-                                       case'mp4':
-                                           s.group[e.ke].mon[e.id].mp4frag[pipeNumber] = new Mp4Frag();
-                                           s.group[e.ke].mon[e.id].spawn.stdio[pipeNumber].pipe(s.group[e.ke].mon[e.id].mp4frag[pipeNumber])
-                                       break;
-                                       case'mjpeg':
-                                           frame_to_stream=function(d){
-                                               s.group[e.ke].mon[e.id].emitterChannel[pipeNumber].emit('data',d);
-                                           }
-                                       break;
-                                       case'flv':
-                                           frame_to_stream=function(d){
-                                               if(!s.group[e.ke].mon[e.id].firstStreamChunk[pipeNumber])s.group[e.ke].mon[e.id].firstStreamChunk[pipeNumber] = d;
-                                               frame_to_stream=function(d){
-                                                   s.group[e.ke].mon[e.id].emitterChannel[pipeNumber].emit('data',d);
-                                               }
-                                               frame_to_stream(d)
-                                           }
-                                       break;
-                                       case'h264':
-                                           frame_to_stream=function(d){
-                                               s.group[e.ke].mon[e.id].emitterChannel[pipeNumber].emit('data',d);
-                                           }
-                                       break;
-                                   }
-                                    if(frame_to_stream){
-                                        s.group[e.ke].mon[e.id].spawn.stdio[pipeNumber].on('data',frame_to_stream);
-                                    }
+                           case'b64':case undefined:case null:case'':
+                               var buffer
+                               e.frame_to_stream=function(d){
+                                  resetStreamCheck()
+                                  if(!buffer){
+                                      buffer=[d]
+                                  }else{
+                                      buffer.push(d);
+                                  }
+                                  if((d[d.length-2] === 0xFF && d[d.length-1] === 0xD9)){
+                                      s.group[e.ke].mon[e.id].emitter.emit('data',Buffer.concat(buffer));
+                                      buffer=null;
+                                  }
+                               }
+                           break;
+                       }
+                        if(e.frame_to_stream){
+                            s.group[e.ke].mon[e.id].spawn.stdout.on('data',e.frame_to_stream);
+                        }
+                        if(e.details.stream_channels&&e.details.stream_channels!==''){
+                            var createStreamEmitter = function(channel,number){
+                                var pipeNumber = number+config.pipeAddition;
+                                if(!s.group[e.ke].mon[e.id].emitterChannel[pipeNumber]){
+                                    s.group[e.ke].mon[e.id].emitterChannel[pipeNumber] = new events.EventEmitter().setMaxListeners(0);
                                 }
-                                e.details.stream_channels.forEach(createStreamEmitter)
+                               var frame_to_stream
+                               switch(channel.stream_type){
+                                   case'mp4':
+                                       s.group[e.ke].mon[e.id].mp4frag[pipeNumber] = new Mp4Frag();
+                                       s.group[e.ke].mon[e.id].spawn.stdio[pipeNumber].pipe(s.group[e.ke].mon[e.id].mp4frag[pipeNumber])
+                                   break;
+                                   case'mjpeg':
+                                       frame_to_stream=function(d){
+                                           s.group[e.ke].mon[e.id].emitterChannel[pipeNumber].emit('data',d);
+                                       }
+                                   break;
+                                   case'flv':
+                                       frame_to_stream=function(d){
+                                           if(!s.group[e.ke].mon[e.id].firstStreamChunk[pipeNumber])s.group[e.ke].mon[e.id].firstStreamChunk[pipeNumber] = d;
+                                           frame_to_stream=function(d){
+                                               s.group[e.ke].mon[e.id].emitterChannel[pipeNumber].emit('data',d);
+                                           }
+                                           frame_to_stream(d)
+                                       }
+                                   break;
+                                   case'h264':
+                                       frame_to_stream=function(d){
+                                           s.group[e.ke].mon[e.id].emitterChannel[pipeNumber].emit('data',d);
+                                       }
+                                   break;
+                               }
+                                if(frame_to_stream){
+                                    s.group[e.ke].mon[e.id].spawn.stdio[pipeNumber].on('data',frame_to_stream);
+                                }
                             }
-                            if(x==='record'||e.type==='mjpeg'||e.type==='h264'||e.type==='local'){
-                                s.group[e.ke].mon[e.id].spawn.stderr.on('data',function(d){
-                                    d=d.toString();
-                                    e.chk=function(x){return d.indexOf(x)>-1;}
-                                    switch(true){
-                                            //mp4 output with webm encoder chosen
-                                        case e.chk('Could not find tag for vp8'):
-                                        case e.chk('Only VP8 or VP9 Video'):
-                                        case e.chk('Could not write header'):
+                            e.details.stream_channels.forEach(createStreamEmitter)
+                        }
+                        if(x==='record'||e.type==='mjpeg'||e.type==='h264'||e.type==='local'){
+                            s.group[e.ke].mon[e.id].spawn.stderr.on('data',function(d){
+                                d=d.toString();
+                                e.chk=function(x){return d.indexOf(x)>-1;}
+                                switch(true){
+                                        //mp4 output with webm encoder chosen
+                                    case e.chk('Could not find tag for vp8'):
+                                    case e.chk('Only VP8 or VP9 Video'):
+                                    case e.chk('Could not write header'):
 //                                            switch(e.ext){
 //                                                case'mp4':
 //                                                    e.details.vcodec='libx264'
@@ -2738,19 +2788,19 @@ s.camera=function(x,e,cn,tx){
 //                                                e.details.stream_acodec='no'
 //                                            }
 //                                            s.camera('restart',e)
-                                            return s.log(e,{type:lang['Incorrect Settings Chosen'],msg:{msg:d}})
-                                        break;
-                                        case e.chk('NULL @'):
-                                        case e.chk('RTP: missed'):
-                                        case e.chk('deprecated pixel format used, make sure you did set range correctly'):
-                                            return
-                                        break;
+                                        return s.log(e,{type:lang['Incorrect Settings Chosen'],msg:{msg:d}})
+                                    break;
+                                    case e.chk('NULL @'):
+                                    case e.chk('RTP: missed'):
+                                    case e.chk('deprecated pixel format used, make sure you did set range correctly'):
+                                        return
+                                    break;
 //                                                case e.chk('av_interleaved_write_frame'):
-                                        case e.chk('Connection refused'):
-                                        case e.chk('Connection timed out'):
-                                            //restart
-                                            setTimeout(function(){s.log(e,{type:lang["Can't Connect"],msg:lang['Retrying...']});errorFatal();},1000)
-                                        break;
+                                    case e.chk('Connection refused'):
+                                    case e.chk('Connection timed out'):
+                                        //restart
+                                        setTimeout(function(){s.log(e,{type:lang["Can't Connect"],msg:lang['Retrying...']});errorFatal();},1000)
+                                    break;
 //                                        case e.chk('No such file or directory'):
 //                                        case e.chk('Unable to open RTSP for listening'):
 //                                        case e.chk('timed out'):
@@ -2762,87 +2812,112 @@ s.camera=function(x,e,cn,tx){
 //                                                if(!s.group[e.ke].mon[e.id].spawn){launchMonitorProcesses()}
 //                                            },2000)
 //                                        break;
-                                        case e.chk('mjpeg_decode_dc'):
-                                        case e.chk('bad vlc'):
-                                        case e.chk('error dc'):
-                                            launchMonitorProcesses()
-                                        break;
-                                        case /T[0-9][0-9]-[0-9][0-9]-[0-9][0-9]./.test(d):
-                                            var filename = d.split('.')[0]+'.'+e.ext
-                                            s.video('insertCompleted',e,{
-                                                file : filename
-                                            })
-                                            s.log(e,{type:lang['Video Finished'],msg:{filename:d}})
-                                            if(
-                                                e.details.detector==='1'&&
-                                                s.group[e.ke].mon[e.id].started===1&&
-                                                e.details&&
-                                                e.details.detector_record_method==='del'&&
-                                                e.details.detector_delete_motionless_videos==='1'&&
-                                                s.group[e.ke].mon[e.id].detector_motion_count===0
-                                            ){
-                                                if(e.details.loglevel!=='quiet'){
-                                                    s.log(e,{type:lang['Delete Motionless Video'],msg:filename});
-                                                }
-                                                s.video('delete',{
-                                                    filename : filename,
-                                                    ke : e.ke,
-                                                    id : e.id
-                                                })
+                                    case e.chk('mjpeg_decode_dc'):
+                                    case e.chk('bad vlc'):
+                                    case e.chk('error dc'):
+                                        launchMonitorProcesses()
+                                    break;
+                                    case /T[0-9][0-9]-[0-9][0-9]-[0-9][0-9]./.test(d):
+                                        var filename = d.split('.')[0]+'.'+e.ext
+                                        s.video('insertCompleted',e,{
+                                            file : filename
+                                        })
+                                        s.log(e,{type:lang['Video Finished'],msg:{filename:d}})
+                                        if(
+                                            e.details.detector==='1'&&
+                                            s.group[e.ke].mon[e.id].started===1&&
+                                            e.details&&
+                                            e.details.detector_record_method==='del'&&
+                                            e.details.detector_delete_motionless_videos==='1'&&
+                                            s.group[e.ke].mon[e.id].detector_motion_count===0
+                                        ){
+                                            if(e.details.loglevel!=='quiet'){
+                                                s.log(e,{type:lang['Delete Motionless Video'],msg:filename});
                                             }
-                                            s.group[e.ke].mon[e.id].detector_motion_count = 0
-                                            return;
-                                        break;
-                                    }
-                                    s.log(e,{type:"FFMPEG STDERR",msg:d})
-                                });
-                            }
-                          }else{
-                            s.log(e,{type:lang["Can't Connect"],msg:lang['Retrying...']});errorFatal();return;
+                                            s.video('delete',{
+                                                filename : filename,
+                                                ke : e.ke,
+                                                id : e.id
+                                            })
+                                        }
+                                        s.group[e.ke].mon[e.id].detector_motion_count = 0
+                                        return;
+                                    break;
+                                }
+                                s.log(e,{type:"FFMPEG STDERR",msg:d})
+                            });
                         }
+                      }else{
+                        s.log(e,{type:lang["Can't Connect"],msg:lang['Retrying...']});errorFatal();return;
                     }
-                    if(e.type!=='socket'&&e.type!=='dashcam'&&e.protocol!=='udp'&&e.type!=='local'||e.details.skip_ping === '1'){
-                        connectionTester.test(e.hosty,e.port,2000,e.draw);
-                    }else{
-                        e.draw(null,{success:true})
-                    }
+                }
+                if(e.type!=='socket'&&e.type!=='dashcam'&&e.protocol!=='udp'&&e.type!=='local'||e.details.skip_ping === '1'){
+                    connectionTester.test(e.hosty,e.port,2000,startVideoProcessor);
                 }else{
-                    s.kill(s.group[e.ke].mon[e.id].spawn,e);
+                    startVideoProcessor(null,{success:true})
                 }
-                }
-                //start drawing files
-                if(config.useChildNodes === true){
-                    e.ch=Object.keys(s.childNodes);
-                    if(e.ch.length>0){
-                        e.ch_stop=0;
-                        launchMonitorProcesses=function(n){
-                        connectionTester.test(e.hosty,e.port,2000,function(err,o){
-                            if(o.success===true){
-                                s.video('open',e);
-                                e.frames=0;
-                                s.group[e.ke].mon[e.id].spawn={};
-                                s.group[e.ke].mon[e.id].childNode=n;
-                                s.cx({f:'spawn',d:s.init('noReference',e),mon:s.init('noReference',s.group[e.ke].mon[e.mid])},s.group[e.ke].mon[e.mid].childNode_id)
-                            }else{
-//                                s.systemLog('Cannot Connect, Retrying...',e.id);
-                                errorFatal();return;
-                            }
-                        })
+            }else{
+                s.kill(s.group[e.ke].mon[e.id].spawn,e);
+            }
+            }
+            //start drawing files
+            console.log(config.childNodes)
+            console.log(config.childNodes.mode)
+            console.log(config.childNodes.enabled)
+            console.log(config.childNodes.enabled === true && config.childNodes.mode === 'master')
+            if(config.childNodes.enabled === true && config.childNodes.mode === 'master'){
+                var childNodeList = Object.keys(s.childNodes)
+                console.log(childNodeList)
+                if(childNodeList.length>0){
+                    e.ch_stop = 0;
+                    launchMonitorProcesses = function(n){
+                        startVideoProcessor = function(){
+                            console.log({
+                                //function
+                                f : 'spawn',
+                                //data, options
+                                d : s.init('noReference',s.group[e.ke].mon_conf[e.id]),
+                                //monitor object
+                                mon : s.init('noReference',s.group[e.ke].mon_conf[e.id])
+                            })
+                            s.cx({
+                                //function
+                                f : 'spawn',
+                                //data, options
+                                d : s.init('noReference',s.group[e.ke].mon_conf[e.id]),
+                                //monitor object
+                                mon : s.init('noReference',s.group[e.ke].mon_conf[e.id])
+                            },s.group[e.ke].mon[e.id].childNode_id)
                         }
-                        e.ch.forEach(function(n){
-                            if(e.ch_stop===0&&s.childNodes[n].cpu<80){
-                                e.ch_stop=1;
-                                s.group[e.ke].mon[e.mid].childNode=n;
-                                s.group[e.ke].mon[e.mid].childNode_id=s.childNodes[n].cnid;
-                                launchMonitorProcesses(n);
-                            }
-                        })
-                    }else{
-                        launchMonitorProcesses();
+                        if(e.type!=='socket'&&e.type!=='dashcam'&&e.protocol!=='udp'&&e.type!=='local'||e.details.skip_ping === '1'){
+                            connectionTester.test(e.hosty,e.port,2000,function(err,o){
+                                if(o.success===true){
+                                    s.group[e.ke].mon[e.id].spawn={};
+                                    s.group[e.ke].mon[e.id].childNode=n;
+                                    startVideoProcessor()
+                                }else{
+    //                                s.systemLog('Cannot Connect, Retrying...',e.id);
+                                    errorFatal();return;
+                                }
+                            })
+                        }else{
+                            startVideoProcessor()
+                        }
                     }
+                    childNodeList.forEach(function(n){
+                        if(e.ch_stop===0&&s.childNodes[n].cpu<80){
+                            e.ch_stop=1;
+                            s.group[e.ke].mon[e.id].childNode=n;
+                            s.group[e.ke].mon[e.id].childNode_id=s.childNodes[n].cnid;
+                            launchMonitorProcesses(n);
+                        }
+                    })
                 }else{
                     launchMonitorProcesses();
                 }
+            }else{
+                launchMonitorProcesses();
+            }
         break;
         case'motion':
             var d=e;
@@ -4244,53 +4319,6 @@ var tx;
                 break;
             }
         }
-    })
-    //functions for dispersing work to child servers;
-    cn.on('c',function(d){
-//        if(!cn.ke&&d.socket_key===s.child_key){
-            if(!cn.shinobi_child&&d.f=='init'){
-                cn.ip=cn.request.connection.remoteAddress;
-                cn.name=d.u.name;
-                cn.shinobi_child=1;
-                tx=function(z){cn.emit('c',z);}
-                if(!s.childNodes[cn.ip]){s.childNodes[cn.ip]=d.u;};
-                s.childNodes[cn.ip].cnid=cn.id;
-                s.childNodes[cn.ip].cpu=0;
-                tx({f:'init_success',childNodes:s.childNodes});
-            }else{
-                if(d.f!=='s.tx'){s.systemLog('CRON',d)};
-                switch(d.f){
-                    case'cpu':
-                        s.childNodes[cn.ip].cpu=d.cpu;
-                    break;
-                    case'sql':
-                        s.sqlQuery(d.query,d.values);
-                    break;
-                    case'camera':
-                        s.camera(d.mode,d.data)
-                    break;
-                    case's.tx':
-                        s.tx(d.data,d.to)
-                    break;
-                    case's.log':
-                        s.log(d.data,d.to)
-                    break;
-                    case'created_file':
-                        if(d.details&&d.details.dir&&d.details.dir!==''){
-                            d.dir=s.checkCorrectPathEnding(d.details.dir)+d.ke+'/'+d.id+'/'
-                        }else{
-                            d.dir=s.dir.videos+d.ke+'/'+d.id+'/';
-                        }
-                        fs.writeFile(d.dir+d.filename,d.created_file,'binary',function (err,data) {
-                            if (err) {
-                                return console.error('created_file'+d.d.mid,err);
-                            }
-                           tx({f:'delete_file',file:d.filename,ke:d.d.ke,mid:d.d.mid}); s.tx({f:'video_build_success',filename:s.group[d.d.ke].mon[d.d.mid].open+'.'+s.group[d.d.ke].mon[d.d.mid].open_ext,mid:d.d.mid,ke:d.d.ke,time:s.nameToTime(s.group[d.d.ke].mon[d.d.mid].open),end:s.moment(new Date,'YYYY-MM-DD HH:mm:ss')},'GRP_'+d.d.ke);
-                        });
-                    break;
-                }
-            }
-//        }
     })
     //embed functions
     cn.on('e', function (d) {
@@ -6293,7 +6321,6 @@ app.all(['/:auth/onvif/:ke/:id/:action','/:auth/onvif/:ke/:id/:service/:action']
         }
     },res,req);
 })
-try{
 s.cpuUsage=function(e){
     k={}
     switch(s.platform){
@@ -6349,14 +6376,6 @@ s.ramUsage=function(e){
         e(0)
     }
 }
-    setInterval(function(){
-        s.cpuUsage(function(cpu){
-            s.ramUsage(function(ram){
-                s.tx({f:'os',cpu:cpu,ram:ram},'CPU');
-            })
-        })
-    },10000);
-}catch(err){s.systemLog(lang['CPU indicator will not work. Continuing...'])}
 //check disk space every 20 minutes
 if(config.autoDropCache===true){
     setInterval(function(){
@@ -6372,54 +6391,224 @@ s.processReady = function(){
     s.systemLog(lang.startUpText5)
     process.send('ready')
 }
-setTimeout(function(){
-    //get current disk used for each isolated account (admin user) on startup
-    s.sqlQuery('SELECT * FROM Users WHERE details NOT LIKE ?',['%"sub"%'],function(err,r){
-        if(r&&r[0]){
-            var count = r.length
-            var countFinished = 0
-            r.forEach(function(v,n){
-                v.size=0;
-                v.limit=JSON.parse(v.details).size
-                s.sqlQuery('SELECT * FROM Videos WHERE ke=? AND status!=?',[v.ke,0],function(err,rr){
-                    ++countFinished
-                    if(r&&r[0]){
-                        rr.forEach(function(b){
-                            v.size+=b.size
-                        })
+//setup Master for childNodes
+if(config.childNodes.enabled === true && config.childNodes.mode === 'master'){
+    s.childNodes = {};
+    var childNodeHTTP = express();
+    var childNodeServer = http.createServer(app);
+    var childNodeWebsocket = new (require('socket.io'))()
+    childNodeServer.listen(config.childNodes.port,config.bindip,function(){
+        console.log(lang.Shinobi+' - CHILD NODE PORT : '+config.childNodes.port);
+    });
+    childNodeWebsocket.attach(childNodeServer);
+    //send data to child node function (experimental)
+    s.cx = function(z,y,x){if(x){return x.broadcast.to(y).emit('c',z)};childNodeWebsocket.to(y).emit('c',z);}
+    //child Node Websocket
+    childNodeWebsocket.on('connection', function (cn) {
+        //functions for dispersing work to child servers;
+        cn.on('c',function(d){
+            if(config.childNodes.key.indexOf(d.socketKey) > -1){
+                if(!cn.shinobi_child&&d.f=='init'){
+                    cn.ip = cn.request.connection.remoteAddress
+                    cn.shinobi_child = 1
+                    tx = function(z){
+                        cn.emit('c',z)
                     }
-                    s.systemLog(v.mail+' : '+lang.startUpText0+' : '+rr.length,v.size)
-                    s.init('group',v)
-                    s.systemLog(v.mail+' : '+lang.startUpText1,countFinished+'/'+count)
-                    if(countFinished===count){
-                        s.systemLog(lang.startUpText4)
-                        //preliminary monitor start
-                        s.sqlQuery('SELECT * FROM Monitors', function(err,r) {
-                            if(err){s.systemLog(err)}
-                            if(r&&r[0]){
-                                r.forEach(function(v){
-                                    s.init(0,v);
-                                    r.ar={};
-                                    r.ar.id=v.mid;
-                                    Object.keys(v).forEach(function(b){
-                                        r.ar[b]=v[b];
-                                    })
-                                    if(!s.group[v.ke]){
-                                        s.group[v.ke]={}
-                                        s.group[v.ke].mon_conf={}
-                                    }
-                                    v.details=JSON.parse(v.details);
-                                    s.group[v.ke].mon_conf[v.mid]=v;
-                                    s.camera(v.mode,r.ar);
-                                });
+                    if(!s.childNodes[cn.ip]){
+                        s.childNodes[cn.ip] = {}
+                    };
+                    s.childNodes[cn.ip].cnid = cn.id
+                    s.childNodes[cn.ip].cpu = 0
+                    console.log(s.childNodes)
+                    tx({
+                        f : 'init_success',
+                        childNodes : s.childNodes
+                    });
+                }else{
+                    switch(d.f){
+                        case'cpu':
+                            s.childNodes[cn.ip].cpu = d.cpu;
+                        break;
+                        case'sql':
+                            s.sqlQuery(d.query,d.values,function(err,rows){
+                                cn.emit('c',{f:'sqlCallback',rows:rows,err:err,callbackId:d.callbackId});
+                            });
+                        break;
+                        case'camera':
+                            s.camera(d.mode,d.data)
+                        break;
+                        case's.tx':
+                            s.tx(d.data,d.to)
+                        break;
+                        case's.log':
+                            if(!d.mon || !d.data)return console.log('LOG DROPPED',d.mon,d.data);
+                            s.log(d.mon,d.data)
+                        break;
+                        case'created_file_chunk':
+                            if(!s.group[d.ke].mon[d.mid].childNodeStreamWriters[d.filename]){
+                                d.dir = s.video('getDir',s.group[d.ke].mon_conf[d.mid])
+                                s.group[d.ke].mon[d.mid].childNodeStreamWriters[d.filename] = fs.createWriteStream(d.dir+d.filename)
                             }
-                            s.processReady()
-                        });
+                            s.group[d.ke].mon[d.mid].childNodeStreamWriters[d.filename].write(d.chunk)
+                        break;
+                        case'created_file':
+                            if(!s.group[d.ke].mon[d.mid].childNodeStreamWriters[d.filename]){
+                                return console.log('FILE NOT EXIST')
+                            }
+                            s.group[d.ke].mon[d.mid].childNodeStreamWriters[d.filename].end();
+                            tx({
+                                f:'delete',
+                                file:d.filename,
+                                ke:d.ke,
+                                mid:d.mid
+                            });
+                            s.txWithSubPermissions({
+                                f:'video_build_success',
+                                hrefNoAuth:'/videos/'+d.ke+'/'+d.mid+'/'+d.filename,
+                                filename:d.filename,
+                                mid:d.mid,
+                                ke:d.ke,
+                                time:moment(d.startTime).format(),
+                                size:d.filesize,
+                                end:moment(d.endTime).format()
+                            },'GRP_'+d.ke,'video_view');
+                        break;
                     }
-                })
-            })
-        }else{
-            s.processReady()
+                }
+            }
+        })
+    })
+}else
+//setup Child for childNodes    
+if(config.childNodes.enabled === true && config.childNodes.mode === 'child' && config.childNodes.host){
+    s.connected = false;
+    childIO = require('socket.io-client')('ws://'+config.childNodes.host);
+    s.cx = function(x){x.socketKey = config.childNodes.key;childIO.emit('c',x)}
+    s.tx = function(x,y){s.cx({f:'s.tx',data:x,to:y})}
+    s.log = function(x,y){s.cx({f:'s.log',mon:x,data:y})}
+    s.queuedSqlCallbacks = {}
+    s.sqlQuery = function(query,values,onMoveOn){
+        var callbackId = s.gid()
+        if(!values){values=[]}
+        if(typeof values === 'function'){
+            var onMoveOn = values;
+            var values = [];
+        }
+        if(!onMoveOn){onMoveOn=function(){}}
+        s.queuedSqlCallbacks[callbackId] = onMoveOn
+        s.cx({f:'sql',query:query,values:values,callbackId:callbackId});
+    }
+    setInterval(function(){
+        s.cpuUsage(function(cpu){
+            io.emit('c',{f:'cpu',cpu:parseFloat(cpu)});
+        })
+    },2000);
+    childIO.on('connect', function(d){
+        console.log('CHILD CONNECTION SUCCESS')
+        s.cx({
+            f : 'init',
+        })
+    })
+    childIO.on('c', function (d) {
+        switch(d.f){
+            case'sqlCallback':
+                console.log('sqlCallback',d.rows)
+                if(s.queuedSqlCallbacks[d.callbackId]){
+                    s.queuedSqlCallbacks[d.callbackId](d.err,d.rows)
+                    delete(s.queuedSqlCallbacks[d.callbackId])
+                }
+            break;
+            case'init_success':
+                s.connected=true;
+                s.other_helpers=d.child_helpers;
+            break;
+            case'kill':
+                s.init(0,d.d);
+                s.kill(s.group[d.d.ke].mon[d.d.id].spawn,d.d)
+            break;
+            case'sync':
+                s.init(0,d.sync);
+                Object.keys(d.sync).forEach(function(v){
+                    s.group[d.sync.ke].mon[d.sync.mid][v]=d.sync[v];
+                });
+            break;
+            case'delete'://delete video
+                d.dir=s.dir.videos+d.ke+'/'+d.mid+'/'+d.file;
+                if(fs.existsSync(d.dir)){
+                    fs.unlink(d.dir);
+                }
+            break;
+            case'insertCompleted'://close video
+                console.log('sqlCallback',d)
+                s.video('insertCompleted',d.d,d.k)
+            break;
+            case'spawn'://start video
+                console.log('spawn',d.d.mode)
+                s.camera(d.d.mode,d.d)
+            break;
         }
     })
-},1500)
+    childIO.on('disconnect',function(d){
+        s.connected = false;
+    })
+}
+if(config.childNodes.mode !== 'child'){
+    setInterval(function(){
+        s.cpuUsage(function(cpu){
+            s.ramUsage(function(ram){
+                s.tx({f:'os',cpu:cpu,ram:ram},'CPU');
+            })
+        })
+    },10000);
+    setTimeout(function(){
+        //get current disk used for each isolated account (admin user) on startup
+        s.sqlQuery('SELECT * FROM Users WHERE details NOT LIKE ?',['%"sub"%'],function(err,r){
+            if(r&&r[0]){
+                var count = r.length
+                var countFinished = 0
+                r.forEach(function(v,n){
+                    v.size=0;
+                    v.limit=JSON.parse(v.details).size
+                    s.sqlQuery('SELECT * FROM Videos WHERE ke=? AND status!=?',[v.ke,0],function(err,rr){
+                        ++countFinished
+                        if(r&&r[0]){
+                            rr.forEach(function(b){
+                                v.size+=b.size
+                            })
+                        }
+                        s.systemLog(v.mail+' : '+lang.startUpText0+' : '+rr.length,v.size)
+                        s.init('group',v)
+                        s.systemLog(v.mail+' : '+lang.startUpText1,countFinished+'/'+count)
+                        if(countFinished===count){
+                            s.systemLog(lang.startUpText4)
+                            //preliminary monitor start
+                            s.sqlQuery('SELECT * FROM Monitors', function(err,r) {
+                                if(err){s.systemLog(err)}
+                                if(r&&r[0]){
+                                    r.forEach(function(v){
+                                        s.init(0,v);
+                                        r.ar={};
+                                        r.ar.id=v.mid;
+                                        Object.keys(v).forEach(function(b){
+                                            r.ar[b]=v[b];
+                                        })
+                                        if(!s.group[v.ke]){
+                                            s.group[v.ke]={}
+                                            s.group[v.ke].mon_conf={}
+                                        }
+                                        v.details=JSON.parse(v.details);
+                                        s.group[v.ke].mon_conf[v.mid]=v;
+                                        s.camera(v.mode,r.ar);
+                                    });
+                                }
+                                s.processReady()
+                            });
+                        }
+                    })
+                })
+            }else{
+                s.processReady()
+            }
+        })
+    },1500)
+}
