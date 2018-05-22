@@ -55,6 +55,8 @@ var knex = require('knex');
 var Mp4Frag = require('mp4frag');
 var P2P = require('pipe2pam');
 var PamDiff = require('pam-diff');
+var httpProxy = require('http-proxy');
+var proxy = httpProxy.createProxyServer({})
 var location = {}
 location.super = __dirname+'/super.json'
 location.config = __dirname+'/conf.json'
@@ -2840,6 +2842,7 @@ s.camera=function(x,e,cn,tx){
             }
             }
             //start drawing files
+            delete(s.group[e.ke].mon[e.id].childNode)
             if(config.childNodes.enabled === true && config.childNodes.mode === 'master'){
                 var childNodeList = Object.keys(s.childNodes)
                 if(childNodeList.length>0){
@@ -4358,7 +4361,20 @@ s.api={};
 //cb = callback
 //res = response, only needed for express (http server)
 //request = request, only needed for express (http server)
-s.auth=function(params,cb,res,req){
+s.checkChildProxy = function(params,cb,res,req){
+    if(s.group[params.ke] && s.group[params.ke].mon[params.id] && s.group[params.ke].mon[params.id].childNode){
+        var url = 'http://' + s.group[params.ke].mon[params.id].childNode// + req.originalUrl
+        proxy.web(req, res, { target: url })
+    }else{
+        cb()
+    }
+}
+//auth handler
+//params = parameters
+//cb = callback
+//res = response, only needed for express (http server)
+//request = request, only needed for express (http server)
+s.auth = function(params,cb,res,req){
     if(req){
         //express (http server) use of auth function
         params.ip=req.headers['cf-connecting-ip'] || req.headers['x-forwarded-for'] || req.connection.remoteAddress;
@@ -4911,43 +4927,24 @@ app.post(['/','/:screen'],function (req,res){
         }
     }
 });
-// Get MPEG-DASH stream (mpd)
-app.get('/:auth/mpd/:ke/:id/:file', function (req,res){
-    res.header("Access-Control-Allow-Origin",req.headers.origin);
-    req.fn=function(user){
-        req.extension=req.params.file.split('.')
-        req.extension=req.extension[req.extension.length-1]
-        switch(req.extension){
-            case'mpd':
-                res.header("Content-Type","application/dash+xml");
-            break;
-        }
-        req.dir=s.dir.streams+req.params.ke+'/'+req.params.id+'/'+req.params.file;
-        res.on('finish',function(){res.end();});
-        if (fs.existsSync(req.dir)){
-            fs.createReadStream(req.dir).pipe(res);
-        }else{
-            res.end(user.lang['File Not Found'])
-        }
-    }
-    s.auth(req.params,req.fn,res,req);
-});
 // Get HLS stream (m3u8)
 app.get(['/:auth/hls/:ke/:id/:file','/:auth/hls/:ke/:id/:channel/:file'], function (req,res){
     res.header("Access-Control-Allow-Origin",req.headers.origin);
     req.fn=function(user){
-        req.dir=s.dir.streams+req.params.ke+'/'+req.params.id+'/'
-        if(req.params.channel){
-            req.dir+='channel'+(parseInt(req.params.channel)+config.pipeAddition)+'/'+req.params.file;
-        }else{
-            req.dir+=req.params.file;
-        }
-        res.on('finish',function(){res.end();});
-        if (fs.existsSync(req.dir)){
-            fs.createReadStream(req.dir).pipe(res);
-        }else{
-            res.end(user.lang['File Not Found'])
-        }
+        s.checkChildProxy(req.params,function(){
+            req.dir=s.dir.streams+req.params.ke+'/'+req.params.id+'/'
+            if(req.params.channel){
+                req.dir+='channel'+(parseInt(req.params.channel)+config.pipeAddition)+'/'+req.params.file;
+            }else{
+                req.dir+=req.params.file;
+            }
+            res.on('finish',function(){res.end();});
+            if (fs.existsSync(req.dir)){
+                fs.createReadStream(req.dir).pipe(res);
+            }else{
+                res.end(lang['File Not Found'])
+            }
+        },res,req)
     }
     s.auth(req.params,req.fn,res,req);
 });
@@ -4955,57 +4952,61 @@ app.get(['/:auth/hls/:ke/:id/:file','/:auth/hls/:ke/:id/:channel/:file'], functi
 app.get('/:auth/jpeg/:ke/:id/s.jpg', function(req,res){
     res.header("Access-Control-Allow-Origin",req.headers.origin);
     s.auth(req.params,function(user){
-        if(user.details.sub&&user.details.allmonitors!=='1'&&user.details.monitors&&user.details.monitors.indexOf(req.params.id)===-1){
-            res.end(user.lang['Not Permitted'])
-            return
-        }
-        req.dir=s.dir.streams+req.params.ke+'/'+req.params.id+'/s.jpg';
-            res.writeHead(200, {
-            'Content-Type': 'image/jpeg',
-            'Cache-Control': 'no-cache',
-            'Pragma': 'no-cache'
-            });
-        res.on('finish',function(){res.end();delete(res)});
-        if (fs.existsSync(req.dir)){
-            fs.createReadStream(req.dir).pipe(res);
-        }else{
-            fs.createReadStream(config.defaultMjpeg).pipe(res);
-        }
+        s.checkChildProxy(req.params,function(){
+            if(user.details.sub&&user.details.allmonitors!=='1'&&user.details.monitors&&user.details.monitors.indexOf(req.params.id)===-1){
+                res.end(user.lang['Not Permitted'])
+                return
+            }
+            req.dir=s.dir.streams+req.params.ke+'/'+req.params.id+'/s.jpg';
+                res.writeHead(200, {
+                'Content-Type': 'image/jpeg',
+                'Cache-Control': 'no-cache',
+                'Pragma': 'no-cache'
+                });
+            res.on('finish',function(){res.end();delete(res)});
+            if (fs.existsSync(req.dir)){
+                fs.createReadStream(req.dir).pipe(res);
+            }else{
+                fs.createReadStream(config.defaultMjpeg).pipe(res);
+            }
+        },res,req);
     },res,req);
 });
 //Get FLV stream
 app.get(['/:auth/flv/:ke/:id/s.flv','/:auth/flv/:ke/:id/:channel/s.flv'], function(req,res) {
     res.header("Access-Control-Allow-Origin",req.headers.origin);
     s.auth(req.params,function(user){
-        var Emitter,chunkChannel
-        if(!req.params.channel){
-            Emitter = s.group[req.params.ke].mon[req.params.id].emitter
-            chunkChannel = 'MAIN'
-        }else{
-            Emitter = s.group[req.params.ke].mon[req.params.id].emitterChannel[parseInt(req.params.channel)+config.pipeAddition]
-            chunkChannel = parseInt(req.params.channel)+config.pipeAddition
-        }
-        if(s.group[req.params.ke].mon[req.params.id].firstStreamChunk[chunkChannel]){
-            //variable name of contentWriter
-            var contentWriter
-            //set headers
-            res.setHeader('Content-Type', 'video/x-flv');
-            res.setHeader('Access-Control-Allow-Origin','*');
-            //write first frame on stream
-            res.write(s.group[req.params.ke].mon[req.params.id].firstStreamChunk[chunkChannel])
-            //write new frames as they happen
-            Emitter.on('data',contentWriter=function(buffer){
-                res.write(buffer)
-            })
-            //remove contentWriter when client leaves
-            res.on('close', function () {
-                Emitter.removeListener('data',contentWriter)
-            })
-        }else{
-            res.setHeader('Content-Type', 'application/json');
-            res.end(s.s({ok:false,msg:'FLV not started or not ready'},null,3))
-        }
-    })
+        s.checkChildProxy(req.params,function(){
+            var Emitter,chunkChannel
+            if(!req.params.channel){
+                Emitter = s.group[req.params.ke].mon[req.params.id].emitter
+                chunkChannel = 'MAIN'
+            }else{
+                Emitter = s.group[req.params.ke].mon[req.params.id].emitterChannel[parseInt(req.params.channel)+config.pipeAddition]
+                chunkChannel = parseInt(req.params.channel)+config.pipeAddition
+            }
+            if(s.group[req.params.ke].mon[req.params.id].firstStreamChunk[chunkChannel]){
+                //variable name of contentWriter
+                var contentWriter
+                //set headers
+                res.setHeader('Content-Type', 'video/x-flv');
+                res.setHeader('Access-Control-Allow-Origin','*');
+                //write first frame on stream
+                res.write(s.group[req.params.ke].mon[req.params.id].firstStreamChunk[chunkChannel])
+                //write new frames as they happen
+                Emitter.on('data',contentWriter=function(buffer){
+                    res.write(buffer)
+                })
+                //remove contentWriter when client leaves
+                res.on('close', function () {
+                    Emitter.removeListener('data',contentWriter)
+                })
+            }else{
+                res.setHeader('Content-Type', 'application/json');
+                res.end(s.s({ok:false,msg:'FLV not started or not ready'},null,3))
+            }
+        },res,req)
+    },res,req)
 })
 //montage - stand alone squished view with gridstackjs
 app.get(['/:auth/grid/:ke','/:auth/grid/:ke/:group'], function(req,res) {
@@ -5114,41 +5115,43 @@ app.get(['/:auth/mjpeg/:ke/:id','/:auth/mjpeg/:ke/:id/:channel'], function(req,r
         res.end()
     }else{
         s.auth(req.params,function(user){
-            if(s.group[req.params.ke]&&s.group[req.params.ke].mon[req.params.id]){
-                if(user.permissions.watch_stream==="0"||user.details.sub&&user.details.allmonitors!=='1'&&user.details.monitors.indexOf(req.params.id)===-1){
-                    res.end(user.lang['Not Permitted'])
-                    return
-                }
+            s.checkChildProxy(req.params,function(){
+                if(s.group[req.params.ke]&&s.group[req.params.ke].mon[req.params.id]){
+                    if(user.permissions.watch_stream==="0"||user.details.sub&&user.details.allmonitors!=='1'&&user.details.monitors.indexOf(req.params.id)===-1){
+                        res.end(user.lang['Not Permitted'])
+                        return
+                    }
 
-                var Emitter
-                if(!req.params.channel){
-                    Emitter = s.group[req.params.ke].mon[req.params.id].emitter
-                }else{
-                    Emitter = s.group[req.params.ke].mon[req.params.id].emitterChannel[parseInt(req.params.channel)+config.pipeAddition]
-                }
-                res.writeHead(200, {
-                'Content-Type': 'multipart/x-mixed-replace; boundary=shinobi',
-                'Cache-Control': 'no-cache',
-                'Connection': 'keep-alive',
-                'Pragma': 'no-cache'
-                });
-                var contentWriter,content = fs.readFileSync(config.defaultMjpeg,'binary');
-                res.write("--shinobi\r\n");
-                res.write("Content-Type: image/jpeg\r\n");
-                res.write("Content-Length: " + content.length + "\r\n");
-                res.write("\r\n");
-                res.write(content,'binary');
-                res.write("\r\n");
-                Emitter.on('data',contentWriter=function(d){
-                    content = d;
+                    var Emitter
+                    if(!req.params.channel){
+                        Emitter = s.group[req.params.ke].mon[req.params.id].emitter
+                    }else{
+                        Emitter = s.group[req.params.ke].mon[req.params.id].emitterChannel[parseInt(req.params.channel)+config.pipeAddition]
+                    }
+                    res.writeHead(200, {
+                    'Content-Type': 'multipart/x-mixed-replace; boundary=shinobi',
+                    'Cache-Control': 'no-cache',
+                    'Connection': 'keep-alive',
+                    'Pragma': 'no-cache'
+                    });
+                    var contentWriter,content = fs.readFileSync(config.defaultMjpeg,'binary');
+                    res.write("--shinobi\r\n");
+                    res.write("Content-Type: image/jpeg\r\n");
+                    res.write("Content-Length: " + content.length + "\r\n");
+                    res.write("\r\n");
                     res.write(content,'binary');
-                })
-                res.on('close', function () {
-                    Emitter.removeListener('data',contentWriter)
-                });
-            }else{
-                res.end();
-            }
+                    res.write("\r\n");
+                    Emitter.on('data',contentWriter=function(d){
+                        content = d;
+                        res.write(content,'binary');
+                    })
+                    res.on('close', function () {
+                        Emitter.removeListener('data',contentWriter)
+                    });
+                }else{
+                    res.end();
+                }
+            },res,req);
         },res,req);
     }
 });
@@ -6048,37 +6051,39 @@ app.all(['/streamIn/:ke/:id','/streamIn/:ke/:id/:feed'], function (req, res) {
 //MP4 Stream
 app.get(['/:auth/mp4/:ke/:id/:channel/s.mp4','/:auth/mp4/:ke/:id/s.mp4','/:auth/mp4/:ke/:id/:channel/s.ts','/:auth/mp4/:ke/:id/s.ts'], function (req, res) {
     s.auth(req.params,function(user){
-        var Channel = 'MAIN'
-        if(req.params.channel){
-            Channel = parseInt(req.params.channel)+config.pipeAddition
-        }
-        var mp4frag = s.group[req.params.ke].mon[req.params.id].mp4frag[Channel];
-        var errorMessage = 'MP4 Stream is not enabled'
-        if(!mp4frag){
-            res.status(503);``
-            res.end('503 : initialization : '+errorMessage);
-        }else{
-            var init = mp4frag.initialization;
-            if (!init) {
-                res.status(503);
-                res.end('404 : Not Found : '+errorMessage);
-            } else {
-                res.locals.mp4frag = mp4frag
-                res.set('Access-Control-Allow-Origin', '*')
-                res.set('Connection', 'close')
-                res.set('Cache-Control', 'private, no-cache, no-store, must-revalidate')
-                res.set('Expires', '-1')
-                res.set('Pragma', 'no-cache')
-                res.set('Content-Type', 'video/mp4')
-                res.status(200);
-                res.write(init);
-                mp4frag.pipe(res);
-                res.on('close', () => {
-                    mp4frag.unpipe(res);
-                });
-            }
-        }
-    });
+        s.checkChildProxy(req.params,function(){
+                var Channel = 'MAIN'
+                if(req.params.channel){
+                    Channel = parseInt(req.params.channel)+config.pipeAddition
+                }
+                var mp4frag = s.group[req.params.ke].mon[req.params.id].mp4frag[Channel];
+                var errorMessage = 'MP4 Stream is not enabled'
+                if(!mp4frag){
+                    res.status(503);``
+                    res.end('503 : initialization : '+errorMessage);
+                }else{
+                    var init = mp4frag.initialization;
+                    if (!init) {
+                        res.status(503);
+                        res.end('404 : Not Found : '+errorMessage);
+                    } else {
+                        res.locals.mp4frag = mp4frag
+                        res.set('Access-Control-Allow-Origin', '*')
+                        res.set('Connection', 'close')
+                        res.set('Cache-Control', 'private, no-cache, no-store, must-revalidate')
+                        res.set('Expires', '-1')
+                        res.set('Pragma', 'no-cache')
+                        res.set('Content-Type', 'video/mp4')
+                        res.status(200);
+                        res.write(init);
+                        mp4frag.pipe(res);
+                        res.on('close', () => {
+                            mp4frag.unpipe(res);
+                        });
+                    }
+                }
+        },res,req);
+    },res,req);
 });
 //simulate RTSP over HTTP
 app.get([
@@ -6090,31 +6095,33 @@ app.get([
 ], function (req, res) {
     res.header("Access-Control-Allow-Origin",req.headers.origin);
     s.auth(req.params,function(user){
-        if(!req.query.feed){req.query.feed='1'}
-        var Emitter
-        if(!req.params.feed){
-            Emitter = s.group[req.params.ke].mon[req.params.id].streamIn[req.query.feed]
-        }else{
-            Emitter = s.group[req.params.ke].mon[req.params.id].emitterChannel[parseInt(req.params.feed)+config.pipeAddition]
-        }
-        s.init('streamIn',req.params)
-        var contentWriter
-        var date = new Date();
-        res.writeHead(200, {
-            'Date': date.toUTCString(),
-            'Connection': 'keep-alive',
-            'Cache-Control': 'no-cache',
-            'Pragma': 'no-cache',
-            'Content-Type': 'video/mp4',
-            'Server': 'Shinobi H.264 Test Stream',
-        });
-        Emitter.on('data',contentWriter=function(buffer){
-            res.write(buffer)
-        })
-        res.on('close', function () {
-            Emitter.removeListener('data',contentWriter)
-        })
-    })
+        s.checkChildProxy(req.params,function(){
+            if(!req.query.feed){req.query.feed='1'}
+            var Emitter
+            if(!req.params.feed){
+                Emitter = s.group[req.params.ke].mon[req.params.id].streamIn[req.query.feed]
+            }else{
+                Emitter = s.group[req.params.ke].mon[req.params.id].emitterChannel[parseInt(req.params.feed)+config.pipeAddition]
+            }
+            s.init('streamIn',req.params)
+            var contentWriter
+            var date = new Date();
+            res.writeHead(200, {
+                'Date': date.toUTCString(),
+                'Connection': 'keep-alive',
+                'Cache-Control': 'no-cache',
+                'Pragma': 'no-cache',
+                'Content-Type': 'video/mp4',
+                'Server': 'Shinobi H.264 Test Stream',
+            });
+            Emitter.on('data',contentWriter=function(buffer){
+                res.write(buffer)
+            })
+            res.on('close', function () {
+                Emitter.removeListener('data',contentWriter)
+            })
+        },res,req);
+    },res,req);
 });
 //FFprobe by API
 app.get('/:auth/probe/:ke',function (req,res){
@@ -6375,7 +6382,7 @@ if(config.childNodes.enabled === true && config.childNodes.mode === 'master'){
         cn.on('c',function(d){
             if(config.childNodes.key.indexOf(d.socketKey) > -1){
                 if(!cn.shinobi_child&&d.f=='init'){
-                    cn.ip = cn.request.connection.remoteAddress
+                    cn.ip = cn.request.connection.remoteAddress.replace('::ffff:','')+':'+d.port
                     cn.shinobi_child = 1
                     tx = function(z){
                         cn.emit('c',z)
@@ -6472,6 +6479,7 @@ if(config.childNodes.enabled === true && config.childNodes.mode === 'child' && c
         console.log('CHILD CONNECTION SUCCESS')
         s.cx({
             f : 'init',
+            port : config.port
         })
     })
     childIO.on('c', function (d) {
