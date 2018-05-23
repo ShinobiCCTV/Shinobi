@@ -1748,19 +1748,22 @@ $.ccio.globalWebsocket=function(d,user){
             $.ccio.tm(0,d,d.e,user)
         break;
         case'monitor_snapshot':
-            switch(d.snapshot_format){
-                case'plc':
-                    $('[mid="'+d.mid+'"][auth="'+user.auth_token+'"] .snapshot').attr('src',placeholder.getData(placeholder.plcimg(d.snapshot)))
-                break;
-                case'ab':
-                    d.reader = new FileReader();
-                    d.reader.addEventListener("loadend",function(){$('[mid="'+d.mid+'"][auth="'+user.auth_token+'"] .snapshot').attr('src',d.reader.result)});
-                    d.reader.readAsDataURL(new Blob([d.snapshot],{type:"image/jpeg"}));
-                break;
-                case'b64':
-                    $('[mid="'+d.mid+'"][ke="'+d.ke+'"][auth="'+user.auth_token+'"] .snapshot').attr('src','data:image/jpeg;base64,'+d.snapshot)
-                break;
-            }
+            setTimeout(function(){
+                var snapElement = $('[mid="'+d.mid+'"][ke="'+d.ke+'"][auth="'+user.auth_token+'"] .snapshot')
+                switch(d.snapshot_format){
+                    case'plc':
+                        snapElement.attr('src',placeholder.getData(placeholder.plcimg(d.snapshot)))
+                    break;
+                    case'ab':
+                        d.reader = new FileReader();
+                        d.reader.addEventListener("loadend",function(){$snapElement.attr('src',d.reader.result)});
+                        d.reader.readAsDataURL(new Blob([d.snapshot],{type:"image/jpeg"}));
+                    break;
+                    case'b64':
+                        snapElement.attr('src','data:image/jpeg;base64,'+d.snapshot)
+                    break;
+                }
+            },1000)
         break;
         case'monitor_delete':
             $('[mid="'+d.mid+'"][ke="'+d.ke+'"][auth="'+user.auth_token+'"]:not(.modal)').remove();
