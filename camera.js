@@ -496,7 +496,7 @@ s.kill=function(x,e,p){
 //            if(s.group[e.ke].mon[e.id].record.request){s.group[e.ke].mon[e.id].record.request.abort();delete(s.group[e.ke].mon[e.id].record.request);}
         };
         if(s.group[e.ke].mon[e.id].childNode){
-            s.cx({f:'kill',d:s.init('noReference',e)},s.group[e.ke].mon[e.id].childNode_id)
+            s.cx({f:'kill',d:s.init('noReference',e)},s.group[e.ke].mon[e.id].childNodeId)
         }else{
             if(!x||x===1){return};
             p=x.pid;
@@ -983,7 +983,7 @@ s.video=function(x,e,k){
                     e.ext=s.group[e.ke].mon[e.id].open_ext
                 }
                 if(s.group[e.ke].mon[e.id].childNode){
-                    s.cx({f:'close',d:s.init('noReference',e)},s.group[e.ke].mon[e.id].childNode_id);
+                    s.cx({f:'close',d:s.init('noReference',e)},s.group[e.ke].mon[e.id].childNodeId);
                 }else{
                     k.file = e.filename+'.'+e.ext
                     k.dir = e.dir.toString()
@@ -1057,7 +1057,7 @@ s.video=function(x,e,k){
         case'insertCompleted':
             k.dir = e.dir.toString()
             if(s.group[e.ke].mon[e.id].childNode){
-                s.cx({f:'insertCompleted',d:s.group[e.ke].mon_conf[e.id],k:k},s.group[e.ke].mon[e.id].childNode_id);
+                s.cx({f:'insertCompleted',d:s.group[e.ke].mon_conf[e.id],k:k},s.group[e.ke].mon[e.id].childNodeId);
             }else{
                 //get file directory
                 k.fileExists = fs.existsSync(k.dir+k.file)
@@ -1942,8 +1942,8 @@ s.camera=function(x,e,cn,tx){
         }
     });
     s.init(0,{ke:e.ke,mid:e.id})
-    if(config.childNodes.enabled === true && config.childNodes.mode === 'master' && s.group[e.ke].mon[e.id].childNode && s.group[e.ke].mon[e.id].childNode_id){
-        s.cx({f:'sync',sync:s.init('noReference',s.group[e.ke].mon_conf[e.mid]),ke:e.ke,mid:e.mid},s.group[e.ke].mon[e.id].childNode_id);
+    if(config.childNodes.enabled === true && config.childNodes.mode === 'master' && s.group[e.ke].mon[e.id].childNode && s.group[e.ke].mon[e.id].childNodeId){
+        s.cx({f:'sync',sync:s.init('noReference',s.group[e.ke].mon_conf[e.mid]),ke:e.ke,mid:e.mid},s.group[e.ke].mon[e.id].childNodeId);
     }
     switch(x){
         case'buildOptionsFromUrl':
@@ -2234,14 +2234,14 @@ s.camera=function(x,e,cn,tx){
         break;
         case'idle':case'stop'://stop monitor
             if(!s.group[e.ke]||!s.group[e.ke].mon[e.id]){return}
-            if(config.childNodes.enabled === true && config.childNodes.mode === 'master' && s.group[e.ke].mon[e.id].childNode && s.group[e.ke].mon[e.id].childNode_id){
+            if(config.childNodes.enabled === true && config.childNodes.mode === 'master' && s.group[e.ke].mon[e.id].childNode && s.group[e.ke].mon[e.id].childNodeId){
                 s.cx({
                     //function
                     f : 'spawn',
                     //data, options
                     d : s.init('noReference',s.group[e.ke].mon_conf[e.id]),
                     mon : s.init('noReference',s.group[e.ke].mon_conf[e.id])
-                },s.group[e.ke].mon[e.id].childNode_id)
+                },s.group[e.ke].mon[e.id].childNodeId)
             }else{
                 if(s.group[e.ke].mon[e.id].eventBasedRecording.process){
                     clearTimeout(s.group[e.ke].mon[e.id].eventBasedRecording.timeout)
@@ -2852,7 +2852,7 @@ s.camera=function(x,e,cn,tx){
                 var childNodeList = Object.keys(s.childNodes)
                 if(childNodeList.length>0){
                     e.ch_stop = 0;
-                    launchMonitorProcesses = function(n){
+                    launchMonitorProcesses = function(){
                         startVideoProcessor = function(){
                             s.cx({
                                 //function
@@ -2861,13 +2861,12 @@ s.camera=function(x,e,cn,tx){
                                 d : s.init('noReference',s.group[e.ke].mon_conf[e.id]),
                                 //monitor object
                                 mon : s.init('noReference',s.group[e.ke].mon_conf[e.id])
-                            },s.group[e.ke].mon[e.id].childNode_id)
+                            },s.group[e.ke].mon[e.id].childNodeId)
                         }
                         if(e.type!=='socket'&&e.type!=='dashcam'&&e.protocol!=='udp'&&e.type!=='local'||e.details.skip_ping === '1'){
                             connectionTester.test(e.hosty,e.port,2000,function(err,o){
                                 if(o.success===true){
                                     s.group[e.ke].mon[e.id].spawn={};
-                                    s.group[e.ke].mon[e.id].childNode=n;
                                     startVideoProcessor()
                                 }else{
     //                                s.systemLog('Cannot Connect, Retrying...',e.id);
@@ -2878,12 +2877,13 @@ s.camera=function(x,e,cn,tx){
                             startVideoProcessor()
                         }
                     }
-                    childNodeList.forEach(function(n){
-                        if(e.ch_stop===0&&s.childNodes[n].cpu<80){
+                    childNodeList.forEach(function(ip){
+                        if(e.ch_stop===0&&s.childNodes[ip].cpu<80){
                             e.ch_stop=1;
-                            s.group[e.ke].mon[e.id].childNode=n;
-                            s.group[e.ke].mon[e.id].childNode_id=s.childNodes[n].cnid;
-                            launchMonitorProcesses(n);
+                            s.childNodes[ip].activeCameras[e.ke+e.id] = s.init('noReference',s.group[e.ke].mon_conf[e.id]);
+                            s.group[e.ke].mon[e.id].childNode = ip;
+                            s.group[e.ke].mon[e.id].childNodeId = s.childNodes[ip].cnid;
+                            launchMonitorProcesses();
                         }
                     })
                 }else{
@@ -4353,9 +4353,6 @@ var tx;
             s.tx({f:'detector_unplugged',plug:s.ocv.plug},'CPU')
             delete(s.ocv);
             delete(s.api[cn.id])
-        }
-        if(cn.shinobi_child){
-            delete(s.childNodes[cn.ip]);
         }
     })
 });
@@ -6056,6 +6053,10 @@ app.all(['/streamIn/:ke/:id','/streamIn/:ke/:id/:feed'], function (req, res) {
 //MP4 Stream
 app.get(['/:auth/mp4/:ke/:id/:channel/s.mp4','/:auth/mp4/:ke/:id/s.mp4','/:auth/mp4/:ke/:id/:channel/s.ts','/:auth/mp4/:ke/:id/s.ts'], function (req, res) {
     s.auth(req.params,function(user){
+        if(!s.group[req.params.ke] || !s.group[req.params.ke].mon[req.params.id]){
+            res.status(404);
+            res.end('404 : Monitor not found');
+        }
         s.checkChildProxy(req.params,function(){
                 var Channel = 'MAIN'
                 if(req.params.channel){
@@ -6064,7 +6065,7 @@ app.get(['/:auth/mp4/:ke/:id/:channel/s.mp4','/:auth/mp4/:ke/:id/s.mp4','/:auth/
                 var mp4frag = s.group[req.params.ke].mon[req.params.id].mp4frag[Channel];
                 var errorMessage = 'MP4 Stream is not enabled'
                 if(!mp4frag){
-                    res.status(503);``
+                    res.status(503);
                     res.end('503 : initialization : '+errorMessage);
                 }else{
                     var init = mp4frag.initialization;
@@ -6397,6 +6398,7 @@ if(config.childNodes.enabled === true && config.childNodes.mode === 'master'){
                     };
                     s.childNodes[cn.ip].cnid = cn.id
                     s.childNodes[cn.ip].cpu = 0
+                    s.childNodes[cn.ip].activeCameras = {}
                     tx({
                         f : 'init_success',
                         childNodes : s.childNodes
@@ -6455,6 +6457,16 @@ if(config.childNodes.enabled === true && config.childNodes.mode === 'master'){
                     }
                 }
             }
+        })
+        cn.on('disconnect',function(){
+            var activeCameraKeys = Object.keys(s.childNodes[cn.ip].activeCameras)
+            activeCameraKeys.forEach(function(key){
+                var monitor = s.childNodes[cn.ip].activeCameras[key]
+                s.camera('stop',s.init('noReference',monitor),function(){
+                    s.camera(monitor.mode,s.init('noReference',monitor))
+                })
+            })
+            delete(s.childNodes[cn.ip]);
         })
     })
 }else
