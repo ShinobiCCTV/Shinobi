@@ -1057,7 +1057,7 @@ s.video=function(x,e,k){
         case'insertCompleted':
             k.dir = e.dir.toString()
             if(s.group[e.ke].mon[e.id].childNode){
-                s.cx({f:'insertCompleted',d:s.init('noReference',e),k:k},s.group[e.ke].mon[e.id].childNode_id);
+                s.cx({f:'insertCompleted',d:s.group[e.ke].mon_conf[e.id],k:k},s.group[e.ke].mon[e.id].childNode_id);
             }else{
                 //get file directory
                 k.fileExists = fs.existsSync(k.dir+k.file)
@@ -1091,7 +1091,7 @@ s.video=function(x,e,k){
                                 ke:e.ke,
                                 chunk:data,
                                 filename:k.file,
-                                d:s.init('clean',e),
+                                d:s.init('noReference',e),
                                 filesize:e.filesize,
                                 time:moment(e.startTime).format(),
                                 end:moment(e.endTime).format()
@@ -1105,7 +1105,7 @@ s.video=function(x,e,k){
                                 mid:e.id,
                                 ke:e.ke,
                                 filename:k.file,
-                                d:s.init('clean',e),
+                                d:s.init('noReference',e),
                                 filesize:e.filesize,
                                 time:moment(e.startTime).format(),
                                 end:moment(e.endTime).format()
@@ -1941,6 +1941,10 @@ s.camera=function(x,e,cn,tx){
             }
         }
     });
+    s.init(0,{ke:e.ke,mid:e.id})
+    if(config.childNodes.enabled === true && config.childNodes.mode === 'master' && s.group[e.ke].mon[e.id].childNode && s.group[e.ke].mon[e.id].childNode_id){
+        s.cx({f:'sync',sync:s.init('noReference',s.group[e.ke].mon_conf[e.mid]),ke:e.ke,mid:e.mid},s.group[e.ke].mon[e.id].childNode_id);
+    }
     switch(x){
         case'buildOptionsFromUrl':
             var monitorConfig = cn
@@ -2196,7 +2200,6 @@ s.camera=function(x,e,cn,tx){
         break;
         case'watch_on'://live streamers - join
 //            if(s.group[e.ke].mon[e.id].watch[cn.id]){s.camera('watch_off',e,cn,tx);return}
-           s.init(0,{ke:e.ke,mid:e.id})
            if(!cn.monitor_watching){cn.monitor_watching={}}
            if(!cn.monitor_watching[e.id]){cn.monitor_watching[e.id]={ke:e.ke}}
            s.group[e.ke].mon[e.id].watch[cn.id]={};
