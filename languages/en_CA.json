@@ -167,6 +167,8 @@
    "RegionNote": "Points are only saved when you press <b>Save</b> on the <b>Monitor Settings</b> window.",
    "Points": "Points <small>When adding points click on the edge of the polygon.</small>",
    "Indifference": "Indifference",
+   "Max Indifference": "Max Indifference",
+   "Trigger Threshold": "Trigger Threshold",
    "Region Name": "Region Name",
    "Regions": "Regions",
    "Again": "Again",

@@ -878,6 +878,22 @@
                   "possible": ""
                },
                {
+                  "name": "detail=detector_max_sensitivity",
+                  "field": "Max Indifference",
+                  "description": "An upperbound to indifference. Any value over this amount will be ignored.",
+                  "default": "",
+                  "example": "75",
+                  "possible": "Any number."
+               },
+               {
+                  "name": "detail=detector_threshold",
+                  "field": "Trigger Threshold",
+                  "description": "Minimum number of detections to fire a motion event. Detections must be within the detector the threshold divided by detector fps seconds. For example, if detector fps is 2 and trigger threshold is 3, then three detections must occur within 1.5 seconds to trigger a motion event. This threshold is per detection region.",
+                  "default": "1",
+                  "example": "3",
+                  "possible": "Any non-negative integer."
+               },
+               {
                   "name": "detail=detector_webhook",
                   "field": "Webhook",
                   "description": "Send a GET request to a URL with some values from the event.",

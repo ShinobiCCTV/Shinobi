@@ -443,15 +443,9 @@ s.getFunctionParamNames = function(func) {
      result = [];
   return result;
 }
-s.createPamDiffRegionArray = function(regions,globalSensitivity,fullFrame){
+s.createPamDiffRegionArray = function(json,globalSensitivity,fullFrame){
     var pamDiffCompliantArray = [],
-        arrayForOtherStuff = [],
-        json
-    try{
-        json = JSON.parse(regions)
-    }catch(err){
-        json = regions
-    }
+        arrayForOtherStuff = []
     if(fullFrame){
         json[fullFrame.name]=fullFrame;
     }
@@ -2646,6 +2640,13 @@ s.camera=function(x,e,cn,tx){
                                 }else{
                                     globalSensitivity = parseInt(e.details.detector_sensitivity)
                                 }
+
+                                // <Detector Stuff>
+                                globalMaxSensitivity = parseInt(e.details.detector_max_sensitivity) || undefined
+
+                                globalThreshold = parseInt(e.details.detector_threshold) || 0
+                                // </Detector Stuff>
+
                                 if(e.details.detector_frame==='1'){
                                     fullFrame={
                                         name:'FULL_FRAME',
@@ -2658,7 +2659,19 @@ s.camera=function(x,e,cn,tx){
                                         ]
                                     };
                                 }
-                                var regions = s.createPamDiffRegionArray(s.group[e.ke].mon_conf[e.id].details.cords,globalSensitivity,fullFrame);
+
+                                // <DetectorStuff>
+                                let regionJson
+                                try{
+                                    regionJson = JSON.parse(s.group[e.ke].mon_conf[e.id].details.cords)
+                                }catch(err){
+                                    regionJson = s.group[e.ke].mon_conf[e.id].details.cords
+                                }
+                                e.triggerTimer = {}
+
+                                var regions = s.createPamDiffRegionArray(regionJson,globalSensitivity,fullFrame);
+                                // </DetectorStuff>
+
                                 if(!s.group[e.ke].mon[e.id].noiseFilterArray)s.group[e.ke].mon[e.id].noiseFilterArray = {}
                                 var noiseFilterArray = s.group[e.ke].mon[e.id].noiseFilterArray
                                 Object.keys(regions.notForPam).forEach(function(name){
@@ -2672,6 +2685,7 @@ s.camera=function(x,e,cn,tx){
                                         id:e.id,
                                         ke:e.ke,
                                         name:trigger.name,
+                                        full_name:e.id + ':' + trigger.name,
                                         details:{
                                             plug:'built-in',
                                             name:trigger.name,
@@ -2681,12 +2695,58 @@ s.camera=function(x,e,cn,tx){
                                         plates:[],
                                         imgHeight:height,
                                         imgWidth:width
+                                      }
+                                    if(s.group[e.ke].init.aws_s3_save=="1"){
+                                        s.queueS3pushRequest(Object.assign({},detectorObject))
                                     }
-                                    detectorObject.doObjectDetection = (s.ocv && e.details.detector_use_detect_object === '1')
-                                    s.camera('motion',detectorObject)
-                                    if(detectorObject.doObjectDetection === true){
-                                        s.ocvTx({f:'frame',mon:s.group[e.ke].mon_conf[e.id].details,ke:e.ke,id:e.id,time:s.formattedTime(),frame:s.group[e.ke].mon[e.id].lastJpegDetectorFrame});
+
+                                    // <DetectorStuff>
+                                    // Inefficient for large numbers of regions
+                                    const region = Object.values(regionJson).find(x => x.name == trigger.name);
+
+                                    let maxSensitivity = parseInt(region.max_sensitivity) || globalMaxSensitivity
+                                    let threshold = parseInt(region.threshold) || globalThreshold
+
+                                    if (maxSensitivity===undefined || trigger.percent <= maxSensitivity) {
+                                      if (threshold <= 1) {
+                                          s.systemLog('Detector threshold is ' + threshold + ', motion record started: ' + detectorObject.full_name)
+                                          s.camera('motion',detectorObject)
+                                      } else {
+                                          s.systemLog('Trigger=' + detectorObject.full_name + ', confidence='+trigger.percent)
+                                            if (e.triggerTimer[trigger.name] === undefined) {
+                                                e.triggerTimer[trigger.name] = {
+                                                    count : threshold,
+                                                    timeout : null
+                                                }
+                                            }
+                                            if (--e.triggerTimer[trigger.name].count == 0) {
+                                                s.systemLog('Trigger threshold ' + threshold + ' hit, motion record started: ' + detectorObject.full_name)
+                                                // </DetectorStuff>
+                                                detectorObject.doObjectDetection = (s.ocv && e.details.detector_use_detect_object === '1')
+                                                s.camera('motion',detectorObject)
+                                                if(detectorObject.doObjectDetection === true){
+                                                    s.ocvTx({f:'frame',mon:s.group[e.ke].mon_conf[e.id].details,ke:e.ke,id:e.id,time:s.formattedTime(),frame:s.group[e.ke].mon[e.id].lastJpegDetectorFrame});
+                                                }
+                                                // <DetectorStuff>
+                                                clearTimeout(e.triggerTimer[trigger.name].timeout)
+                                                e.triggerTimer[trigger.name] = undefined
+                                            } else {
+                                                if (e.triggerTimer[trigger.name].timeout !== null)
+                                                clearTimeout(e.triggerTimer[trigger.name].timeout)
+                                                e.triggerTimer[trigger.name].timeout = setTimeout(function() {
+                                                    s.systemLog('Trigger threshold timeout: ' + detectorObject.full_name)
+                                                    e.triggerTimer[trigger.name] = undefined
+                                                }, (e.details.detector_threshold * 1000) / e.details.detector_fps)
+                                            }
+                                        }
+                                    } else {
+                                        s.systemLog('Trigger ' + detectorObject.full_name + ', confidence='+trigger.percent + ' (over maxSensitivity)')
+                                        if (e.triggerTimer[trigger.name] !== undefined) {
+                                            clearTimeout(e.triggerTimer[trigger.name].timeout)
+                                            e.triggerTimer[trigger.name] = undefined
+                                        }
                                     }
+                                    // </DetectorStuff>
                                 }
                                 var filterTheNoise = function(trigger){
                                     if(noiseFilterArray[trigger.name].length > 2){
