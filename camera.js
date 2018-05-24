@@ -6056,6 +6056,7 @@ app.get(['/:auth/mp4/:ke/:id/:channel/s.mp4','/:auth/mp4/:ke/:id/s.mp4','/:auth/
         if(!s.group[req.params.ke] || !s.group[req.params.ke].mon[req.params.id]){
             res.status(404);
             res.end('404 : Monitor not found');
+            return
         }
         s.checkChildProxy(req.params,function(){
                 var Channel = 'MAIN'
@@ -6459,14 +6460,18 @@ if(config.childNodes.enabled === true && config.childNodes.mode === 'master'){
             }
         })
         cn.on('disconnect',function(){
-            var activeCameraKeys = Object.keys(s.childNodes[cn.ip].activeCameras)
-            activeCameraKeys.forEach(function(key){
-                var monitor = s.childNodes[cn.ip].activeCameras[key]
-                s.camera('stop',s.init('noReference',monitor),function(){
-                    s.camera(monitor.mode,s.init('noReference',monitor))
+            if(s.childNodes[cn.ip]){
+                var activeCameraKeys = Object.keys(s.childNodes[cn.ip].activeCameras)
+                activeCameraKeys.forEach(function(key){
+                    var monitor = s.childNodes[cn.ip].activeCameras[key]
+                    s.group[monitor.ke].mon[monitor.mid].started = 0
+                    s.camera('stop',s.init('noReference',monitor))
+                    setTimeout(function(){
+                        s.camera(monitor.mode,s.init('noReference',monitor))
+                    },1300)
                 })
-            })
-            delete(s.childNodes[cn.ip]);
+                delete(s.childNodes[cn.ip]);
+            }
         })
     })
 }else
@@ -6538,7 +6543,59 @@ if(config.childNodes.enabled === true && config.childNodes.mode === 'child' && c
         s.connected = false;
     })
 }
-if(config.childNodes.mode !== 'child'){
+if(config.childNodes.mode === 'child'){
+    //child node - startup functions
+//    fs.readdir(s.dir.videos, function(err,groupKeys) {
+//        groupKeys.forEach(function(groupKey){
+//            fs.readdir(s.dir.videos+groupKey, function(err,monitorIds) {
+//                monitorIds.forEach(function(monitorId){
+//                    fs.readdir(s.dir.videos+groupKey+'/'+monitorId, function(err,files) {
+//                        files.forEach(function(file){
+//                            if(/T[0-9][0-9]-[0-9][0-9]-[0-9][0-9]./.test(file)){
+//                                var filePath = s.dir.videos+groupKey+'/'+monitorId+'/'+file
+//                                var stat = fs.statSync(filePath)
+//                                var filesize = stat.size
+//                                var filesizeMB = parseFloat((filesize/1000000).toFixed(2))
+//                                var startTime = s.nameToTime(file)
+//                                var endTime = s.moment(stat.mtime,'YYYY-MM-DD HH:mm:ss')
+//                                fs.createReadStream(filePath)
+//                                .on('data',function(data){
+//                                    s.cx({
+//                                        f:'created_file_chunk',
+//                                        mid:monitorId,
+//                                        ke:groupKey,
+//                                        chunk:data,
+//                                        filename:file,
+//                                        filesize:filesize,
+//                                        time:moment(startTime).format(),
+//                                        end:moment(endTime).format()
+//                                    })
+//                                })
+//                                .on('close',function(){
+//                                    s.cx({
+//                                        f:'created_file',
+//                                        mid:monitorId,
+//                                        ke:groupKey,
+//                                        filename:file,
+//                                        filesize:filesize,
+//                                        time:moment(startTime).format(),
+//                                        end:moment(endTime).format()
+//                                    })
+//                                })
+//                                .on('error',function(){
+//                                    console.log('File Read Error',file)
+//                                });
+//                            }else{
+//                                console.log('Not Video',file)
+//                            }
+//                        })
+//                    })
+//                })
+//            })
+//        })
+//    })
+}else{
+    //master node - startup functions
     setInterval(function(){
         s.cpuUsage(function(cpu){
             s.ramUsage(function(ram){
