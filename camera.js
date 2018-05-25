@@ -1942,9 +1942,6 @@ s.camera=function(x,e,cn,tx){
         }
     });
     s.init(0,{ke:e.ke,mid:e.id})
-    if(config.childNodes.enabled === true && config.childNodes.mode === 'master' && s.group[e.ke].mon[e.id].childNode && s.group[e.ke].mon[e.id].childNodeId){
-        s.cx({f:'sync',sync:s.init('noReference',s.group[e.ke].mon_conf[e.mid]),ke:e.ke,mid:e.mid},s.group[e.ke].mon[e.id].childNodeId);
-    }
     switch(x){
         case'buildOptionsFromUrl':
             var monitorConfig = cn
@@ -2234,14 +2231,16 @@ s.camera=function(x,e,cn,tx){
         break;
         case'idle':case'stop'://stop monitor
             if(!s.group[e.ke]||!s.group[e.ke].mon[e.id]){return}
-            if(config.childNodes.enabled === true && config.childNodes.mode === 'master' && s.group[e.ke].mon[e.id].childNode && s.group[e.ke].mon[e.id].childNodeId){
+            console.log('childNode : stopping cam on ',s.group[e.ke].mon[e.id].childNode)
+            if(config.childNodes.enabled === true && config.childNodes.mode === 'master' && s.group[e.ke].mon[e.id].childNode && s.childNodes[s.group[e.ke].mon[e.id].childNode].activeCameras[e.ke+e.id]){
+                s.group[e.ke].mon[e.id].started = 0
                 s.cx({
                     //function
-                    f : 'spawn',
+                    f : 'cameraStop',
                     //data, options
-                    d : s.init('noReference',s.group[e.ke].mon_conf[e.id]),
-                    mon : s.init('noReference',s.group[e.ke].mon_conf[e.id])
+                    d : s.group[e.ke].mon_conf[e.id]
                 },s.group[e.ke].mon[e.id].childNodeId)
+                s.cx({f:'sync',sync:s.group[e.ke].mon_conf[e.id],ke:e.ke,mid:e.id},s.group[e.ke].mon[e.id].childNodeId);
             }else{
                 if(s.group[e.ke].mon[e.id].eventBasedRecording.process){
                     clearTimeout(s.group[e.ke].mon[e.id].eventBasedRecording.timeout)
@@ -2284,20 +2283,29 @@ s.camera=function(x,e,cn,tx){
         case'start':case'record'://watch or record monitor url
             s.init(0,{ke:e.ke,mid:e.id})
             if(!s.group[e.ke].mon_conf[e.id]){s.group[e.ke].mon_conf[e.id]=s.init('noReference',e);}
-            e.url=s.init('url',e);
-            if(s.group[e.ke].mon[e.id].started===1){return}
-            if(e.details.detector_trigger=='1'){
-                s.group[e.ke].mon[e.id].motion_lock=setTimeout(function(){
-                    clearTimeout(s.group[e.ke].mon[e.id].motion_lock);
-                    delete(s.group[e.ke].mon[e.id].motion_lock);
-                },30000)
+            e.url = s.init('url',e);
+            if(s.group[e.ke].mon[e.id].started===1){
+                //stop action, monitor already started or recording
+                return
             }
-            s.group[e.ke].mon[e.id].started=1;
+            //lock this function
+            s.group[e.ke].mon[e.id].started = 1;
+            //create host string without username and password
+            e.hosty = e.host.split('@');
+            if(e.hosty[1]){
+                //username and password found
+                e.hosty = e.hosty[1]
+            }else{
+                //no username or password in `host` string
+                e.hosty = e.hosty[0]
+            }
+            //set recording status
             if(x==='record'){
                 s.group[e.ke].mon[e.id].record.yes=1;
             }else{
                 s.group[e.ke].mon[e.mid].record.yes=0;
             }
+            //set the recording directory
             if(e.details && e.details.dir && e.details.dir !== '' && config.childNodes.mode !== 'child'){
                 //addStorage choice
                 e.dir=s.checkCorrectPathEnding(e.details.dir)+e.ke+'/';
@@ -2319,6 +2327,7 @@ s.camera=function(x,e,cn,tx){
                     fs.mkdirSync(e.dir);
                 }
             }
+            //set the temporary files directory
             var setStreamDir = function(){
                 //stream dir
                 e.sdir=s.dir.streams+e.ke+'/';
@@ -2333,42 +2342,16 @@ s.camera=function(x,e,cn,tx){
                 }
             }
             setStreamDir()
-            //start "no motion" checker
-            if(e.details.detector=='1'&&e.details.detector_notrigger=='1'){
-                if(!e.details.detector_notrigger_timeout||e.details.detector_notrigger_timeout===''){
-                    e.details.detector_notrigger_timeout=10
-                }
-                e.detector_notrigger_timeout=parseFloat(e.details.detector_notrigger_timeout)*1000*60;
-                s.sqlQuery('SELECT mail FROM Users WHERE ke=? AND details NOT LIKE ?',[e.ke,'%"sub"%'],function(err,r){
-                    r=r[0];
-                    s.group[e.ke].mon[e.id].detector_notrigger_timeout_function=function(){
-                        if(config.mail&&e.details.detector_notrigger_mail=='1'){
-                            e.mailOptions = {
-                                from: '"ShinobiCCTV" <no-reply@shinobi.video>', // sender address
-                                to: r.mail, // list of receivers
-                                subject: lang.NoMotionEmailText1+' '+e.name+' ('+e.id+')', // Subject line
-                                html: '<i>'+lang.NoMotionEmailText2+' '+e.details.detector_notrigger_timeout+' '+lang.minutes+'.</i>',
-                            };
-                            e.mailOptions.html+='<div><b>'+lang['Monitor Name']+' </b> : '+e.name+'</div>'
-                            e.mailOptions.html+='<div><b>'+lang['Monitor ID']+' </b> : '+e.id+'</div>'
-                            nodemailer.sendMail(e.mailOptions, (error, info) => {
-                                if (error) {
-                                   s.systemLog('detector:notrigger:sendMail',error)
-                                    s.tx({f:'error',ff:'detector_notrigger_mail',id:e.id,ke:e.ke,error:error},'GRP_'+e.ke);
-                                    return ;
-                                }
-                                s.tx({f:'detector_notrigger_mail',id:e.id,ke:e.ke,info:info},'GRP_'+e.ke);
-                            });
-                        }
-                    }
-                    clearInterval(s.group[e.ke].mon[e.id].detector_notrigger_timeout)
-                    s.group[e.ke].mon[e.id].detector_notrigger_timeout=setInterval(s.group[e.ke].mon[e.id].detector_notrigger_timeout_function,s.group[e.ke].mon[e.id].detector_notrigger_timeout)
-                })
+            //set up fatal error handler
+            if(e.details.fatal_max===''){
+                e.details.fatal_max = 10
+            }else{
+                e.details.fatal_max = parseFloat(e.details.fatal_max)
             }
-            //cutoff time and recording check interval
-            if(!e.details.cutoff||e.details.cutoff===''){e.cutoff=15}else{e.cutoff=parseFloat(e.details.cutoff)};
-            if(isNaN(e.cutoff)===true){e.cutoff=15}
-            var errorFatal = function(x){
+            var errorFatal = function(errorMessage){
+                if(config.debugSystem === true){
+                    console.log(errorMessage,(new Error()).stack)
+                }
                 clearTimeout(s.group[e.ke].mon[e.id].err_fatal_timeout);
                 ++errorFatalCount;
                 if(s.group[e.ke].mon[e.id].started===1){
@@ -2384,7 +2367,49 @@ s.camera=function(x,e,cn,tx){
                 }
             }
             errorFatalCount = 0;
+            //set master based process launcher
             launchMonitorProcesses = function(){
+                if(e.details.detector_trigger=='1'){
+                    s.group[e.ke].mon[e.id].motion_lock=setTimeout(function(){
+                        clearTimeout(s.group[e.ke].mon[e.id].motion_lock);
+                        delete(s.group[e.ke].mon[e.id].motion_lock);
+                    },30000)
+                }
+                //cutoff time and recording check interval
+                if(!e.details.cutoff||e.details.cutoff===''){e.cutoff=15}else{e.cutoff=parseFloat(e.details.cutoff)};
+                if(isNaN(e.cutoff)===true){e.cutoff=15}
+                //start "no motion" checker
+                if(e.details.detector=='1'&&e.details.detector_notrigger=='1'){
+                    if(!e.details.detector_notrigger_timeout||e.details.detector_notrigger_timeout===''){
+                        e.details.detector_notrigger_timeout=10
+                    }
+                    e.detector_notrigger_timeout=parseFloat(e.details.detector_notrigger_timeout)*1000*60;
+                    s.sqlQuery('SELECT mail FROM Users WHERE ke=? AND details NOT LIKE ?',[e.ke,'%"sub"%'],function(err,r){
+                        r=r[0];
+                        s.group[e.ke].mon[e.id].detector_notrigger_timeout_function=function(){
+                            if(config.mail&&e.details.detector_notrigger_mail=='1'){
+                                e.mailOptions = {
+                                    from: '"ShinobiCCTV" <no-reply@shinobi.video>', // sender address
+                                    to: r.mail, // list of receivers
+                                    subject: lang.NoMotionEmailText1+' '+e.name+' ('+e.id+')', // Subject line
+                                    html: '<i>'+lang.NoMotionEmailText2+' '+e.details.detector_notrigger_timeout+' '+lang.minutes+'.</i>',
+                                };
+                                e.mailOptions.html+='<div><b>'+lang['Monitor Name']+' </b> : '+e.name+'</div>'
+                                e.mailOptions.html+='<div><b>'+lang['Monitor ID']+' </b> : '+e.id+'</div>'
+                                nodemailer.sendMail(e.mailOptions, (error, info) => {
+                                    if (error) {
+                                       s.systemLog('detector:notrigger:sendMail',error)
+                                        s.tx({f:'error',ff:'detector_notrigger_mail',id:e.id,ke:e.ke,error:error},'GRP_'+e.ke);
+                                        return ;
+                                    }
+                                    s.tx({f:'detector_notrigger_mail',id:e.id,ke:e.ke,info:info},'GRP_'+e.ke);
+                                });
+                            }
+                        }
+                        clearInterval(s.group[e.ke].mon[e.id].detector_notrigger_timeout)
+                        s.group[e.ke].mon[e.id].detector_notrigger_timeout=setInterval(s.group[e.ke].mon[e.id].detector_notrigger_timeout_function,s.group[e.ke].mon[e.id].detector_notrigger_timeout)
+                    })
+                }
                 var resetStreamCheck=function(){
                     clearTimeout(s.group[e.ke].mon[e.id].checkStream)
                     s.group[e.ke].mon[e.id].checkStream=setTimeout(function(){
@@ -2394,7 +2419,7 @@ s.camera=function(x,e,cn,tx){
                         }
                     },60000*1);
                 }
-                if(s.platform!=='darwin' && (x==='record' || (x==='start'&&e.details.detector_record_method==='sip'))){
+                if(config.childNodes.mode !== 'child' && s.platform!=='darwin' && (x==='record' || (x==='start'&&e.details.detector_record_method==='sip'))){
                     //check if ffmpeg is recording
                     s.group[e.ke].mon[e.id].fswatch = fs.watch(e.dir, {encoding : 'utf8'}, (event, filename) => {
                         switch(event){
@@ -2428,13 +2453,11 @@ s.camera=function(x,e,cn,tx){
                 }
                 s.camera('snapshot',{mid:e.id,ke:e.ke,mon:e})
                 //check host to see if has password and user in it
-                e.hosty = e.host.split('@');if(e.hosty[1]){e.hosty=e.hosty[1];}else{e.hosty=e.hosty[0];};
                 setStreamDir()
                 clearTimeout(s.group[e.ke].mon[e.id].checker)
                 if(s.group[e.ke].mon[e.id].started===1){
                 e.error_count=0;
                 s.group[e.ke].mon[e.id].error_socket_timeout_count=0;
-                if(e.details.fatal_max===''){e.details.fatal_max=10}else{e.details.fatal_max=parseFloat(e.details.fatal_max)}
                 s.kill(s.group[e.ke].mon[e.id].spawn,e);
                 startVideoProcessor=function(err,o){
                     if(o.success===true){
@@ -2448,7 +2471,7 @@ s.camera=function(x,e,cn,tx){
                                 if(e.details.loglevel!=='quiet'){
                                     s.log(e,{type:lang['Process Unexpected Exit'],msg:{msg:lang['Process Crashed for Monitor']+' : '+e.id,cmd:s.group[e.ke].mon[e.id].ffmpeg}});
                                 }
-                                errorFatal();
+                                errorFatal('Process Unexpected Exit');
                             }
                         }
                         s.group[e.ke].mon[e.id].spawn.on('end',s.group[e.ke].mon[e.id].spawn_exit)
@@ -2545,7 +2568,7 @@ s.camera=function(x,e,cn,tx){
                         }
                         if(!s.group[e.ke]||!s.group[e.ke].mon[e.id]){s.init(0,e)}
                         s.group[e.ke].mon[e.id].spawn.on('error',function(er){
-                            s.log(e,{type:'Spawn Error',msg:er});errorFatal()
+                            s.log(e,{type:'Spawn Error',msg:er});errorFatal('Spawn Error')
                         });
                         if(e.details.detector==='1'){
                             s.ocvTx({f:'init_monitor',id:e.id,ke:e.ke})
@@ -2785,7 +2808,10 @@ s.camera=function(x,e,cn,tx){
                                     case e.chk('Connection refused'):
                                     case e.chk('Connection timed out'):
                                         //restart
-                                        setTimeout(function(){s.log(e,{type:lang["Can't Connect"],msg:lang['Retrying...']});errorFatal();},1000)
+                                        setTimeout(function(){
+                                            s.log(e,{type:lang['Connection timed out'],msg:lang['Retrying...']});
+                                            errorFatal('Connection timed out');
+                                        },1000)
                                     break;
 //                                        case e.chk('No such file or directory'):
 //                                        case e.chk('Unable to open RTSP for listening'):
@@ -2834,7 +2860,8 @@ s.camera=function(x,e,cn,tx){
                             });
                         }
                       }else{
-                        s.log(e,{type:lang["Can't Connect"],msg:lang['Retrying...']});errorFatal();return;
+                          s.log(e,{type:lang["Ping Failed"],msg:lang.skipPingText1});
+                          errorFatal("Ping Failed");return;
                     }
                 }
                 if(e.type!=='socket'&&e.type!=='dashcam'&&e.protocol!=='udp'&&e.type!=='local'||e.details.skip_ping === '1'){
@@ -2856,21 +2883,21 @@ s.camera=function(x,e,cn,tx){
                         startVideoProcessor = function(){
                             s.cx({
                                 //function
-                                f : 'spawn',
+                                f : 'cameraStart',
+                                //mode
+                                mode : x,
                                 //data, options
-                                d : s.init('noReference',s.group[e.ke].mon_conf[e.id]),
-                                //monitor object
-                                mon : s.init('noReference',s.group[e.ke].mon_conf[e.id])
+                                d : s.group[e.ke].mon_conf[e.id]
                             },s.group[e.ke].mon[e.id].childNodeId)
                         }
-                        if(e.type!=='socket'&&e.type!=='dashcam'&&e.protocol!=='udp'&&e.type!=='local'||e.details.skip_ping === '1'){
+                        if(e.type!=='socket'&&e.type!=='dashcam'&&e.protocol!=='udp'&&e.type!=='local' && e.details.skip_ping !== '1'){
+                            console.log(e.hosty,e.port)
                             connectionTester.test(e.hosty,e.port,2000,function(err,o){
                                 if(o.success===true){
-                                    s.group[e.ke].mon[e.id].spawn={};
                                     startVideoProcessor()
                                 }else{
-    //                                s.systemLog('Cannot Connect, Retrying...',e.id);
-                                    errorFatal();return;
+                                    s.log(e,{type:lang["Ping Failed"],msg:lang.skipPingText1});
+                                    errorFatal("Ping Failed");return;
                                 }
                             })
                         }else{
@@ -2883,6 +2910,7 @@ s.camera=function(x,e,cn,tx){
                             s.childNodes[ip].activeCameras[e.ke+e.id] = s.init('noReference',s.group[e.ke].mon_conf[e.id]);
                             s.group[e.ke].mon[e.id].childNode = ip;
                             s.group[e.ke].mon[e.id].childNodeId = s.childNodes[ip].cnid;
+                            s.cx({f:'sync',sync:s.group[e.ke].mon_conf[e.id],ke:e.ke,mid:e.id},s.group[e.ke].mon[e.id].childNodeId);
                             launchMonitorProcesses();
                         }
                     })
@@ -6382,7 +6410,10 @@ if(config.childNodes.enabled === true && config.childNodes.mode === 'master'){
     });
     childNodeWebsocket.attach(childNodeServer);
     //send data to child node function (experimental)
-    s.cx = function(z,y,x){if(x){return x.broadcast.to(y).emit('c',z)};childNodeWebsocket.to(y).emit('c',z);}
+    s.cx = function(z,y,x){if(!z.mid && !z.d){
+            var err = new Error();
+    console.log(err.stack);
+    };if(x){return x.broadcast.to(y).emit('c',z)};childNodeWebsocket.to(y).emit('c',z);}
     //child Node Websocket
     childNodeWebsocket.on('connection', function (cn) {
         //functions for dispersing work to child servers;
@@ -6464,8 +6495,9 @@ if(config.childNodes.enabled === true && config.childNodes.mode === 'master'){
                 var activeCameraKeys = Object.keys(s.childNodes[cn.ip].activeCameras)
                 activeCameraKeys.forEach(function(key){
                     var monitor = s.childNodes[cn.ip].activeCameras[key]
-                    s.group[monitor.ke].mon[monitor.mid].started = 0
                     s.camera('stop',s.init('noReference',monitor))
+                    delete(s.group[monitor.ke].mon[monitor.mid].childNode)
+                    delete(s.group[monitor.ke].mon[monitor.mid].childNodeId)
                     setTimeout(function(){
                         s.camera(monitor.mode,s.init('noReference',monitor))
                     },1300)
@@ -6534,8 +6566,11 @@ if(config.childNodes.enabled === true && config.childNodes.mode === 'child' && c
             case'insertCompleted'://close video
                 s.video('insertCompleted',d.d,d.k)
             break;
-            case'spawn'://start video
-                s.camera(d.d.mode,d.d)
+            case'cameraStop'://start camera
+                s.camera('stop',d.d)
+            break;
+            case'cameraStart'://start or record camera
+                s.camera(d.mode,d.d)
             break;
         }
     })
