@@ -1756,7 +1756,7 @@ $.ccio.globalWebsocket=function(d,user){
                     break;
                     case'ab':
                         d.reader = new FileReader();
-                        d.reader.addEventListener("loadend",function(){$snapElement.attr('src',d.reader.result)});
+                        d.reader.addEventListener("loadend",function(){snapElement.attr('src',d.reader.result)});
                         d.reader.readAsDataURL(new Blob([d.snapshot],{type:"image/jpeg"}));
                     break;
                     case'b64':
