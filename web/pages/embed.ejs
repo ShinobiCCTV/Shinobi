@@ -285,7 +285,7 @@ $(document).ready(function(){
                                 options = {
                                     type: 'flv',
                                     isLive: true,
-                                    url: '<%=data.url%>/<%=data.auth%>/flv/'+d.ke+'/'+d.id+'/s.flv'
+                                    url: '<%=data.url%><%=data.auth%>/flv/'+d.ke+'/'+d.id+'/s.flv'
                                 }
 //                            }
                             $.shinobi.mon[d.id].flv = flvjs.createPlayer(options);
@@ -307,13 +307,13 @@ $(document).ready(function(){
                         if(!$.shinobi.mon[d.mon.mid].jpegInterval){
                             clearInterval($.shinobi.mon[d.mon.mid].jpegInterval);
                             $.shinobi.mon[d.mon.mid].jpegInterval=setInterval(function(){
-                                $('#SHINOBI_'+d.ke+'_'+d.id+' .stream-element').attr('src','<%=data.url%>/<%=data.auth%>/jpeg/'+d.mon.ke+'/'+d.mon.mid+'/s.jpg?time='+(new Date()).getTime())
+                                $('#SHINOBI_'+d.ke+'_'+d.id+' .stream-element').attr('src','<%=data.url%><%=data.auth%>/jpeg/'+d.mon.ke+'/'+d.mon.mid+'/s.jpg?time='+(new Date()).getTime())
                             },1000/k.jpegInterval);
                         }
                     break;
                     case'hls':
                     var video = $('#SHINOBI_'+d.ke+'_'+d.id+' .stream-element')[0];
-                    d.url='<%=data.url%>/<%=data.auth%>/hls/'+d.ke+'/'+d.id+'/s.m3u8';
+                    d.url='<%=data.url%><%=data.auth%>/hls/'+d.ke+'/'+d.id+'/s.m3u8';
                     if($.shinobi.mon[d.id].hls){
                         $.shinobi.mon[d.id].hls.destroy()
                     }
@@ -330,7 +330,7 @@ $(document).ready(function(){
                     }
                     break;
                     case'mjpeg':
-                        $('#SHINOBI_'+d.ke+'_'+d.id+' .stream-element').attr('src','<%=data.url%>/<%=data.auth%>/mjpeg/'+d.ke+'/'+d.id+'?full=true')
+                        $('#SHINOBI_'+d.ke+'_'+d.id+' .stream-element').attr('src','<%=data.url%><%=data.auth%>/mjpeg/'+d.ke+'/'+d.id+'?full=true')
                     break;
                 }
             }
