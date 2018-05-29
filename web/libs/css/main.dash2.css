@@ -657,3 +657,60 @@ ul.msg_list li .message {
 .right-to-left .mdl-menu__item i{float:right}
 .right-to-left .pull-right,.right-to-left .close{float:left!important}
 .right-to-left .pull-left,.right-to-left .mdl-menu__item span{float:right!important}
+/* All-CSS Toggle Switch (Checkbox Hack) by Marcus Burnette - https://codepen.io/mburnette/pen/LxNxNg */
+.marc-toggle {
+    width: 50px;
+    height: 25px;
+}
+.marc-toggle.abs-bot-left {
+    position: absolute;
+    bottom: 10px;
+    left: 10px;
+}
+.marc-toggle.abs-bot-right {
+    position: absolute;
+    bottom: 10px;
+    right: 10px;
+}
+.marc-toggle input[type=checkbox]{
+    height: 0;
+    width: 0;
+    visibility: hidden;
+}
+
+.marc-toggle label {
+    cursor: pointer;
+    text-indent: -9999px;
+    width: 100px;
+    height: 20px;
+    background: grey;
+    display: block;
+    border-radius: 100px;
+    margin-bottom: 0;
+    position: relative;
+}
+
+.marc-toggle label:after {
+    content: '';
+    position: absolute;
+    top: 5px;
+    left: 5px;
+    width: 10px;
+    height: 10px;
+    background: #fff;
+    border-radius: 90px;
+    transition: 0.3s;
+}
+
+.marc-toggle input:checked + label {
+    background: #00118c;
+}
+
+.marc-toggle input:checked + label:after {
+    left: calc(100% - 5px);
+    transform: translateX(-100%);
+}
+
+.marc-toggle label:active:after {
+    width: 10px;
+}

@@ -4069,6 +4069,70 @@ $.timelapse.drawTimeline=function(getData){
         e.next($.timelapse.currentVideosArray)
     }
 }
+$.timelapse.playButtonIcon = $.timelapse.e.find('[timelapse="play"]').find('i')
+$.timelapse.timelapseSpeedUseBasicSwitch = $('#timelapseSpeedUseBasic')
+$.timelapse.timelapseSpeedUseBasicSwitch.on('change',$.timelapse.play)
+$.timelapse.getUseBasicStatus = function(){return $.timelapse.timelapseSpeedUseBasicSwitch.prop('checked')}
+$.timelapse.onPlayPause = function(toggleGui,secondWind){
+    if($.timelapse.paused === true){
+        $.timelapse.paused = false
+        if(toggleGui === true)$.timelapse.play();
+    }else{
+        $.timelapse.paused = true
+        if(toggleGui === true)$.timelapse.pause(secondWind);
+    }
+}
+$.timelapse.pause = function(secondWind){
+    //secondWind is used because sometimes pause can be pressed just as a video ends and the pause command does not register on the next video.
+    var videoNow = $.timelapse.display.find('video.videoNow')[0]
+    var pause = function(){
+        if(videoNow.paused == false)videoNow.pause()
+        clearInterval($.timelapse.interval)
+        $.timelapse.playButtonIcon.removeClass('fa-pause').addClass('fa-play')
+    }
+    pause()
+    if(secondWind === true)setTimeout(pause,250);
+}
+$.timelapse.play = function(x){
+    var videoNow = $.timelapse.display.find('video.videoNow')[0]
+    $.timelapse.pause()
+    clearInterval($.timelapse.interval)
+    if($.timelapse.getUseBasicStatus()){
+        videoNow.playbackRate = $.timelapse.playRate
+        if(videoNow.paused)videoNow.play()
+    }else{
+        videoNow.playbackRate = 1.0
+        $.timelapse.interval = setInterval(function(){
+           if(videoNow.currentTime >= videoNow.duration - .2){
+               clearInterval($.timelapse.interval)
+               videoNow.currentTime = videoNow.duration
+           }else{
+               videoNow.currentTime += .2 
+           }
+        },200 / $.timelapse.playRate)
+    }
+    $.timelapse.playButtonIcon.removeClass('fa-play').addClass('fa-pause')
+}
+$.timelapse.rewind = function(e){
+    var videoNow = $.timelapse.display.find('video.videoNow')[0]
+    $.timelapse.pause()
+    videoNow.playbackRate = 1.0
+    clearInterval($.timelapse.interval)
+    $.timelapse.interval = setInterval(function(){
+       if(videoNow.currentTime <= 0.2){
+           clearInterval($.timelapse.interval)
+           videoNow.currentTime = 0
+           $('[timelapse][href="'+e.videoCurrentBefore.attr('video')+'"]').click()
+           var videoNowNew = $.timelapse.display.find('video.videoNow')[0]
+           videoNowNew.pause()
+           videoNowNew.currentTime = videoNowNew.duration - 0.1
+           $.timelapse.e.find('[timelapse="stepBackBack"]').click()
+       }else{
+           videoNow.currentTime += -.5
+       }
+    },500 / $.timelapse.playRate)
+    $.timelapse.playButtonIcon.removeClass('fa-play').addClass('fa-pause')
+}
 $.timelapse.e.on('click','[timelapse]',function(){
     var e={}
     e.e=$(this)
@@ -4089,9 +4153,13 @@ $.timelapse.e.on('click','[timelapse]',function(){
             e.e.toggleClass('btn-danger')
         break;
         case'play':
-            $.timelapse.playRate =5
             e.videoCurrentNow[0].playbackRate = $.timelapse.playRate;
-            $.timelapse.onPlayPause(1)
+            $.timelapse.onPlayPause(true,true)
+        break;
+        case'setPlayBackRate':
+            $.timelapse.pause()
+            $.timelapse.playRate = parseFloat(e.e.attr('playRate'))
+            $.timelapse.play()
         break;
         case'stepFrontFront':
             e.add=e.e.attr('add')
@@ -4110,17 +4178,10 @@ $.timelapse.e.on('click','[timelapse]',function(){
             e.videoCurrentNow[0].pause()
         break;
         case'stepBackBack':
-           $.timelapse.videoInterval = setInterval(function(){
-               $.timelapse.playRate = 5
-               e.videoCurrentNow[0].playbackRate = $.timelapse.playRate;
-               if(e.videoCurrentNow[0].currentTime == 0){
-                   clearInterval($.timelapse.videoInterval);
-                   e.videoCurrentNow[0].pause();
-               }
-               else{
-                   e.videoCurrentNow[0].currentTime += -.5;
-               }
-           },30);
+//            e.videoCurrentNow=$.timelapse.display.find('.videoNow')
+//            e.videoCurrentAfter=$.timelapse.display.find('.videoAfter')
+//            e.videoCurrentBefore=$.timelapse.display.find('.videoBefore')
+           $.timelapse.rewind(e)
         break;
         case'stepBack':
             e.videoCurrentNow[0].currentTime += -5;
@@ -4130,7 +4191,6 @@ $.timelapse.e.on('click','[timelapse]',function(){
             $.timelapse.e.find('video').each(function(n,v){
                 v.pause()
             })
-            e.playButtonIcon=$.timelapse.e.find('[timelapse="play"]').find('i')
             e.drawVideoHTML=function(position){
                 var video
                 var exisitingElement=$.timelapse.display.find('.'+position)
@@ -4201,31 +4261,22 @@ $.timelapse.e.on('click','[timelapse]',function(){
             if($.timelapse.videoNowIsMuted){
                 e.videoNow.muted=true
             }
-            e.videoNow.playbackRate = $.timelapse.playRate
-            e.videoNow.play()
-            e.playButtonIcon.removeClass('fa-pause').addClass('fa-play')
+            $.timelapse.playButtonIcon.removeClass('fa-pause').addClass('fa-play')
             $.timelapse.onended = function() {
                 $.timelapse.line.find('[file="'+e.video[$.timelapse.playDirection].filename+'"]').click()
             };
             e.videoNow.onended = $.timelapse.onended
             e.videoNow.onerror = $.timelapse.onended
-            $.timelapse.onPlayPause=function(x){
-                if(e.videoNow.paused===true){
-                    e.playButtonIcon.removeClass('fa-pause').addClass('fa-play')
-                    if(x==1)e.videoNow.play();
-                }else{
-                    e.playButtonIcon.removeClass('fa-play').addClass('fa-pause')
-                    if(x==1)e.videoNow.pause();
-                }
-            }
+            //
             $(e.videoNow)
-            .off('play').on('play',$.timelapse.onPlayPause)
+            .off('play').on('play',$.timelapse.play)
             .off('pause').on('pause',$.timelapse.onPlayPause)
             .off('timeupdate').on('timeupdate',function(){
                 var value= (( e.videoNow.currentTime / e.videoNow.duration ) * 100)+"%"
                 $.timelapse.seekBarProgress.css("width",value);
                 $.timelapse.e.find('.timelapse_video[file="'+e.filename+'"] .progress-bar').css("width",value);
             })
+            $.timelapse.play()
             $.timelapse.seekBar.off("click").on("click", function(seek){
                 var offset = $(this).offset();
                 var left = (seek.pageX - offset.left);
@@ -4717,11 +4768,16 @@ $('body')
         break;
     }
 })
-.on('change','[localStorage]',function(e){
-    e.e=$(this)
-    e.localStorage=e.e.attr('localStorage')
-    e.value=e.e.val()
-    $.ccio.op(e.localStorage,e.value)
+.on('change','[localStorage]',function(){
+    e = {}
+    e.e = $(this)
+    e.localStorage = e.e.attr('localStorage')
+    var value = e.e.val()
+    if(e.e.is(':checkbox') && e.e.prop('checked') === false){
+        value = '0'
+    }
+    console.log(value)
+    $.ccio.op(e.localStorage,value)
 })
 .on('click','[system]',function(e){
   var e={}; 
@@ -5228,7 +5284,10 @@ $('body')
     if(e.o){
         $.each(e.o,function(n,v){
             if(typeof v==='string'){
-                $('[localStorage="'+n+'"]').val(v)
+                var el = $('[localStorage="'+n+'"]')
+                if(el.is(':checkbox') === false){
+                    el.val(v)
+                }
             }
         })
     }
