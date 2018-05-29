@@ -4107,9 +4107,9 @@ $.timelapse.play = function(x){
                clearInterval($.timelapse.interval)
                videoNow.currentTime = videoNow.duration
            }else{
-               videoNow.currentTime += .2 
+               videoNow.currentTime += .5 
            }
-        },200 / $.timelapse.playRate)
+        },500 / $.timelapse.playRate)
     }
     $.timelapse.playButtonIcon.removeClass('fa-play').addClass('fa-pause')
 }
@@ -4770,14 +4770,10 @@ $('body')
 })
 .on('change','[localStorage]',function(){
     e = {}
-    e.e = $(this)
+    e.e=$(this)
     e.localStorage = e.e.attr('localStorage')
-    var value = e.e.val()
-    if(e.e.is(':checkbox') && e.e.prop('checked') === false){
-        value = '0'
-    }
-    console.log(value)
-    $.ccio.op(e.localStorage,value)
+    e.value = e.e.val()
+    $.ccio.op(e.localStorage,e.value)
 })
 .on('click','[system]',function(e){
   var e={}; 
