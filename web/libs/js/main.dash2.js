@@ -2849,7 +2849,7 @@ $.multimon.e.find('.import_config').click(function(){
                         case'ffmpeg':case'libvlc':
                             newMon.details.auto_host_enable = '1'
                             newMon.details.auto_host = Monitor.Path
-                            if(newMon.auto_host.indexOf('rtsp://') > -1){
+                            if(newMon.auto_host.indexOf('rtsp://') > -1 || newMon.auto_host.indexOf('rtmp://') > -1 || newMon.auto_host.indexOf('rtmps://') > -1){
                                 newMon.type = 'h264'
                             }else{
                                 $.ccio.init('note',{title:'<%-cleanLang(lang['Please Check Your Settings'])%>',text:'<%-cleanLang(lang.migrateText1)%>',type:'error'})
@@ -3353,10 +3353,20 @@ $.aM.e.on('change','[detail="auto_host"]',function(e){
     }else{
         var urlSplitByDots = url.split('.')
         var has = function(query,searchIn){if(!searchIn){searchIn=url;};return url.indexOf(query)>-1}
-        //switch RTSP to parse URL
+        var protocol = url.split('://')[0]
+        console.log(url.split('://'))
+        //switch RTSP, RTMP and RTMPS to parse URL
         if(has('rtsp://')){
             isRTSP = true;
             url = url.replace('rtsp://','http://')
+        }
+        if(has('rtmp://')){
+            isRTMP = true;
+            url = url.replace('rtmp://','http://')
+        }
+        if(has('rtmps://')){
+            isRTMPS = true;
+            url = url.replace('rtmps://','http://')
         }
         //parse URL
         var parsedURL = document.createElement('a');
@@ -3365,14 +3375,11 @@ $.aM.e.on('change','[detail="auto_host"]',function(e){
         if(url.indexOf('?') > -1){
             pathname += '?'+url.split('?')[1]
         }
+        $.aM.e.find('[name="protocol"]').val(protocol).change()
         if(isRTSP){
-            $.aM.e.find('[name="protocol"]').val('rtsp').change()
             $.aM.e.find('[detail="rtsp_transport"]').val('tcp').change()
             $.aM.e.find('[detail="aduration"]').val(1000000).change()
             $.aM.e.find('[detail="probesize"]').val(1000000).change()
-        }else{
-            //not RTSP
-            $.aM.e.find('[name="protocol"]').val(parsedURL.protocol.replace(/:/g,'').replace(/\//g,'')).change()
         }
         $.aM.e.find('[detail="muser"]').val(parsedURL.username).change()
         $.aM.e.find('[detail="mpass"]').val(parsedURL.password).change()
@@ -3393,7 +3400,13 @@ $.aM.f.submit(function(ee){
     $.each(e.s,function(n,v){e.s[n]=v.trim()});
     e.s.mid=e.s.mid.replace(/[^\w\s]/gi,'').replace(/ /g,'')
     if(e.s.mid.length<3){e.er.push('Monitor ID too short')}
-    if(e.s.port==''){e.s.port=80}
+    if(e.s.port==''){
+        if(e.s.protocol === 'https'){
+            e.s.port = 443
+        }else{
+            e.s.port = 80
+        }
+    }
     if(e.s.name==''){e.er.push('Monitor Name cannot be blank')}
 //    if(e.s.protocol=='rtsp'){e.s.ext='mp4',e.s.type='rtsp'}
     if(e.er.length>0){
@@ -4071,7 +4084,15 @@ $.timelapse.drawTimeline=function(getData){
 }
 $.timelapse.playButtonIcon = $.timelapse.e.find('[timelapse="play"]').find('i')
 $.timelapse.timelapseSpeedUseBasicSwitch = $('#timelapseSpeedUseBasic')
-$.timelapse.timelapseSpeedUseBasicSwitch.on('change',$.timelapse.play)
+$.timelapse.timelapseSpeedUseBasicSwitch.on('change',function(){
+    var el = $.timelapse.e.find('.timelapseSpeedUseBasicSwitch')
+    if($(this).is(':checked')){
+        el.hide()
+    }else{
+        el.show()
+    }
+    $.timelapse.play()
+})
 $.timelapse.getUseBasicStatus = function(){return $.timelapse.timelapseSpeedUseBasicSwitch.prop('checked')}
 $.timelapse.onPlayPause = function(toggleGui,secondWind){
     if($.timelapse.paused === true){
