@@ -1,5 +1,6 @@
 {
   "port": 8080,
+  "fromEmail": "Shinobi CCTV<no-reply@shinobi.video>",
   "addStorage": [
       {"name":"second","path":"__DIR__/videos2"}
   ],
