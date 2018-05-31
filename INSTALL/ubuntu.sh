@@ -58,7 +58,7 @@ if [ "$ffmpeginstall" = "y" ] || [ "$ffmpeginstall" = "Y" ]; then
         else
             echo "============="
             echo "Shinobi - Installing FFMPEG"
-            sudo apt install ffmpeg libav-tools x264 x265 -y
+            sudo apt install ffmpeg -y
             echo "============="
         fi
     else

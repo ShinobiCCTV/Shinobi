@@ -11,18 +11,29 @@ process.on('uncaughtException', function (err) {
     console.error('uncaughtException',err);
 });
 var fs=require('fs');
-var cv=require('opencv');
+var cv=require('opencv4nodejs');
 var exec = require('child_process').exec;
 var moment = require('moment');
 var Canvas = require('canvas');
+var express = require('express');
+var http = require('http'),
+    app = express(),
+    server = http.createServer(app);
 var config=require('./conf.json');
+if(!config.port){config.port=8080}
+if(!config.hostPort){config.hostPort=8082}
 if(config.systemLog===undefined){config.systemLog=true}
+if(config.cascadesDir===undefined){config.cascadesDir=__dirname+'/cascades/'}
+if(config.alprConfig===undefined){config.alprConfig=__dirname+'/openalpr.conf'}
 s={
     group:{},
     dir:{
-        cascades:__dirname+'/cascades/'
+        cascades : config.cascadesDir
     },
-    isWin:(process.platform==='win32')
+    isWin:(process.platform==='win32'),
+    foundCascades : {
+        
+    }
 }
 //default stream folder check
 if(!config.streamDir){
@@ -41,6 +52,10 @@ s.dir.streams=config.streamDir;
 //streams dir
 if(!fs.existsSync(s.dir.streams)){
     fs.mkdirSync(s.dir.streams);
+}
+//streams dir
+if(!fs.existsSync(s.dir.cascades)){
+    fs.mkdirSync(s.dir.cascades);
 }
 s.gid=function(x){
     if(!x){x=10};var t = "";var p = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
@@ -64,91 +79,110 @@ s.findCascades=function(callback){
 s.findCascades(function(){
     //get cascades
 })
-s.detectObject=function(buffer,d){
-  var keys = Object.keys(d.mon.detector_cascades);
-  if(d.mon.detector_lisence_plate==="1"){
-      if(!d.mon.detector_lisence_plate_country||d.mon.detector_lisence_plate_country===''){
-          d.mon.detector_lisence_plate_country='us'
-      }
-      d.tmpFile=s.gid(5)+'.jpg'
-      if(!fs.existsSync(s.dir.streams)){
-          fs.mkdirSync(s.dir.streams);
-      }
-      d.dir=s.dir.streams+d.ke+'/'
-      if(!fs.existsSync(d.dir)){
-          fs.mkdirSync(d.dir);
-      }
-      d.dir=s.dir.streams+d.ke+'/'+d.id+'/'
-      if(!fs.existsSync(d.dir)){
-          fs.mkdirSync(d.dir);
-      }
-      fs.writeFile(d.dir+d.tmpFile,buffer,function(err){
-          if(err) return s.systemLog(err);
-          exec('alpr -j -c '+d.mon.detector_lisence_plate_country+' '+d.dir+d.tmpFile,{encoding:'utf8'},(err, scan, stderr) => {
-              if(err){
-                  s.systemLog(err);
-              }else{
-                  try{
-                      try{
-                          scan=JSON.parse(scan)
-                      }catch(err){
-                          if(!scan||!scan.results){
-                              return s.systemLog(scan,err);
-                          }
-                      }
-                      if(scan.results.length>0){
-                          scan.plates=[]
-                          scan.mats=[]
-                          scan.results.forEach(function(v){
-                              v.candidates.forEach(function(g,n){
-                                  if(v.candidates[n].matches_template)
-                                    delete(v.candidates[n].matches_template)
-                              })
-                              scan.plates.push({coordinates:v.coordinates,candidates:v.candidates,confidence:v.confidence,plate:v.plate})
-                              var width = Math.sqrt( Math.pow(v.coordinates[1].x - v.coordinates[0].x, 2) + Math.pow(v.coordinates[1].y - v.coordinates[0].y, 2));
-                              var height = Math.sqrt( Math.pow(v.coordinates[2].x - v.coordinates[1].x, 2) + Math.pow(v.coordinates[2].y - v.coordinates[1].y, 2))
-                              scan.mats.push({
-                                x:v.coordinates[0].x,
-                                y:v.coordinates[0].y,
-                                width:width,
-                                height:height,
-                                tag:v.plate
-                              })
-                          })
-                          tx({f:'trigger',id:d.id,ke:d.ke,details:{plug:config.plug,name:'licensePlate',reason:'object',matrices:scan.mats,confidence:d.average,imgHeight:d.mon.detector_scale_y,imgWidth:d.mon.detector_scale_x,frame:d.base64}})
-                      }
-                  }catch(err){
-                      s.systemLog(scan,err);
+s.detectLicensePlate=function(buffer,d,tx){
+  if(!d.mon.detector_lisence_plate_country||d.mon.detector_lisence_plate_country===''){
+      d.mon.detector_lisence_plate_country='us'
+  }
+  d.tmpFile=s.gid(5)+'.jpg'
+  if(!fs.existsSync(s.dir.streams)){
+      fs.mkdirSync(s.dir.streams);
+  }
+  d.dir=s.dir.streams+d.ke+'/'
+  if(!fs.existsSync(d.dir)){
+      fs.mkdirSync(d.dir);
+  }
+  d.dir=s.dir.streams+d.ke+'/'+d.id+'/'
+  if(!fs.existsSync(d.dir)){
+      fs.mkdirSync(d.dir);
+  }
+  fs.writeFile(d.dir+d.tmpFile,buffer,function(err){
+      if(err) return s.systemLog(err);
+      exec('alpr -j --config '+config.alprConfig+' -c '+d.mon.detector_lisence_plate_country+' '+d.dir+d.tmpFile,{encoding:'utf8'},(err, scan, stderr) => {
+          if(err){
+              s.systemLog(err);
+          }else{
+              try{
+                  scan=JSON.parse(scan.replace('--(!)Loaded CUDA classifier','').trim())
+              }catch(err){
+                  if(!scan||!scan.results){
+                      return s.systemLog(scan,err);
                   }
               }
-              exec('rm -rf '+d.dir+d.tmpFile,{encoding:'utf8'})
-          })
-      })
-  }
-  if(keys.length===0){return false}
-  cv.readImage(buffer, function(err,im){
-      if(err){console.log(err);return false;}
-      var width = im.width();
-      var height = im.height();
-
-      if (width < 1 || height < 1) {
-         throw new Error('Image has no size');
-      }
-      keys.forEach(function(v,n){
-          im.detectObject(s.dir.cascades+v+'.xml',{}, function(err,mats){
-              if(err){console.log(err);return false;}
-              if(mats&&mats.length>0){
-                  mats.forEach(function(v,n){
-                      v.centerX=v.width/2
-                      v.centerY=v.height/2
-                      v.centerXnoParent=v.x+(v.width/2)
-                      v.centerYnoParent=v.y+(v.height/2)
+              if(scan.results.length>0){
+                  scan.plates=[]
+                  scan.mats=[]
+                  scan.results.forEach(function(v){
+                      v.candidates.forEach(function(g,n){
+                          if(v.candidates[n].matches_template)
+                            delete(v.candidates[n].matches_template)
+                      })
+                      scan.plates.push({coordinates:v.coordinates,candidates:v.candidates,confidence:v.confidence,plate:v.plate})
+                      var width = Math.sqrt( Math.pow(v.coordinates[1].x - v.coordinates[0].x, 2) + Math.pow(v.coordinates[1].y - v.coordinates[0].y, 2));
+                      var height = Math.sqrt( Math.pow(v.coordinates[2].x - v.coordinates[1].x, 2) + Math.pow(v.coordinates[2].y - v.coordinates[1].y, 2))
+                      scan.mats.push({
+                        x:v.coordinates[0].x,
+                        y:v.coordinates[0].y,
+                        width:width,
+                        height:height,
+                        tag:v.plate
+                      })
                   })
-                  s.cx({f:'trigger',id:d.id,ke:d.ke,details:{plug:config.plug,name:v,reason:'object',matrices:mats,confidence:d.average,imgHeight:height,imgWidth:width,frame:d.base64}})
+                  tx({f:'trigger',id:d.id,ke:d.ke,details:{split:true,plug:config.plug,name:'licensePlate',reason:'object',matrices:scan.mats,imgHeight:d.mon.detector_scale_y,imgWidth:d.mon.detector_scale_x,frame:d.base64}})
               }
-          })
+          }
+          exec('rm -rf '+d.dir+d.tmpFile,{encoding:'utf8'})
       })
   })
+}
+s.detectObject=function(buffer,d,tx){
+    //detect license plate?
+  if(d.mon.detector_lisence_plate==="1"){
+      s.detectLicensePlate(buffer,d,tx)
+  }
+    //check selected opencv cascades
+  if(!d.mon.detector_cascades || d.mon.detector_cascades === '')return;
+  var selectedCascades = Object.keys(d.mon.detector_cascades);
+  if(selectedCascades.length > 0){
+    cv.imdecodeAsync(buffer,(err,im) => {
+        if(err){
+            console.log(err)
+            return
+        }
+        selectedCascades.forEach(function(cascade){
+            var cascadePath = s.dir.cascades+cascade+'.xml'
+            if(s.foundCascades[cascadePath] === undefined){
+                s.foundCascades[cascadePath] = fs.existsSync(cascadePath)
+            }else if(s.foundCascades[cascadePath] === false){
+                return s.systemLog('Attempted to use non existant cascade. : '+cascadePath)
+            }
+            var classifier = new cv.CascadeClassifier(cascadePath)
+            var matrices = classifier.detectMultiScaleGpu(im).objects
+            if(matrices.length > 0){
+                matrices.forEach(function(v,n){
+                  v.centerX=v.width/2
+                  v.centerY=v.height/2
+                  v.centerXnoParent=v.x+(v.width/2)
+                  v.centerYnoParent=v.y+(v.height/2)
+                })
+                s.cx({
+                    f:'trigger',
+                    id:d.id,
+                    ke:d.ke,
+                    name:cascade,
+                    details:{
+                        plug:'built-in-opencv',
+                        name:cascade,
+                        reason:'object',
+                        matrices : matrices,
+                        confidence:d.average
+                    },
+                    imgHeight:d.mon.detector_scale_y,
+                    imgWidth:d.mon.detector_scale_x
+                })
+            }
+        })
+    });
+  }
 }
 s.systemLog=function(q,w,e){
     if(!w){w=''}
@@ -157,7 +191,8 @@ s.systemLog=function(q,w,e){
        return console.log(moment().format(),q,w,e)
     }
 }
-s.blenderRegion=function(d,cord){
+
+s.blenderRegion=function(d,cord,tx){
     d.width  = d.image.width;
     d.height = d.image.height;
     if(!s.group[d.ke][d.id].canvas[cord.name]){
@@ -210,12 +245,12 @@ s.blenderRegion=function(d,cord){
     }
     d.average = (d.average / (blendedData.data.length * 0.25))*10;
     if (d.average > parseFloat(cord.sensitivity)){
-          var buffer=s.group[d.ke][d.id].canvas[cord.name].toBuffer();
-          if(d.mon.detector_use_detect_object==="1"){
-              s.detectObject(buffer,d)
-          }else{
-              s.cx({f:'trigger',id:d.id,ke:d.ke,details:{plug:config.plug,name:cord.name,reason:'motion',confidence:d.average,frame:d.base64}})
-          }
+        if(d.mon.detector_use_detect_object==="1"&&d.mon.detector_second!=='1'){
+            var buffer=s.group[d.ke][d.id].canvas[cord.name].toBuffer();
+            s.detectObject(buffer,d,tx)
+        }else{
+            tx({f:'trigger',id:d.id,ke:d.ke,details:{split:true,plug:config.plug,name:cord.name,reason:'motion',confidence:d.average,frame:d.base64}})
+        }
     }
     s.group[d.ke][d.id].canvasContext[cord.name].clearRect(0, 0, d.width, d.height);
     s.group[d.ke][d.id].blendRegionContext[cord.name].clearRect(0, 0, d.width, d.height);
@@ -246,19 +281,6 @@ function fastAbs(value) {
 function threshold(value) {
     return (value > 0x15) ? 0xFF : 0;
 }
-
-function difference(target, data1, data2) {
-    // blend mode difference
-    if (data1.length != data2.length) return null;
-    var i = 0;
-    while (i < (data1.length * 0.25)) {
-        target[4 * i] = data1[4 * i] == 0 ? 0 : fastAbs(data1[4 * i] - data2[4 * i]);
-        target[4 * i + 1] = data1[4 * i + 1] == 0 ? 0 : fastAbs(data1[4 * i + 1] - data2[4 * i + 1]);
-        target[4 * i + 2] = data1[4 * i + 2] == 0 ? 0 : fastAbs(data1[4 * i + 2] - data2[4 * i + 2]);
-        target[4 * i + 3] = 0xFF;
-        ++i;
-    }
-}
 s.differenceAccuracy=function(target, data1, data2) {
     if (data1.length != data2.length) return null;
     var i = 0;
@@ -273,8 +295,7 @@ s.differenceAccuracy=function(target, data1, data2) {
         ++i;
     }
 }
-
-s.checkAreas=function(d){
+s.checkAreas=function(d,tx){
     if(!s.group[d.ke][d.id].cords){
         if(!d.mon.cords){d.mon.cords={}}
         s.group[d.ke][d.id].cords=Object.values(d.mon.cords);
@@ -285,20 +306,12 @@ s.checkAreas=function(d){
     }
     for (var b = 0; b < s.group[d.ke][d.id].cords.length; b++){
         if(!s.group[d.ke][d.id].cords[b]){return}
-        s.blenderRegion(d,s.group[d.ke][d.id].cords[b])
+        s.blenderRegion(d,s.group[d.ke][d.id].cords[b],tx)
     }
     delete(d.image)
 }
 
-io = require('socket.io-client')('ws://'+config.host+':'+config.port);//connect to master
-s.cx=function(x){x.pluginKey=config.key;x.plug=config.plug;return io.emit('ocv',x)}
-io.on('connect',function(d){
-    s.cx({f:'init',plug:config.plug,notice:config.notice});
-})
-io.on('disconnect',function(d){
-    io.connect();
-})
-io.on('f',function(d){
+s.MainEventController=function(d,cn,tx){
     switch(d.f){
         case'refreshPlugins':
             s.findCascades(function(cascades){
@@ -308,6 +321,20 @@ io.on('f',function(d){
         case'readPlugins':
             s.cx({f:'s.tx',data:{f:'detector_cascade_list',cascades:s.cascadesInDir},to:'GRP_'+d.ke})
         break;
+        case'init_plugin_as_host':
+            if(!cn){
+                console.log('No CN',d)
+                return
+            }
+            if(d.key!==config.key){
+                console.log(new Date(),'Plugin Key Mismatch',cn.request.connection.remoteAddress,d)
+                cn.emit('init',{ok:false})
+                cn.disconnect()
+            }else{
+                console.log(new Date(),'Plugin Connected to Client',cn.request.connection.remoteAddress)
+                cn.emit('init',{ok:true,plug:config.plug,notice:config.notice,type:config.type})
+            }
+        break;
         case'init_monitor':
             if(s.group[d.ke]&&s.group[d.ke][d.id]){
                 s.group[d.ke][d.id].canvas={}
@@ -315,9 +342,14 @@ io.on('f',function(d){
                 s.group[d.ke][d.id].blendRegion={}
                 s.group[d.ke][d.id].blendRegionContext={}
                 s.group[d.ke][d.id].lastRegionImageData={}
+                s.group[d.ke][d.id].numberOfTriggers=0
                 delete(s.group[d.ke][d.id].cords)
                 delete(s.group[d.ke][d.id].buffer)
             }
+        break;
+        case'init_aws_push':
+//            console.log('init_aws')
+            s.group[d.ke][d.id].aws={links:[],complete:0,total:d.total,videos:[],tx:tx}
         break;
         case'frame':
             try{
@@ -339,19 +371,6 @@ io.on('f',function(d){
                   s.group[d.ke][d.id].buffer.push(d.frame)
                 }
                 if(d.frame[d.frame.length-2] === 0xFF && d.frame[d.frame.length-1] === 0xD9){
-                    if(s.group[d.ke][d.id].motion_lock){
-                        return
-                    }else{
-                        if(!d.mon.detector_lock_timeout||d.mon.detector_lock_timeout===''||d.mon.detector_lock_timeout==0){
-                            d.mon.detector_lock_timeout=2000
-                        }else{
-                            d.mon.detector_lock_timeout=parseFloat(d.mon.detector_lock_timeout)
-                        }
-                        s.group[d.ke][d.id].motion_lock=setTimeout(function(){
-                            clearTimeout(s.group[d.ke][d.id].motion_lock);
-                            delete(s.group[d.ke][d.id].motion_lock);
-                        },d.mon.detector_lock_timeout)
-                    }
                     s.group[d.ke][d.id].buffer=Buffer.concat(s.group[d.ke][d.id].buffer);
                     try{
                         d.mon.detector_cascades=JSON.parse(d.mon.detector_cascades)
@@ -361,33 +380,38 @@ io.on('f',function(d){
                     if(d.mon.detector_frame_save==="1"){
                        d.base64=s.group[d.ke][d.id].buffer.toString('base64')
                     }
-                    if(d.mon.detector_use_motion==="1"||d.mon.detector_use_detect_object!=="1"){
-                        if((typeof d.mon.cords ==='string')&&d.mon.cords.trim()===''){
-                            d.mon.cords=[]
-                        }else{
-                            try{
-                                d.mon.cords=JSON.parse(d.mon.cords)
-                            }catch(err){
-                            }
-                        }
-                        s.group[d.ke][d.id].cords=Object.values(d.mon.cords);
-                        d.mon.cords=d.mon.cords;
-                        d.image = new Canvas.Image;
-                        if(d.mon.detector_scale_x===''||d.mon.detector_scale_y===''){
-                            s.systemLog('Must set detector image size')
-                            return
-                        }else{
-                            d.image.width=d.mon.detector_scale_x;
-                            d.image.height=d.mon.detector_scale_y;
-                        }
-                        d.width=d.image.width;
-                        d.height=d.image.height;
-                        d.image.onload = function() { 
-                            s.checkAreas(d);
-                        }
-                        d.image.src = s.group[d.ke][d.id].buffer;
+                    if(d.mon.detector_second==='1'&&d.objectOnly===true){
+                        s.detectObject(s.group[d.ke][d.id].buffer,d,tx)
                     }else{
-                        s.detectObject(s.group[d.ke][d.id].buffer,d)
+                        if((d.mon.detector_pam !== '1' && d.mon.detector_use_motion === "1") || d.mon.detector_use_detect_object !== "1"){
+                            if((typeof d.mon.cords ==='string')&&d.mon.cords.trim()===''){
+                                d.mon.cords=[]
+                            }else{
+                                try{
+                                    d.mon.cords=JSON.parse(d.mon.cords)
+                                }catch(err){
+    //                                console.log('d.mon.cords',err,d)
+                                }
+                            }
+                            s.group[d.ke][d.id].cords=Object.values(d.mon.cords);
+                            d.mon.cords=d.mon.cords;
+                            d.image = new Canvas.Image;
+                            if(d.mon.detector_scale_x===''||d.mon.detector_scale_y===''){
+                                s.systemLog('Must set detector image size')
+                                return
+                            }else{
+                                d.image.width=d.mon.detector_scale_x;
+                                d.image.height=d.mon.detector_scale_y;
+                            }
+                            d.width=d.image.width;
+                            d.height=d.image.height;
+                            d.image.onload = function() {
+                                s.checkAreas(d,tx);
+                            }
+                            d.image.src = s.group[d.ke][d.id].buffer;
+                        }else{
+                            s.detectObject(s.group[d.ke][d.id].buffer,d,tx)
+                        }
                     }
                     s.group[d.ke][d.id].buffer=null;
                 }
@@ -399,4 +423,43 @@ io.on('f',function(d){
             }
         break;
     }
-})
+}
+server.listen(config.hostPort);
+//web pages and plugin api
+app.get('/', function (req, res) {
+  res.end('<b>'+config.plug+'</b> for Shinobi is running')
+});
+//Conector to Shinobi
+if(config.mode==='host'){
+    //start plugin as host
+    var io = require('socket.io')(server);
+    io.attach(server);
+    s.connectedClients={};
+    io.on('connection', function (cn) {
+        s.connectedClients[cn.id]={id:cn.id}
+        s.connectedClients[cn.id].tx = function(data){
+            data.pluginKey=config.key;data.plug=config.plug;
+            return io.to(cn.id).emit('ocv',data);
+        }
+        cn.on('f',function(d){
+            s.MainEventController(d,cn,s.connectedClients[cn.id].tx)
+        });
+        cn.on('disconnect',function(d){
+            delete(s.connectedClients[cn.id])
+        })
+    });
+}else{
+    //start plugin as client
+    if(!config.host){config.host='localhost'}
+    var io = require('socket.io-client')('ws://'+config.host+':'+config.port);//connect to master
+    s.cx=function(x){x.pluginKey=config.key;x.plug=config.plug;return io.emit('ocv',x)}
+    io.on('connect',function(d){
+        s.cx({f:'init',plug:config.plug,notice:config.notice,type:config.type});
+    })
+    io.on('disconnect',function(d){
+        io.connect();
+    })
+    io.on('f',function(d){
+        s.MainEventController(d,null,s.cx)
+    })
+}

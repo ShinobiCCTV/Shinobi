@@ -764,7 +764,7 @@
                },
                {
                   "name": "detail=watchdog_reset",
-                  "field": "Timeout Reset on Next Motion",
+                  "field": "Timeout Reset on Next Event",
                   "description": "If there is an overlap in trigger record should it reset.",
                   "default": "No",
                   "example": "1",

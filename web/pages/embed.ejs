@@ -7,14 +7,17 @@ if(config.ssl&&config.ssl.port&&data.protocol==='https'){
     data.port=config.port
 }
 if(!data.port||data.port===''||data.port==80||data.port==443){data.url=baseUrl}else{data.url=baseUrl+':'+data.port}
-if(data.addon.indexOf('relative')>-1){
+if(data.addon || data.addon.indexOf('relative')>-1){
     data.url=''
 }
+if(data.url.charAt(data.url.length - 1) !== '/'){
+    data.url += '/'
+}
 %>
-<script src="<%=data.url%>/libs/js/socket.io.js"></script>
-<script src="<%=data.url%>/libs/js/poseidon.js"></script>
-<script src="<%=data.url%>/libs/js/hls.min.js"></script>
-<script src="<%=data.url%>/libs/js/flv.min.js"></script>
+<script src="<%=data.url%>libs/js/socket.io.js"></script>
+<script src="<%=data.url%>libs/js/poseidon.js"></script>
+<script src="<%=data.url%>libs/js/hls.min.js"></script>
+<script src="<%=data.url%>libs/js/flv.min.js"></script>
 <% if(data.addon){
     var ar={}
     decodeURI(data.addon).split('|').forEach(function(v){
@@ -26,12 +29,14 @@ if(data.addon.indexOf('relative')>-1){
     if(!ar.width){ar.width=640;}
     if(!ar.height){ar.height=480;}
     if(data.addon.indexOf('jquery')>-1){ %>
-<script src="<%=data.url%>/libs/js/jquery.min.js"></script>
+<script src="<%=data.url%>libs/js/jquery.min.js"></script>
 <% };
 if(data.addon.indexOf('gui')>-1){ %>
 <style>
-    .shinobi_stream{position:relative;display:inline-block}
-    .shinobi_hud{position:absolute;width:100%;height:100%;top:0;left:0;}
+    body {position:relative;}
+    .shinobi_stream{position:absolute;width:100%;height:100%;top:0;left:0;}
+    .shinobi_hud{position:absolute;width:100%;height:100%;top:0;left:0;opacity:0;transition:0.2s}
+    .shinobi_hud:hover{opacity:1}
     .shinobi_hud .shinobi_viewers{position:absolute;top:5px;left:5px;}
     .shinobi_hud .shinobi_viewers{
         display: inline-block;
@@ -49,6 +54,55 @@ if(data.addon.indexOf('gui')>-1){ %>
         font-family: sans-serif;
     }
     iframe.stream-element{border:0;}
+/* All-CSS Toggle Switch (Checkbox Hack) by Marcus Burnette - https://codepen.io/mburnette/pen/LxNxNg */
+    .shinobi_ws_http_toggle {
+        width: 50px;
+        height: 20px;
+        position: absolute;
+        bottom: 10px;
+        left: 10px;
+    }
+    .shinobi_ws_http_toggle input[type=checkbox]{
+        height: 0;
+        width: 0;
+        visibility: hidden;
+    }
+
+    .shinobi_ws_http_toggle label {
+        cursor: pointer;
+        text-indent: -9999px;
+        width: 100px;
+        height: 20px;
+        background: grey;
+        display: block;
+        border-radius: 100px;
+        position: relative;
+    }
+
+    .shinobi_ws_http_toggle label:after {
+        content: '';
+        position: absolute;
+        top: 5px;
+        left: 5px;
+        width: 10px;
+        height: 10px;
+        background: #fff;
+        border-radius: 90px;
+        transition: 0.3s;
+    }
+
+    .shinobi_ws_http_toggle input:checked + label {
+        background: #00118c;
+    }
+
+    .shinobi_ws_http_toggle input:checked + label:after {
+        left: calc(100% - 5px);
+        transform: translateX(-100%);
+    }
+
+    .shinobi_ws_http_toggle label:active:after {
+        width: 10px;
+    }
 </style>
 <% };
 if(data.addon.indexOf('fullscreen')>-1){ %>
@@ -96,6 +150,9 @@ $(document).ready(function(){
 <% if(data.addon&&data.addon.indexOf('gui')>-1){ %>
     <div class="shinobi_hud">
         <div class="shinobi_viewers" title="Current number of viewers"></div>
+        <div class="shinobi_ws_http_toggle" style="display:none">
+            <input type="checkbox" id="shinobi_ws_http_toggle" <% if(mon.details.stream_flv_type === 'ws'){ %>checked<% } %> /><label for="shinobi_ws_http_toggle">WebSocket</label>
+        </div>
     </div>
 <% } %>
 </div>
@@ -111,40 +168,95 @@ $(document).ready(function(){
             };
             $.shinobi.init=function(d){
                   switch($.shinobi.mon[d.id].details.stream_type){
-                    case'mp4':
-                    var stream = $('#SHINOBI_'+d.ke+'_'+d.id+' .stream-element');
-                    if($.shinobi.mon[d.id].details.stream_flv_type==='ws'){
-                        if($.shinobi.mon[d.id].Poseidon){
-                            $.shinobi.mon[d.id].Poseidon.destroy()
+                    case'b64':
+                        if($.shinobi.mon[d.id].Base64 && $.shinobi.mon[d.id].Base64.connected){
+                            $.shinobi.mon[d.id].Base64.disconnect()
                         }
-                        var createPoseidon = function(){
-                            $.shinobi.mon[d.id].Poseidon = new Poseidon({
-                                video: stream[0],
-                                auth_token:'<%=data.auth%>',
+                        $.shinobi.mon[d.id].Base64 = io('<%=data.url%>',{transports: ['websocket'], forceNew: false})
+                        var ws = $.shinobi.mon[d.id].Base64
+                        ws.on('diconnect',function(){
+                            console.log('Base64 Stream Disconnected')
+                        })
+                        ws.on('connect',function(){
+                            ws.emit('Base64',{
+                                auth:'<%=data.auth%>',
                                 ke:d.ke,
                                 uid:'<%=data.uid%>',
                                 id:d.id,
                                 url: '<%=data.url%>'
-                            });
-                            $.shinobi.mon[d.id].Poseidon.start();
-                            $.shinobi.mon[d.id].Poseidon._socket.on('data',function(res){
-                                console.log(res)
                             })
-                        }
-                        try{
-                            createPoseidon()
-                        }catch(err){
-                            console.log(err)
-                            setTimeout(function(){
+                            if(!$.shinobi.mon[d.id].ctx||$.shinobi.mon[d.id].ctx.length===0){
+                                $.shinobi.mon[d.id].ctx = $('#SHINOBI_'+d.ke+'_'+d.id+' .stream-element')
+                            }
+                            var ctx = $.shinobi.mon[d.id].ctx[0]
+                            $.shinobi.mon[d.id].image = new Image()
+                            var image = $.shinobi.mon[d.id].image
+                            image.onload = function() {
+                                $.shinobi.mon[d.id].imageLoading = false
+                                d.x = 0
+                                d.y = 0
+        //                        d.ratio = Math.min(ctx.width/image.width,ctx.height/image.height)
+        //                        d.height = image.height * d.ratio
+        //                        d.width = image.width * d.ratio
+        //                        if(d.width < ctx.width){
+        //                            d.x = (ctx.width / 2) - (d.width / 2)
+        //                        }
+        //                        if(d.height < ctx.height){
+        //                            d.y = (ctx.height / 2) - (d.height / 2)
+        //                        }
+        //                        ctx.getContext("2d").drawImage(image,d.x,d.y,d.width,d.height)
+                                ctx.getContext("2d").drawImage(image,d.x,d.y,ctx.width,ctx.height)
+                                URL.revokeObjectURL($.ccio.mon[d.ke+d.id+user.auth_token].imageUrl)
+                            }
+                            ws.on('data',function(imageData){
+                                try{
+                                    if($.shinobi.mon[d.id].imageLoading === true)return console.log('drop');
+//                                    var base64Frame = 'data:image/jpeg;base64,'+$.ccio.base64ArrayBuffer(imageData)
+                                    $.shinobi.mon[d.id].imageLoading = true
+//                                    $.shinobi.mon[d.id].image.src = base64Frame
+                                    var arrayBufferView = new Uint8Array(imageData);
+                                    var blob = new Blob( [ arrayBufferView ], { type: "image/jpeg" } );
+                                    $.shinobi.mon[d.id].imageUrl = URL.createObjectURL( blob );
+                                    $.shinobi.mon[d.id].image.src = $.shinobi.mon[d.id].imageUrl
+                                    $.shinobi.mon[d.id].last_frame = 'data:image/jpeg;base64,'+$.ccio.base64ArrayBuffer(imageData)
+                                }catch(er){
+                                    console.log(er)
+                                    $.ccio.log('base64 frame')
+                                }
+                            })
+                        })
+                    break;
+                    case'mp4':
+                        var stream = $('#SHINOBI_'+d.ke+'_'+d.id+' .stream-element');
+                        if($.shinobi.mon[d.id].details.stream_flv_type==='ws'){
+                            if($.shinobi.mon[d.id].Poseidon){
+                                $.shinobi.mon[d.id].Poseidon.destroy()
+                            }
+                            var createPoseidon = function(){
+                                $.shinobi.mon[d.id].Poseidon = new Poseidon({
+                                    video: stream[0],
+                                    auth_token:'<%=data.auth%>',
+                                    ke:d.ke,
+                                    uid:'<%=data.uid%>',
+                                    id:d.id,
+                                    url: '<%=data.url%>'
+                                });
+                                $.shinobi.mon[d.id].Poseidon.start();
+                                $.shinobi.mon[d.id].Poseidon._socket.on('data',function(res){
+                                    console.log(res)
+                                })
+                            }
+                            try{
                                 createPoseidon()
-                            },3000)
+                            }catch(err){
+                                console.log(err)
+                                setTimeout(function(){
+                                    createPoseidon()
+                                },3000)
+                            }
+                        }else{
+                            stream.attr('src','<%=data.url%><%=data.auth%>/mp4/'+d.ke+'/'+d.id+'/s.mp4')
                         }
-                    }else{
-                        stream.attr('src','<%=data.url%>/<%=data.auth%>/mp4/'+d.ke+'/'+d.id+'/s.mp4')
-                        setTimeout(function(){
-                            $.ccio.init('signal-check',{id:d.id,ke:d.ke})
-                        },3000)
-                    }
                     break;
                     case'flv':
                         if (flvjs.isSupported()) {
@@ -173,7 +285,7 @@ $(document).ready(function(){
                                 options = {
                                     type: 'flv',
                                     isLive: true,
-                                    url: '<%=data.url%>/<%=data.auth%>/flv/'+d.ke+'/'+d.id+'/s.flv'
+                                    url: '<%=data.url%><%=data.auth%>/flv/'+d.ke+'/'+d.id+'/s.flv'
                                 }
 //                            }
                             $.shinobi.mon[d.id].flv = flvjs.createPlayer(options);
@@ -195,13 +307,13 @@ $(document).ready(function(){
                         if(!$.shinobi.mon[d.mon.mid].jpegInterval){
                             clearInterval($.shinobi.mon[d.mon.mid].jpegInterval);
                             $.shinobi.mon[d.mon.mid].jpegInterval=setInterval(function(){
-                                $('#SHINOBI_'+d.ke+'_'+d.id+' .stream-element').attr('src','<%=data.url%>/<%=data.auth%>/jpeg/'+d.mon.ke+'/'+d.mon.mid+'/s.jpg?time='+(new Date()).getTime())
+                                $('#SHINOBI_'+d.ke+'_'+d.id+' .stream-element').attr('src','<%=data.url%><%=data.auth%>/jpeg/'+d.mon.ke+'/'+d.mon.mid+'/s.jpg?time='+(new Date()).getTime())
                             },1000/k.jpegInterval);
                         }
                     break;
                     case'hls':
                     var video = $('#SHINOBI_'+d.ke+'_'+d.id+' .stream-element')[0];
-                    d.url='<%=data.url%>/<%=data.auth%>/hls/'+d.ke+'/'+d.id+'/s.m3u8';
+                    d.url='<%=data.url%><%=data.auth%>/hls/'+d.ke+'/'+d.id+'/s.m3u8';
                     if($.shinobi.mon[d.id].hls){
                         $.shinobi.mon[d.id].hls.destroy()
                     }
@@ -218,7 +330,7 @@ $(document).ready(function(){
                     }
                     break;
                     case'mjpeg':
-                        $('#SHINOBI_'+d.ke+'_'+d.id+' .stream-element').attr('src','<%=data.url%>/<%=data.auth%>/mjpeg/'+d.ke+'/'+d.id+'?full=true')
+                        $('#SHINOBI_'+d.ke+'_'+d.id+' .stream-element').attr('src','<%=data.url%><%=data.auth%>/mjpeg/'+d.ke+'/'+d.id+'?full=true')
                     break;
                 }
             }
@@ -269,7 +381,8 @@ $(document).ready(function(){
                         }
                         d.e.append(d.tmp).find('.stream-element').resize();
                         $(window).resize();
-                        d.mon.details=JSON.stringify(d.mon.details);
+//                        d.mon.details=JSON.stringify(d.mon.details);
+                        d.mon.id = d.mon.mid
                         $.shinobi.mon[d.mon.mid]=d.mon;
                         $.shinobi.init(d.mon);
                     break;
@@ -281,4 +394,20 @@ $(document).ready(function(){
             $(window).resize();
         }
     },1000);
+    //websocket / http toggle
+    $('#shinobi_ws_http_toggle').change(function(){
+        var monitor = $.shinobi.mon['<%=data.id%>'];
+        var parent = $(this).parents('.shinobi_ws_http_toggle')
+        var label = parent.find('label')
+        if(monitor.details.stream_flv_type !== 'ws'){
+            label.text('WebSocket')
+            monitor.details.stream_flv_type = 'ws'
+        }else{
+            label.text('HTTP')
+            monitor.details.stream_flv_type = 'http'
+        }
+        monitor.id = monitor.mid
+        $.shinobi.init(monitor);
+    })
+    $('.shinobi_ws_http_toggle').show()
 </script>

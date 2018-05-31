@@ -35,6 +35,57 @@ switch($user.details.lang){
             t += p.charAt(Math.floor(Math.random() * p.length));
         return t;
     };
+    $.ccio.base64ArrayBuffer = function(arrayBuffer) {
+      var base64    = ''
+      var encodings = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/'
+
+      var bytes         = new Uint8Array(arrayBuffer)
+      var byteLength    = bytes.byteLength
+      var byteRemainder = byteLength % 3
+      var mainLength    = byteLength - byteRemainder
+
+      var a, b, c, d
+      var chunk
+
+      // Main loop deals with bytes in chunks of 3
+      for (var i = 0; i < mainLength; i = i + 3) {
+        // Combine the three bytes into a single integer
+        chunk = (bytes[i] << 16) | (bytes[i + 1] << 8) | bytes[i + 2]
+
+        // Use bitmasks to extract 6-bit segments from the triplet
+        a = (chunk & 16515072) >> 18 // 16515072 = (2^6 - 1) << 18
+        b = (chunk & 258048)   >> 12 // 258048   = (2^6 - 1) << 12
+        c = (chunk & 4032)     >>  6 // 4032     = (2^6 - 1) << 6
+        d = chunk & 63               // 63       = 2^6 - 1
+
+        // Convert the raw binary segments to the appropriate ASCII encoding
+        base64 += encodings[a] + encodings[b] + encodings[c] + encodings[d]
+      }
+
+      // Deal with the remaining bytes and padding
+      if (byteRemainder == 1) {
+        chunk = bytes[mainLength]
+
+        a = (chunk & 252) >> 2 // 252 = (2^6 - 1) << 2
+
+        // Set the 4 least significant bits to zero
+        b = (chunk & 3)   << 4 // 3   = 2^2 - 1
+
+        base64 += encodings[a] + encodings[b] + '=='
+      } else if (byteRemainder == 2) {
+        chunk = (bytes[mainLength] << 8) | bytes[mainLength + 1]
+
+        a = (chunk & 64512) >> 10 // 64512 = (2^6 - 1) << 10
+        b = (chunk & 1008)  >>  4 // 1008  = (2^6 - 1) << 4
+
+        // Set the 2 least significant bits to zero
+        c = (chunk & 15)    <<  2 // 15    = 2^4 - 1
+
+        base64 += encodings[a] + encodings[b] + encodings[c] + '='
+      }
+
+      return base64
+    }
     $.ccio.init=function(x,d,user,k){
         if(!k){k={}};k.tmp='';
         if(d&&d.user){
@@ -271,6 +322,9 @@ switch($user.details.lang){
                     case'b64':
                         streamURL='Websocket'
                     break;
+                    case'pam':
+                        streamURL='Websocket'
+                    break;
                 }
                 return streamURL
             break;
@@ -359,12 +413,22 @@ switch($user.details.lang){
                     clearTimeout($.ccio.mon[d.ke+d.mid+user.auth_token].jpegInterval);
                     clearInterval($.ccio.mon[d.ke+d.mid+user.auth_token].signal);
                     clearInterval($.ccio.mon[d.ke+d.mid+user.auth_token].m3uCheck);
+                    if($.ccio.mon[d.ke+d.mid+user.auth_token].Base64 && $.ccio.mon[d.ke+d.mid+user.auth_token].Base64.connected){
+                        $.ccio.mon[d.ke+d.mid+user.auth_token].Base64.disconnect()
+                    }
+                    if($.ccio.mon[d.ke+d.mid+user.auth_token].Poseidon){
+                        $.ccio.mon[d.ke+d.mid+user.auth_token].Poseidon.destroy()
+                    }
                 }
             break;
             case'note':
                 k.o=$.ccio.op().switches
                 if(k.o&&k.o.notifyHide!==1){
                     new PNotify(d)
+                    if(user.details.audio_note && user.details.audio_note !== ''){
+                        var audio = new Audio('libs/audio/'+user.details.audio_note);
+                        audio.play()
+                    }
                 }
             break;
             case'monGroup':
@@ -519,7 +583,7 @@ switch($user.details.lang){
                 d.fn=function(){
                     if(!d.speed){d.speed=1000}
                     switch(d.d.stream_type){
-                        case'b64':
+                        case'b64':case'pam':
                             d.p.resize()
                         break;
                         case'hls':case'flv':case'mp4':
@@ -633,6 +697,9 @@ switch($user.details.lang){
                     var ctx = c.getContext('2d');
                     ctx.drawImage(img, 0, 0,c.width,c.height);
                     extend(atob(c.toDataURL('image/jpeg').split(',')[1]),c.width,c.height)
+                break;
+                case'pam':
+                    alert('Need to add')
                 break;
                 case'b64':
                     base64 = e.mon.last_frame.split(',')[1];
@@ -885,7 +952,7 @@ switch($user.details.lang){
                         case'mjpeg':
                             tmp+='<iframe class="stream-element"></iframe>';
                         break;
-                        case'jpeg'://base64
+                        case'jpeg':
                             tmp+='<img class="stream-element">';
                         break;
                         default://base64
@@ -1520,6 +1587,15 @@ $.ccio.globalWebsocket=function(d,user){
         case'detector_trigger':
             d.e=$('.monitor_item[ke="'+d.ke+'"][mid="'+d.id+'"][auth="'+user.auth_token+'"]')
             if($.ccio.mon[d.ke+d.id+user.auth_token]&&d.e.length>0){
+                if(d.doObjectDetection === true){
+                    d.e.addClass('doObjectDetection')
+                    clearTimeout($.ccio.mon[d.ke+d.id+user.auth_token].detector_trigger_doObjectDetection_timeout)
+                    $.ccio.mon[d.ke+d.id+user.auth_token].detector_trigger_doObjectDetection_timeout = setTimeout(function(){
+                        d.e.removeClass('doObjectDetection')
+                    },3000)
+                }else{
+                    d.e.removeClass('doObjectDetection')
+                }
                 if(d.details.plates&&d.details.plates.length>0){
                     console.log('licensePlateStream',d.id,d)
                 }
@@ -1549,6 +1625,29 @@ $.ccio.globalWebsocket=function(d,user){
                 $.ccio.mon[d.ke+d.id+user.auth_token].detector_trigger_timeout=setTimeout(function(){
                     $('.monitor_item[ke="'+d.ke+'"][mid="'+d.id+'"][auth="'+user.auth_token+'"]').removeClass('detector_triggered').find('.stream-detected-object,.stream-detected-point').remove()
                 },5000);
+                //noise alert
+                if(user.details.audio_alert && user.details.audio_alert !== '' && $.ccio.soundAlarmed !== true){
+                    $.ccio.soundAlarmed = true
+                    var audio = new Audio('libs/audio/'+user.details.audio_alert);
+                    audio.onended = function(){
+                        setTimeout(function(){
+                            $.ccio.soundAlarmed = false
+                        },user.details.audio_delay * 1000)
+                    }
+                    if($.ccio.windowFocus = true){
+                        audio.play()
+                    }else{
+                        clearInterval($.ccio.soundAlarmInterval)
+                        if(!user.details.audio_delay || user.details.audio_delay === ''){
+                            user.details.audio_delay = 1
+                        }else{
+                            user.details.audio_delay = parseFloat(user.details.audio_delay)
+                        }
+                        $.ccio.soundAlarmInterval = setInterval(function(){
+                            audio.play()
+                        },user.details.audio_delay * 1000)
+                    }
+                }
             }
         break;
         case'init_success':
@@ -1649,19 +1748,22 @@ $.ccio.globalWebsocket=function(d,user){
             $.ccio.tm(0,d,d.e,user)
         break;
         case'monitor_snapshot':
-            switch(d.snapshot_format){
-                case'plc':
-                    $('[mid="'+d.mid+'"][auth="'+user.auth_token+'"] .snapshot').attr('src',placeholder.getData(placeholder.plcimg(d.snapshot)))
-                break;
-                case'ab':
-                    d.reader = new FileReader();
-                    d.reader.addEventListener("loadend",function(){$('[mid="'+d.mid+'"][auth="'+user.auth_token+'"] .snapshot').attr('src',d.reader.result)});
-                    d.reader.readAsDataURL(new Blob([d.snapshot],{type:"image/jpeg"}));
-                break;
-                case'b64':
-                    $('[mid="'+d.mid+'"][ke="'+d.ke+'"][auth="'+user.auth_token+'"] .snapshot').attr('src','data:image/jpeg;base64,'+d.snapshot)
-                break;
-            }
+            setTimeout(function(){
+                var snapElement = $('[mid="'+d.mid+'"][ke="'+d.ke+'"][auth="'+user.auth_token+'"] .snapshot')
+                switch(d.snapshot_format){
+                    case'plc':
+                        snapElement.attr('src',placeholder.getData(placeholder.plcimg(d.snapshot)))
+                    break;
+                    case'ab':
+                        d.reader = new FileReader();
+                        d.reader.addEventListener("loadend",function(){snapElement.attr('src',d.reader.result)});
+                        d.reader.readAsDataURL(new Blob([d.snapshot],{type:"image/jpeg"}));
+                    break;
+                    case'b64':
+                        snapElement.attr('src','data:image/jpeg;base64,'+d.snapshot)
+                    break;
+                }
+            },1000)
         break;
         case'monitor_delete':
             $('[mid="'+d.mid+'"][ke="'+d.ke+'"][auth="'+user.auth_token+'"]:not(.modal)').remove();
@@ -1715,13 +1817,75 @@ $.ccio.globalWebsocket=function(d,user){
                     prefix = 'wss'
                 }
                 if(url==''){
-                    url = prefix+'://'+location.host
+                    url = prefix+'://'+location.host+location.pathname
                 }else{
                     url = prefix+'://'+url.split('://')[1]
                 }
                 switch(d.d.stream_type){
                     case'jpeg':
                         $.ccio.init('jpegMode',$.ccio.mon[d.ke+d.id+user.auth_token]);
+                    break;
+                    case'b64':
+                        if($.ccio.mon[d.ke+d.id+user.auth_token].Base64 && $.ccio.mon[d.ke+d.id+user.auth_token].Base64.connected){
+                            $.ccio.mon[d.ke+d.id+user.auth_token].Base64.disconnect()
+                        }
+                        $.ccio.mon[d.ke+d.id+user.auth_token].Base64 = io(url,{transports: ['websocket'], forceNew: false})
+                        var ws = $.ccio.mon[d.ke+d.id+user.auth_token].Base64
+                        var buffer
+                        ws.on('diconnect',function(){
+                            console.log('Base64 Stream Disconnected')
+                        })
+                        ws.on('connect',function(){
+                            ws.emit('Base64',{
+                                url: url,
+                                auth: user.auth_token,
+                                uid: user.uid,
+                                ke: d.ke,
+                                id: d.id,
+//                                channel: channel
+                            })
+                            if(!$.ccio.mon[d.ke+d.id+user.auth_token].ctx||$.ccio.mon[d.ke+d.id+user.auth_token].ctx.length===0){
+                                $.ccio.mon[d.ke+d.id+user.auth_token].ctx = $('#monitor_live_'+d.id+user.auth_token+' canvas');
+                            }
+                            var ctx = $.ccio.mon[d.ke+d.id+user.auth_token].ctx[0]
+                            var ctx2d = ctx.getContext("2d")
+                            $.ccio.mon[d.ke+d.id+user.auth_token].image = new Image()
+                            var image = $.ccio.mon[d.ke+d.id+user.auth_token].image
+                            image.onload = function() {
+                                $.ccio.mon[d.ke+d.id+user.auth_token].imageLoading = false
+                                d.x = 0
+                                d.y = 0
+        //                        d.ratio = Math.min(ctx.width/image.width,ctx.height/image.height)
+        //                        d.height = image.height * d.ratio
+        //                        d.width = image.width * d.ratio
+        //                        if(d.width < ctx.width){
+        //                            d.x = (ctx.width / 2) - (d.width / 2)
+        //                        }
+        //                        if(d.height < ctx.height){
+        //                            d.y = (ctx.height / 2) - (d.height / 2)
+        //                        }
+        //                        ctx.getContext("2d").drawImage(image,d.x,d.y,d.width,d.height)
+                                ctx.getContext("2d").drawImage(image,d.x,d.y,ctx.width,ctx.height)
+                                URL.revokeObjectURL($.ccio.mon[d.ke+d.id+user.auth_token].imageUrl)
+                            }
+                            ws.on('data',function(imageData){
+                                try{
+                                    if($.ccio.mon[d.ke+d.id+user.auth_token].imageLoading === true)return console.log('drop');
+//                                    var base64Frame = 'data:image/jpeg;base64,'+$.ccio.base64ArrayBuffer(imageData)
+                                    $.ccio.mon[d.ke+d.id+user.auth_token].imageLoading = true
+//                                    $.ccio.mon[d.ke+d.id+user.auth_token].image.src = base64Frame
+                                    var arrayBufferView = new Uint8Array(imageData);
+                                    var blob = new Blob( [ arrayBufferView ], { type: "image/jpeg" } );
+                                    $.ccio.mon[d.ke+d.id+user.auth_token].imageUrl = URL.createObjectURL( blob );
+                                    $.ccio.mon[d.ke+d.id+user.auth_token].image.src = $.ccio.mon[d.ke+d.id+user.auth_token].imageUrl
+                                    $.ccio.mon[d.ke+d.id+user.auth_token].last_frame = 'data:image/jpeg;base64,'+$.ccio.base64ArrayBuffer(imageData)
+                                }catch(er){
+                                    console.log(er)
+                                    $.ccio.log('base64 frame')
+                                }
+                                $.ccio.init('signal',d);
+                            })
+                        })
                     break;
                     case'mp4':
                         var stream = d.e.find('.stream-element');
@@ -1849,31 +2013,56 @@ $.ccio.globalWebsocket=function(d,user){
                 }
             },3000)
         break;
+        case'pam_frame':
+            if(!$.ccio.mon[d.ke+d.id+user.auth_token].ctx||$.ccio.mon[d.ke+d.id+user.auth_token].ctx.length===0){
+                $.ccio.mon[d.ke+d.id+user.auth_token].ctx = $('#monitor_live_'+d.id+user.auth_token+' canvas');
+                $.ccio.mon[d.ke+d.id+user.auth_token].ctxContext = $.ccio.mon[d.ke+d.id+user.auth_token].ctx[0].getContext('2d');
+            }
+            var ctx = $.ccio.mon[d.ke+d.id+user.auth_token].ctxContext;
+            d.x = 0,d.y = 0;
+            d.ratio = Math.min($.ccio.mon[d.ke+d.id+user.auth_token].ctx.width()/d.imageData.width,$.ccio.mon[d.ke+d.id+user.auth_token].ctx.height()/d.imageData.height);
+            d.height = d.imageData.height*d.ratio;
+            d.width = d.imageData.width*d.ratio;
+            if( d.width < $.ccio.mon[d.ke+d.id+user.auth_token].ctx.width() )
+                d.x = ($.ccio.mon[d.ke+d.id+user.auth_token].ctx.width() / 2) - (d.width / 2);
+            if( d.height < $.ccio.mon[d.ke+d.id+user.auth_token].ctx.height() )
+                d.y = ($.ccio.mon[d.ke+d.id+user.auth_token].ctx.height() / 2) - (d.height / 2);
+            var imageData = ctx.createImageData(d.width,d.height)
+            imageData.data.set(new Uint8ClampedArray(d.imageData.data))
+            console.log(imageData)
+            ctx.putImageData(imageData, 0, 0);
+        break;
         case'monitor_frame':
             try{
+                if($.ccio.mon[d.ke+d.id+user.auth_token].imageLoading === true)return
                 if(!$.ccio.mon[d.ke+d.id+user.auth_token].ctx||$.ccio.mon[d.ke+d.id+user.auth_token].ctx.length===0){
                     $.ccio.mon[d.ke+d.id+user.auth_token].ctx = $('#monitor_live_'+d.id+user.auth_token+' canvas');
                 }
+                var ctx = $.ccio.mon[d.ke+d.id+user.auth_token].ctx[0]
                 if(!$.ccio.mon[d.ke+d.id+user.auth_token].image){
-                    $.ccio.mon[d.ke+d.id+user.auth_token].image = new Image();
-                    $.ccio.mon[d.ke+d.id+user.auth_token].image.onload = function() {
-//                        d.x = 0,d.y = 0;
-//                        d.ratio = Math.min($.ccio.mon[d.ke+d.id+user.auth_token].ctx.width()/$.ccio.mon[d.ke+d.id+user.auth_token].image.width,$.ccio.mon[d.ke+d.id+user.auth_token].ctx.height()/$.ccio.mon[d.ke+d.id+user.auth_token].image.height);
-//                        d.height = $.ccio.mon[d.ke+d.id+user.auth_token].image.height*d.ratio;
-//                        d.width = $.ccio.mon[d.ke+d.id+user.auth_token].image.width*d.ratio;
-//                        if( d.width < $.ccio.mon[d.ke+d.id+user.auth_token].ctx.width() )
-//                            d.x = ($.ccio.mon[d.ke+d.id+user.auth_token].ctx.width() / 2) - (d.width / 2);
-//                        if( d.height < $.ccio.mon[d.ke+d.id+user.auth_token].ctx.height() )
-//                            d.y = ($.ccio.mon[d.ke+d.id+user.auth_token].ctx.height() / 2) - (d.height / 2);
-//                        $.ccio.mon[d.ke+d.id+user.auth_token].ctx[0].getContext("2d").drawImage($.ccio.mon[d.ke+d.id+user.auth_token].image,0,0,$.ccio.mon[d.ke+d.id+user.auth_token].image.width,$.ccio.mon[d.ke+d.id+user.auth_token].image.height,d.x,d.y,d.width,d.height);
-                       
-                        d.height=$.ccio.mon[d.ke+d.id+user.auth_token].ctx.height()
-                        d.width=$.ccio.mon[d.ke+d.id+user.auth_token].ctx.width()
-                        $.ccio.mon[d.ke+d.id+user.auth_token].ctx[0].getContext("2d").drawImage($.ccio.mon[d.ke+d.id+user.auth_token].image,0,0,d.width,d.height);
-                    };
+                    $.ccio.mon[d.ke+d.id+user.auth_token].image = new Image()
+                    var image = $.ccio.mon[d.ke+d.id+user.auth_token].image
+                    image.onload = function() {
+                        $.ccio.mon[d.ke+d.id+user.auth_token].imageLoading = false
+                        d.x = 0
+                        d.y = 0
+//                        d.ratio = Math.min(ctx.width/image.width,ctx.height/image.height)
+//                        d.height = image.height * d.ratio
+//                        d.width = image.width * d.ratio
+//                        if(d.width < ctx.width){
+//                            d.x = (ctx.width / 2) - (d.width / 2)
+//                        }
+//                        if(d.height < ctx.height){
+//                            d.y = (ctx.height / 2) - (d.height / 2)
+//                        }
+//                        ctx.getContext("2d").drawImage(image,d.x,d.y,d.width,d.height)
+                        ctx.getContext("2d").drawImage(image,d.x,d.y,ctx.width,ctx.height)
+                    }
                 }
-                $.ccio.mon[d.ke+d.id+user.auth_token].image.src='data:image/jpeg;base64,'+d.frame;
-                $.ccio.mon[d.ke+d.id+user.auth_token].last_frame='data:image/jpeg;base64,'+d.frame;
+                var base64Frame = 'data:image/jpeg;base64,'+d.frame
+                $.ccio.mon[d.ke+d.id+user.auth_token].imageLoading = true
+                $.ccio.mon[d.ke+d.id+user.auth_token].image.src = base64Frame
+                $.ccio.mon[d.ke+d.id+user.auth_token].last_frame = base64Frame
             }catch(er){
                 console.log(er)
                 $.ccio.log('base64 frame')
@@ -2232,13 +2421,12 @@ $user.ws.on('f',function (d){
             $.oB.e.find('._notfound').remove()
             $.oB.e.find('[type="submit"]').prop('disabled',false)
             d.info=$.ccio.init('jsontoblock',d.info)
-            if(d.url){
-                d.stream=d.url.uri
-                d.info+=$.ccio.init('jsontoblock',d.url)
+            if(d.uri){
+                d.stream=d.uri
             }else{
                 d.stream='URL not Found'
             }
-            $('#onvif_probe .output_data').append('<tr onvif_row="'+tempID+'"><td><a class="btn btn-sm btn-primary copy">&nbsp;<i class="fa fa-copy"></i>&nbsp;</a></td><td class="ip">'+d.ip+'</td><td class="port">'+d.port+'</td><td>'+$.ccio.init('jsontoblock',d.info)+'</td><td class="url">'+d.stream+'</td><td class="date">'+d.date+'</td></tr>')
+            $('#onvif_probe .output_data').append('<tr onvif_row="'+tempID+'"><td><a class="btn btn-sm btn-primary copy">&nbsp;<i class="fa fa-copy"></i>&nbsp;</a></td><td class="ip">'+d.ip+'</td><td class="port">'+d.port+'</td><td>'+$.ccio.init('jsontoblock',d.info)+'</td><td class="url">'+d.stream+'</td></tr>')
         break;
     }
     delete(d);
@@ -2293,8 +2481,7 @@ $.oB.e.on('click','.copy',function(){
     e.e = $(this).parents('[onvif_row]');
     var id = e.e.attr('onvif_row');
     var onvifRecord = $.oB.foundMonitors[id];
-    console.log(onvifRecord)
-    var streamURL = onvifRecord.url.uri;
+    var streamURL = onvifRecord.uri;
     if($.oB.e.find('[name="user"]').val()!==''){
         streamURL = streamURL.split('://')
         streamURL = streamURL[0]+'://'+$.oB.e.find('[name="user"]').val()+':'+$.oB.e.find('[name="pass"]').val()+'@'+streamURL[1];
@@ -2653,11 +2840,56 @@ $.multimon.e.find('.import_config').click(function(){
                         $.ccio.log(d)
                     })
                 }
-                e.monitorList=JSON.parse($.confirm.e.find('textarea').val());
-                if(e.monitorList.mid){
-                    postMonitor(e.monitorList)
-                }else{
-                    $.each(e.monitorList,function(n,v){
+                var parseZmMonitor = function(Monitor){
+                    console.log(Monitor)
+                    var newMon = $.aM.generateDefaultMonitorSettings()
+                    newMon.details = JSON.parse(newMon.details)
+                    newMon.details.stream_type = 'jpeg'
+                    switch(Monitor.Type.toLowerCase()){
+                        case'ffmpeg':case'libvlc':
+                            newMon.details.auto_host_enable = '1'
+                            newMon.details.auto_host = Monitor.Path
+                            if(newMon.auto_host.indexOf('rtsp://') > -1 || newMon.auto_host.indexOf('rtmp://') > -1 || newMon.auto_host.indexOf('rtmps://') > -1){
+                                newMon.type = 'h264'
+                            }else{
+                                $.ccio.init('note',{title:'<%-cleanLang(lang['Please Check Your Settings'])%>',text:'<%-cleanLang(lang.migrateText1)%>',type:'error'})
+                            }
+                        break;
+                        case'local':
+                            newMon.details.auto_host = Monitor.Device
+                        break;
+                        case'remote':
+                            
+                        break;
+                    }
+                    newMon.details = JSON.stringify(newMon.details)
+                    console.log(newMon)
+                    return newMon
+                }
+                parsedData=JSON.parse($.confirm.e.find('textarea').val());
+                //zoneminder one monitor
+                if(parsedData.monitor){
+                    $.aM.import({
+                        values : parseZmMonitor(parsedData.monitor.Monitor)
+                    })
+                    $.aM.e.modal('show')
+                }else
+                //zoneminder multiple monitors
+                if(parsedData.monitors){
+                    $.each(parsedData.monitors,function(n,v){
+                        $.aM.import({
+                            values : parseZmMonitor(parsedData.Monitor)
+                        })
+                        parseZmMonitor(v.Monitor)
+                    })
+                }else
+                //shinobi one monitor
+                if(parsedData.mid){
+                    postMonitor(parsedData)
+                }else
+                //shinobi multiple monitors
+                if(parsedData[0] && parsedData[0].mid){
+                    $.each(parsedData,function(n,v){
                         postMonitor(v)
                     })
                 }
@@ -2822,7 +3054,7 @@ $.aM.generateDefaultMonitorSettings=function(){
         "stream_watermark": "0",
         "stream_watermark_location": "",
         "stream_watermark_position": "tr",
-        "snap": "1",
+        "snap": "0",
         "snap_fps": "",
         "snap_scale_x": "",
         "snap_scale_y": "",
@@ -2949,7 +3181,9 @@ $.aM.drawList=function(){
     e.list.html(e.html)
 }
 $.aM.import=function(e){
-    $('#monEditBufferPreview').attr('src',$.ccio.init('location',$user)+$user.auth_token+'/hls/'+e.values.ke+'/'+e.values.mid+'/detectorStream.m3u8')
+    $.get($.ccio.init('location',$user)+$user.auth_token+'/hls/'+e.values.ke+'/'+e.values.mid+'/detectorStream.m3u8',function(data){
+        $('#monEditBufferPreview').html(data)
+    })
     $.aM.e.find('.edit_id').text(e.values.mid);
     $.aM.e.attr('mid',e.values.mid).attr('ke',e.values.ke).attr('auth',e.auth)
     $.each(e.values,function(n,v){
@@ -3119,28 +3353,39 @@ $.aM.e.on('change','[detail="auto_host"]',function(e){
     }else{
         var urlSplitByDots = url.split('.')
         var has = function(query,searchIn){if(!searchIn){searchIn=url;};return url.indexOf(query)>-1}
-        //switch RTSP to parse URL
+        var protocol = url.split('://')[0]
+        console.log(url.split('://'))
+        //switch RTSP, RTMP and RTMPS to parse URL
         if(has('rtsp://')){
             isRTSP = true;
             url = url.replace('rtsp://','http://')
         }
+        if(has('rtmp://')){
+            isRTMP = true;
+            url = url.replace('rtmp://','http://')
+        }
+        if(has('rtmps://')){
+            isRTMPS = true;
+            url = url.replace('rtmps://','http://')
+        }
         //parse URL
         var parsedURL = document.createElement('a');
         parsedURL.href = url;
+        var pathname = parsedURL.pathname
+        if(url.indexOf('?') > -1){
+            pathname += '?'+url.split('?')[1]
+        }
+        $.aM.e.find('[name="protocol"]').val(protocol).change()
         if(isRTSP){
-            $.aM.e.find('[name="protocol"]').val('rtsp').change()
             $.aM.e.find('[detail="rtsp_transport"]').val('tcp').change()
             $.aM.e.find('[detail="aduration"]').val(1000000).change()
             $.aM.e.find('[detail="probesize"]').val(1000000).change()
-        }else{
-            //not RTSP
-            $.aM.e.find('[name="protocol"]').val(parsedURL.protocol.replace(/:/g,'').replace(/\//g,'')).change()
         }
         $.aM.e.find('[detail="muser"]').val(parsedURL.username).change()
         $.aM.e.find('[detail="mpass"]').val(parsedURL.password).change()
         $.aM.e.find('[name="host"]').val(parsedURL.hostname).change()
         $.aM.e.find('[name="port"]').val(parsedURL.port).change()
-        $.aM.e.find('[name="path"]').val(parsedURL.pathname).change()
+        $.aM.e.find('[name="path"]').val(pathname).change()
         delete(parsedURL)
     }
 })
@@ -3155,7 +3400,13 @@ $.aM.f.submit(function(ee){
     $.each(e.s,function(n,v){e.s[n]=v.trim()});
     e.s.mid=e.s.mid.replace(/[^\w\s]/gi,'').replace(/ /g,'')
     if(e.s.mid.length<3){e.er.push('Monitor ID too short')}
-    if(e.s.port==''){e.s.port=80}
+    if(e.s.port==''){
+        if(e.s.protocol === 'https'){
+            e.s.port = 443
+        }else{
+            e.s.port = 80
+        }
+    }
     if(e.s.name==''){e.er.push('Monitor Name cannot be blank')}
 //    if(e.s.protocol=='rtsp'){e.s.ext='mp4',e.s.type='rtsp'}
     if(e.er.length>0){
@@ -3463,10 +3714,11 @@ $.aM.f.on('change','[selector]',function(){
     e.v=e.e.val();
     e.a=e.e.attr('selector')
     e.triggerChange=e.e.attr('triggerchange')
+    e.triggerChangeIgnore=e.e.attr('triggerChangeIgnore')
     $.aM.f.find('.'+e.a+'_input').hide()
     $.aM.f.find('.'+e.a+'_'+e.v).show();
     $.aM.f.find('.'+e.a+'_text').text($(this).find('option:selected').text())
-    if(e.triggerChange&&e.triggerChange!==''){
+    if(e.triggerChange && e.triggerChange !== '' && !e.triggerChangeIgnore || (e.triggerChangeIgnore && e.triggerChangeIgnore.split(',').indexOf(e.v) === -1)){
         console.log(e.triggerChange)
         $(e.triggerChange).trigger('change')
     }
@@ -3830,6 +4082,78 @@ $.timelapse.drawTimeline=function(getData){
         e.next($.timelapse.currentVideosArray)
     }
 }
+$.timelapse.playButtonIcon = $.timelapse.e.find('[timelapse="play"]').find('i')
+$.timelapse.timelapseSpeedUseBasicSwitch = $('#timelapseSpeedUseBasic')
+$.timelapse.timelapseSpeedUseBasicSwitch.on('change',function(){
+    var el = $.timelapse.e.find('.timelapseSpeedUseBasicSwitch')
+    if($(this).is(':checked')){
+        el.hide()
+    }else{
+        el.show()
+    }
+    $.timelapse.play()
+})
+$.timelapse.getUseBasicStatus = function(){return $.timelapse.timelapseSpeedUseBasicSwitch.prop('checked')}
+$.timelapse.onPlayPause = function(toggleGui,secondWind){
+    if($.timelapse.paused === true){
+        $.timelapse.paused = false
+        if(toggleGui === true)$.timelapse.play();
+    }else{
+        $.timelapse.paused = true
+        if(toggleGui === true)$.timelapse.pause(secondWind);
+    }
+}
+$.timelapse.pause = function(secondWind){
+    //secondWind is used because sometimes pause can be pressed just as a video ends and the pause command does not register on the next video.
+    var videoNow = $.timelapse.display.find('video.videoNow')[0]
+    var pause = function(){
+        if(videoNow.paused == false)videoNow.pause()
+        clearInterval($.timelapse.interval)
+        $.timelapse.playButtonIcon.removeClass('fa-pause').addClass('fa-play')
+    }
+    pause()
+    if(secondWind === true)setTimeout(pause,250);
+}
+$.timelapse.play = function(x){
+    var videoNow = $.timelapse.display.find('video.videoNow')[0]
+    $.timelapse.pause()
+    clearInterval($.timelapse.interval)
+    if($.timelapse.getUseBasicStatus()){
+        videoNow.playbackRate = $.timelapse.playRate
+        if(videoNow.paused)videoNow.play()
+    }else{
+        videoNow.playbackRate = 1.0
+        $.timelapse.interval = setInterval(function(){
+           if(videoNow.currentTime >= videoNow.duration - .2){
+               clearInterval($.timelapse.interval)
+               videoNow.currentTime = videoNow.duration
+           }else{
+               videoNow.currentTime += .5 
+           }
+        },500 / $.timelapse.playRate)
+    }
+    $.timelapse.playButtonIcon.removeClass('fa-play').addClass('fa-pause')
+}
+$.timelapse.rewind = function(e){
+    var videoNow = $.timelapse.display.find('video.videoNow')[0]
+    $.timelapse.pause()
+    videoNow.playbackRate = 1.0
+    clearInterval($.timelapse.interval)
+    $.timelapse.interval = setInterval(function(){
+       if(videoNow.currentTime <= 0.2){
+           clearInterval($.timelapse.interval)
+           videoNow.currentTime = 0
+           $('[timelapse][href="'+e.videoCurrentBefore.attr('video')+'"]').click()
+           var videoNowNew = $.timelapse.display.find('video.videoNow')[0]
+           videoNowNew.pause()
+           videoNowNew.currentTime = videoNowNew.duration - 0.1
+           $.timelapse.e.find('[timelapse="stepBackBack"]').click()
+       }else{
+           videoNow.currentTime += -.5
+       }
+    },500 / $.timelapse.playRate)
+    $.timelapse.playButtonIcon.removeClass('fa-play').addClass('fa-pause')
+}
 $.timelapse.e.on('click','[timelapse]',function(){
     var e={}
     e.e=$(this)
@@ -3850,9 +4174,13 @@ $.timelapse.e.on('click','[timelapse]',function(){
             e.e.toggleClass('btn-danger')
         break;
         case'play':
-            $.timelapse.playRate =5
             e.videoCurrentNow[0].playbackRate = $.timelapse.playRate;
-            $.timelapse.onPlayPause(1)
+            $.timelapse.onPlayPause(true,true)
+        break;
+        case'setPlayBackRate':
+            $.timelapse.pause()
+            $.timelapse.playRate = parseFloat(e.e.attr('playRate'))
+            $.timelapse.play()
         break;
         case'stepFrontFront':
             e.add=e.e.attr('add')
@@ -3871,17 +4199,10 @@ $.timelapse.e.on('click','[timelapse]',function(){
             e.videoCurrentNow[0].pause()
         break;
         case'stepBackBack':
-           $.timelapse.videoInterval = setInterval(function(){
-               $.timelapse.playRate = 5
-               e.videoCurrentNow[0].playbackRate = $.timelapse.playRate;
-               if(e.videoCurrentNow[0].currentTime == 0){
-                   clearInterval($.timelapse.videoInterval);
-                   e.videoCurrentNow[0].pause();
-               }
-               else{
-                   e.videoCurrentNow[0].currentTime += -.5;
-               }
-           },30);
+//            e.videoCurrentNow=$.timelapse.display.find('.videoNow')
+//            e.videoCurrentAfter=$.timelapse.display.find('.videoAfter')
+//            e.videoCurrentBefore=$.timelapse.display.find('.videoBefore')
+           $.timelapse.rewind(e)
         break;
         case'stepBack':
             e.videoCurrentNow[0].currentTime += -5;
@@ -3891,7 +4212,6 @@ $.timelapse.e.on('click','[timelapse]',function(){
             $.timelapse.e.find('video').each(function(n,v){
                 v.pause()
             })
-            e.playButtonIcon=$.timelapse.e.find('[timelapse="play"]').find('i')
             e.drawVideoHTML=function(position){
                 var video
                 var exisitingElement=$.timelapse.display.find('.'+position)
@@ -3962,31 +4282,22 @@ $.timelapse.e.on('click','[timelapse]',function(){
             if($.timelapse.videoNowIsMuted){
                 e.videoNow.muted=true
             }
-            e.videoNow.playbackRate = $.timelapse.playRate
-            e.videoNow.play()
-            e.playButtonIcon.removeClass('fa-pause').addClass('fa-play')
+            $.timelapse.playButtonIcon.removeClass('fa-pause').addClass('fa-play')
             $.timelapse.onended = function() {
                 $.timelapse.line.find('[file="'+e.video[$.timelapse.playDirection].filename+'"]').click()
             };
             e.videoNow.onended = $.timelapse.onended
             e.videoNow.onerror = $.timelapse.onended
-            $.timelapse.onPlayPause=function(x){
-                if(e.videoNow.paused===true){
-                    e.playButtonIcon.removeClass('fa-pause').addClass('fa-play')
-                    if(x==1)e.videoNow.play();
-                }else{
-                    e.playButtonIcon.removeClass('fa-play').addClass('fa-pause')
-                    if(x==1)e.videoNow.pause();
-                }
-            }
+            //
             $(e.videoNow)
-            .off('play').on('play',$.timelapse.onPlayPause)
+            .off('play').on('play',$.timelapse.play)
             .off('pause').on('pause',$.timelapse.onPlayPause)
             .off('timeupdate').on('timeupdate',function(){
                 var value= (( e.videoNow.currentTime / e.videoNow.duration ) * 100)+"%"
                 $.timelapse.seekBarProgress.css("width",value);
                 $.timelapse.e.find('.timelapse_video[file="'+e.filename+'"] .progress-bar').css("width",value);
             })
+            $.timelapse.play()
             $.timelapse.seekBar.off("click").on("click", function(seek){
                 var offset = $(this).offset();
                 var left = (seek.pageX - offset.left);
@@ -4387,6 +4698,13 @@ $('#monitors_list_search').keyup(function(){
     })
 })
 //dynamic bindings
+$.ccio.windowFocus = true
+$(window).focus(function() {
+    $.ccio.windowFocus = true
+    clearInterval($.ccio.soundAlarmInterval)
+}).blur(function() {
+    $.ccio.windowFocus = false
+});
 $('body')
 .on('click','.logout',function(e){
     var logout = function(user,callback){
@@ -4471,10 +4789,11 @@ $('body')
         break;
     }
 })
-.on('change','[localStorage]',function(e){
+.on('change','[localStorage]',function(){
+    e = {}
     e.e=$(this)
-    e.localStorage=e.e.attr('localStorage')
-    e.value=e.e.val()
+    e.localStorage = e.e.attr('localStorage')
+    e.value = e.e.val()
     $.ccio.op(e.localStorage,e.value)
 })
 .on('click','[system]',function(e){
@@ -4919,12 +5238,12 @@ $('body')
     e=$(this)
     e.find('.flex-modal-block').css('height',e.height())
 })
-//.on('resize','#monitors_live .monitor_item',function(e){
-//    e.e=$(this).find('.mdl-card__media');
-//    e.c=e.e.find('canvas');
-//    e.c.attr('height',e.e.height());
-//    e.c.attr('width',e.e.width());
-//})
+.on('resize','#monitors_live .monitor_item',function(e){
+    e.e=$(this).find('.stream-block');
+    e.c=e.e.find('canvas');
+    e.c.attr('height',e.e.height());
+    e.c.attr('width',e.e.width());
+})
 .on('keyup','.search-parent .search-controller',function(){
     _this = this;
     $.each($(".search-parent .search-body .search-row"), function() {
@@ -4982,7 +5301,10 @@ $('body')
     if(e.o){
         $.each(e.o,function(n,v){
             if(typeof v==='string'){
-                $('[localStorage="'+n+'"]').val(v)
+                var el = $('[localStorage="'+n+'"]')
+                if(el.is(':checkbox') === false){
+                    el.val(v)
+                }
             }
         })
     }
