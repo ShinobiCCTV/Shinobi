@@ -8,7 +8,19 @@ window.chartColors = {
     grey: 'rgb(201, 203, 207)'
 };
 $user.details=JSON.parse($user.details)
-$.ccio={fr:$('#files_recent'),mon:{}};
+$.ccio={
+    fr:$('#files_recent'),
+    mon:{}
+};
+<% if(config.useUTC){ %>
+$.ccio.timeObject = function(date){
+    return moment.utc(date).local()
+}
+<% }else{ %>
+$.ccio.timeObject = function(date){
+    return moment(date)
+}
+<% } %>
 if(!$user.details.lang||$user.details.lang==''){
     $user.details.lang="<%-config.language%>"
 }
@@ -501,15 +513,15 @@ switch($user.details.lang){
             break;
             case't'://format time
                 if(!d){d=new Date();}
-                return moment(d).format('YYYY-MM-DD HH:mm:ss')
+                return $.ccio.timeObject(d).format('YYYY-MM-DD HH:mm:ss')
             break;
             case'th'://format time hy
                 if(!d){d=new Date();}
-                return moment(d).format('YYYY-MM-DDTHH:mm:ss')
+                return $.ccio.timeObject(d).format('YYYY-MM-DDTHH:mm:ss')
             break;
             case'tf'://time to filename
                 if(!d){d=new Date();}
-                return moment(d).format('YYYY-MM-DDTHH-mm-ss')
+                return $.ccio.timeObject(d).format('YYYY-MM-DDTHH-mm-ss')
             break;
             case'fn'://row to filename
                 return $.ccio.init('tf',d.time,user)+'.'+d.ext
@@ -822,21 +834,24 @@ switch($user.details.lang){
         if(d.id&&!d.mid){d.mid=d.id;}
         switch(x){
             case 0://video
-                if(!d.href&&d.hrefNoAuth){
-                    d.href=$.ccio.init('location',user)+user.auth_token+d.hrefNoAuth
+                var href = $.ccio.init('location',user)
+                if(d.href){
+                    href = d.href
+                }else if(!d.href && d.hrefNoAuth){
+                    href += user.auth_token+d.hrefNoAuth
                 }
-                if(user!==$user&&d.href.charAt(0)==='/'){
-                    d.href=$.ccio.init('location',user)+(d.href.substring(1))
+                if(user!==$user&&href.charAt(0)==='/'){
+                    href += d.href.substring(1)
                 }
+                href = 'href="'+href+'"'
                 if(!d.filename){d.filename=$.ccio.init('tf',d.time)+'.'+d.ext;}
                 d.dlname=d.mid+'-'+d.filename;
-                d.mom=moment(d.time),
+                d.mom=$.ccio.timeObject(d.time),
                 d.hr=parseInt(d.mom.format('HH')),
                 d.per=parseInt(d.hr/24*100);
-                d.href='href="'+d.href+'?downloadName='+d.mid+'-'+d.filename+'"';
-                d.circle='<div title="at '+d.hr+' hours of '+d.mom.format('MMMM DD')+'" '+d.href+' video="launch" class="progress-circle progress-'+d.per+'"><span>'+d.hr+'</span></div>'
-                tmp+='<li class="video-item glM'+d.mid+user.auth_token+'" auth="'+user.auth_token+'" mid="'+d.mid+'" ke="'+d.ke+'" status="'+d.status+'" status="'+d.status+'" file="'+d.filename+'">'+d.circle+'<div><span title="'+d.end+'" class="livestamp"></span></div><div><div class="small"><b><%-cleanLang(lang.Start)%></b> : '+moment(d.time).format('h:mm:ss , MMMM Do YYYY')+'</div><div class="small"><b><%-cleanLang(lang.End)%></b> : '+moment(d.end).format('h:mm:ss , MMMM Do YYYY')+'</div></div><div><span class="pull-right">'+(parseInt(d.size)/1000000).toFixed(2)+'mb</span><div class="controls btn-group"><a class="btn btn-sm btn-primary" video="launch" '+d.href+'><i class="fa fa-play-circle"></i></a> <a download="'+d.dlname+'" '+d.href+' class="btn btn-sm btn-default"><i class="fa fa-download"></i></a>'
-                <% if(config.DropboxAppKey){ %> tmp+='<a video="download" host="dropbox" download="'+d.dlname+'" '+d.href+' class="btn btn-sm btn-default"><i class="fa fa-dropbox"></i></a>' <% } %>
+                d.circle='<div title="at '+d.hr+' hours of '+d.mom.format('MMMM DD')+'" '+href+' video="launch" class="progress-circle progress-'+d.per+'"><span>'+d.hr+'</span></div>'
+                tmp+='<li class="video-item glM'+d.mid+user.auth_token+'" auth="'+user.auth_token+'" mid="'+d.mid+'" ke="'+d.ke+'" status="'+d.status+'" status="'+d.status+'" file="'+d.filename+'">'+d.circle+'<div><span title="'+d.end+'" class="livestamp"></span></div><div><div class="small"><b><%-cleanLang(lang.Start)%></b> : '+$.ccio.timeObject(d.time).format('h:mm:ss , MMMM Do YYYY')+'</div><div class="small"><b><%-cleanLang(lang.End)%></b> : '+$.ccio.timeObject(d.end).format('h:mm:ss , MMMM Do YYYY')+'</div></div><div><span class="pull-right">'+(parseInt(d.size)/1000000).toFixed(2)+'mb</span><div class="controls btn-group"><a class="btn btn-sm btn-primary" video="launch" '+href+'><i class="fa fa-play-circle"></i></a> <a download="'+d.dlname+'" '+href+' class="btn btn-sm btn-default"><i class="fa fa-download"></i></a>'
+                <% if(config.DropboxAppKey){ %> tmp+='<a video="download" host="dropbox" download="'+d.dlname+'" '+href+' class="btn btn-sm btn-default"><i class="fa fa-dropbox"></i></a>' <% } %>
                 tmp+='<a title="<%-cleanLang(lang['Delete Video'])%>" video="delete" class="btn btn-sm btn-danger permission_video_delete"><i class="fa fa-trash"></i></a></div></div></li>';
                 $(z).each(function(n,v){
                     v=$(v);
@@ -1731,8 +1746,8 @@ $.ccio.globalWebsocket=function(d,user){
         break;
         case'video_delete':
 //            if($('.modal[mid="'+d.mid+'"][auth="'+user.auth_token+'"]').length>0){$('#video_viewer[mid="'+d.mid+'"]').attr('file',null).attr('ke',null).attr('mid',null).attr('auth',null).modal('hide')}
-            $('[file="'+d.filename+'"][mid="'+d.mid+'"][ke="'+d.ke+'"][auth="'+user.auth_token+'"]').remove();
-            $('[data-file="'+d.filename+'"][data-mid="'+d.mid+'"][data-ke="'+d.ke+'"][data-auth="'+user.auth_token+'"]').remove();
+            $('[file="'+d.filename+'"][mid="'+d.mid+'"][ke="'+d.ke+'"][auth="'+user.auth_token+'"]:not(.modal)').remove();
+            $('[data-file="'+d.filename+'"][data-mid="'+d.mid+'"][data-ke="'+d.ke+'"][data-auth="'+user.auth_token+'"]:not(.modal)').remove();
             if($.pwrvid.currentDataObject&&$.pwrvid.currentDataObject[d.filename]){
                 delete($.timelapse.currentVideos[$.pwrvid.currentDataObject[d.filename].position])
                 $.pwrvid.drawTimeline(false)
@@ -2140,16 +2155,25 @@ $.ccio.globalWebsocket=function(d,user){
                 v.mon=$.ccio.mon[v.ke+v.mid+$user.auth_token];
                 v.filename=$.ccio.init('tf',v.time)+'.'+v.ext;
                 if(v.status>0){
-        //                    data.push({src:v,x:v.time,y:moment(v.time).diff(moment(v.end),'minutes')/-1})
-                    data[v.filename]={filename:v.filename,time:v.time,timeFormatted:moment(v.time).format('MM/DD/YYYY HH:mm'),endTime:v.end,close:moment(v.time).diff(moment(v.end),'minutes')/-1,motion:[],row:v,position:n}
+        //                    data.push({src:v,x:v.time,y:$.ccio.timeObject(v.time).diff($.ccio.timeObject(v.end),'minutes')/-1})
+                    data[v.filename]={
+                        filename:v.filename,
+                        time:v.time,
+                        timeFormatted:$.ccio.timeObject(v.time).format('MM/DD/YYYY HH:mm'),
+                        endTime:v.end,
+                        close:$.ccio.timeObject(v.time).diff($.ccio.timeObject(v.end),'minutes')/-1,
+                        motion:[],
+                        row:v,
+                        position:n
+                    }
                 }
             });
             
             var eventsToCheck = Object.assign({},events)
             $.each(data,function(m,b){
-                startTimeFormatted = moment(b.time).format('YYYY-MM-DD HH:mm:ss');
-                startTime = moment(b.time).format();
-                endTime = moment(b.endTime).format();
+                startTimeFormatted = $.ccio.timeObject(b.time).format('YYYY-MM-DD HH:mm:ss');
+                startTime = $.ccio.timeObject(b.time).format();
+                endTime = $.ccio.timeObject(b.endTime).format();
                 var newSetOfEventsWithoutChecked = {};
                 var eventTime
                 $.each(eventsToCheck,function(n,v){
@@ -2169,7 +2193,7 @@ $.ccio.globalWebsocket=function(d,user){
                     eventTime[1] = eventTime[1].replace(/-/g,':'),eventTime = eventTime.join(' ');
                     if(eventTime === startTimeFormatted){
                         data[m].motion.push(v)
-                    }else if (moment(v.time).isBetween(startTime,moment(b.endTime).format())) {
+                    }else if ($.ccio.timeObject(v.time).isBetween(startTime,$.ccio.timeObject(b.endTime).format())) {
                         data[m].motion.push(v)
                     }else{
                         newSetOfEventsWithoutChecked[n] = v;
@@ -3921,8 +3945,8 @@ $.sM.e.find('.linkShinobi .add').click(function(){
 $.vidview={e:$('#videos_viewer'),pages:$('#videos_viewer_pages'),limit:$('#videos_viewer_limit'),dr:$('#videos_viewer_daterange'),preview:$('#videos_viewer_preview')};
 $.vidview.f=$.vidview.e.find('form')
 $.vidview.dr.daterangepicker({
-    startDate:moment().subtract(moment.duration("24:00:00")),
-    endDate:moment().add(moment.duration("24:00:00")),
+    startDate:$.ccio.timeObject().subtract(moment.duration("24:00:00")),
+    endDate:$.ccio.timeObject().add(moment.duration("24:00:00")),
     timePicker: true,
     timePickerIncrement: 30,
     locale: {
@@ -4006,8 +4030,8 @@ $.timelapse.playDirection='videoAfter'
 $.timelapse.playRate=15
 $.timelapse.placeholder=placeholder.getData(placeholder.plcimg({bgcolor:'#b57d00',text:'...'}))
 $.timelapse.dr.daterangepicker({
-    startDate:moment().subtract(moment.duration("24:00:00")),
-    endDate:moment().add(moment.duration("24:00:00")),
+    startDate:$.ccio.timeObject().subtract(moment.duration("24:00:00")),
+    endDate:$.ccio.timeObject().add(moment.duration("24:00:00")),
     timePicker: true,
     timePickerIncrement: 30,
     locale: {
@@ -4045,14 +4069,13 @@ $.timelapse.drawTimeline=function(getData){
 //                v.href=$.ccio.init('location',user)+(v.href.substring(1))
 //                v.videoURL=$.ccio.init('location',user)+(v.videoURL.substring(1))
 //            }
-            v.downloadLink=v.href+'?downloadName='+v.mid+'-'+v.filename
             v.position=n;
             $.timelapse.currentVideos[v.filename]=v;
             e.tmp+='<li class="glM'+v.mid+$user.auth_token+' list-group-item timelapse_video flex-block" timelapse="video" file="'+v.filename+'" href="'+v.href+'" mid="'+v.mid+'" ke="'+v.ke+'" auth="'+$user.auth_token+'">'
             e.tmp+='<div class="flex-block">'
             e.tmp+='<div class="flex-unit-3"><div class="frame" style="background-image:url('+$.timelapse.placeholder+')"></div></div>'
             e.tmp+='<div class="flex-unit-3"><div><span title="'+v.time+'" class="livestamp"></span></div><div>'+v.filename+'</div></div>'
-            e.tmp+='<div class="flex-unit-3 text-right"><a class="btn btn-default" download="'+v.mid+'-'+v.filename+'" href="'+v.href+'?downloadName='+v.mid+'-'+v.filename+'">&nbsp;<i class="fa fa-download"></i>&nbsp;</a> <a class="btn btn-danger" video="delete">&nbsp;<i class="fa fa-trash-o"></i>&nbsp;</a></div>'
+            e.tmp+='<div class="flex-unit-3 text-right"><a class="btn btn-default" download="'+v.mid+'-'+v.filename+'" href="'+v.href+'">&nbsp;<i class="fa fa-download"></i>&nbsp;</a> <a class="btn btn-danger" video="delete">&nbsp;<i class="fa fa-trash-o"></i>&nbsp;</a></div>'
             e.tmp+='</div>'
             e.tmp+='<div class="flex-block">'
             e.tmp+='<div class="flex-unit-3"><div class="progress"><div class="progress-bar progress-bar-primary" role="progressbar" style="width:0%"></div></div></div>'
@@ -4335,8 +4358,8 @@ $.pwrvid.seekBar=$('#pwrvid_seekBar'),
 $.pwrvid.seekBarProgress=$.pwrvid.seekBar.find('.progress-bar'),
 $.pwrvid.playRate = 1;
 $.pwrvid.dr.daterangepicker({
-    startDate:moment().subtract(moment.duration("24:00:00")),
-    endDate:moment().add(moment.duration("24:00:00")),
+    startDate:$.ccio.timeObject().subtract(moment.duration("24:00:00")),
+    endDate:$.ccio.timeObject().add(moment.duration("24:00:00")),
     timePicker: true,
     timePickerIncrement: 30,
     locale: {
@@ -4435,7 +4458,7 @@ $.pwrvid.e.on('click','[preview]',function(e){
             var eventsLabeledByTime={}
             $.each(events,function(n,v){
                 if(!v.details.confidence){v.details.confidence=0}
-                var time=moment(v.time).format('MM/DD/YYYY HH:mm:ss')
+                var time=$.ccio.timeObject(v.time).format('MM/DD/YYYY HH:mm:ss')
                 labels.push(time)
                 Dataset1.push(v.details.confidence)
                 eventsLabeledByTime[time]=v;
@@ -4483,7 +4506,7 @@ $.pwrvid.e.on('click','[preview]',function(e){
                     var video = $.pwrvid.currentDataObject[e.filename];
                     var event = video.motion[target._index];
                     var video1 = $('#video_preview video')[0];
-                    video1.currentTime=moment(event.time).diff(moment(video.row.time),'seconds')
+                    video1.currentTime=$.ccio.timeObject(event.time).diff($.ccio.timeObject(video.row.time),'seconds')
                     video1.play()
                 });
                 var colorNames = Object.keys(window.chartColors);
@@ -4514,7 +4537,7 @@ $.pwrvid.e.on('click','[preview]',function(e){
                 .off("play").on("play",$.pwrvid.vpOnPlayPause)
                 .off("timeupdate").on("timeupdate",function(){
                     var video = $.pwrvid.currentDataObject[e.filename];
-                    var videoTime=moment(video.row.time).add(parseInt(videoElement.currentTime),'seconds').format('MM/DD/YYYY HH:mm:ss');
+                    var videoTime=$.ccio.timeObject(video.row.time).add(parseInt(videoElement.currentTime),'seconds').format('MM/DD/YYYY HH:mm:ss');
                     var event = eventsLabeledByTime[videoTime];
                     if(event){
                         if(event.details.plates){
@@ -5061,7 +5084,7 @@ $('body')
                                     center: 'title',
                                     right: 'month,agendaWeek,agendaDay,listWeek'
                                 },
-                                defaultDate: moment(d.videos[0].time).format('YYYY-MM-DD'),
+                                defaultDate: $.ccio.timeObject(d.videos[0].time).format('YYYY-MM-DD'),
                                 navLinks: true,
                                 eventLimit: true,
                                 events:e.ar,
@@ -5097,21 +5120,21 @@ $('body')
                         e.tmp+='<tbody>';
                         $.each(d.videos,function(n,v){
                             if(v.status!==0){
-                                v.href=$.ccio.init('location',user)+v.href
+                                var href = $.ccio.init('location',user)+v.href
                                 v.mon=$.ccio.mon[v.ke+v.mid+user.auth_token];
                                 v.start=v.time;
                                 v.filename=$.ccio.init('tf',v.time)+'.'+v.ext;
                                 e.tmp+='<tr data-ke="'+v.ke+'" data-status="'+v.status+'" data-mid="'+v.mid+'" data-file="'+v.filename+'" data-auth="'+v.mon.user.auth_token+'">';
                                 e.tmp+='<td><div class="checkbox"><input id="'+v.ke+'_'+v.filename+'" name="'+v.filename+'" value="'+v.mid+'" type="checkbox"><label for="'+v.ke+'_'+v.filename+'"></label></div></td>';
                                 e.tmp+='<td><span class="livestamp" title="'+v.end+'"></span></td>';
-                                e.tmp+='<td title="'+v.end+'">'+moment(v.end).format('h:mm:ss A, MMMM Do YYYY')+'</td>';
-                                e.tmp+='<td title="'+v.time+'">'+moment(v.time).format('h:mm:ss A, MMMM Do YYYY')+'</td>';
+                                e.tmp+='<td title="'+v.end+'">'+$.ccio.timeObject(v.end).format('h:mm:ss A, MMMM Do YYYY')+'</td>';
+                                e.tmp+='<td title="'+v.time+'">'+$.ccio.timeObject(v.time).format('h:mm:ss A, MMMM Do YYYY')+'</td>';
                                 e.tmp+='<td>'+v.mon.name+'</td>';
                                 e.tmp+='<td>'+v.filename+'</td>';
                                 e.tmp+='<td>'+(parseInt(v.size)/1000000).toFixed(2)+'</td>';
-                                e.tmp+='<td><a class="btn btn-sm btn-default preview" href="'+v.href+'">&nbsp;<i class="fa fa-play-circle"></i>&nbsp;</a></td>';
-                                e.tmp+='<td><a class="btn btn-sm btn-primary" video="launch" href="'+v.href+'">&nbsp;<i class="fa fa-play-circle"></i>&nbsp;</a></td>';
-                                e.tmp+='<td><a class="btn btn-sm btn-success" download="'+v.mid+'-'+v.filename+'" href="'+v.href+'?downloadName='+v.mid+'-'+v.filename+'">&nbsp;<i class="fa fa-download"></i>&nbsp;</a></td>';
+                                e.tmp+='<td><a class="btn btn-sm btn-default preview" href="'+href+'">&nbsp;<i class="fa fa-play-circle"></i>&nbsp;</a></td>';
+                                e.tmp+='<td><a class="btn btn-sm btn-primary" video="launch" href="'+href+'">&nbsp;<i class="fa fa-play-circle"></i>&nbsp;</a></td>';
+                                e.tmp+='<td><a class="btn btn-sm btn-success" download="'+v.mid+'-'+v.filename+'" href="'+href+'">&nbsp;<i class="fa fa-download"></i>&nbsp;</a></td>';
                                 e.tmp+='<td class="permission_video_delete"><a class="btn btn-sm btn-danger" video="delete">&nbsp;<i class="fa fa-trash"></i>&nbsp;</a></td>';
 //                                e.tmp+='<td class="permission_video_delete"><a class="btn btn-sm btn-warning" video="fix">&nbsp;<i class="fa fa-wrench"></i>&nbsp;</a></td>';
                                 e.tmp+='</tr>';
