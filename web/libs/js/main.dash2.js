@@ -834,14 +834,14 @@ switch($user.details.lang){
         if(d.id&&!d.mid){d.mid=d.id;}
         switch(x){
             case 0://video
-                var href = $.ccio.init('location',user)
+                var href
                 if(d.href){
                     href = d.href
                 }else if(!d.href && d.hrefNoAuth){
-                    href += user.auth_token+d.hrefNoAuth
+                    href = $.ccio.init('location',user)+user.auth_token+d.hrefNoAuth
                 }
                 if(user!==$user&&href.charAt(0)==='/'){
-                    href += d.href.substring(1)
+                    href = $.ccio.init('location',user)+d.href.substring(1)
                 }
                 href = 'href="'+href+'"'
                 if(!d.filename){d.filename=$.ccio.init('tf',d.time)+'.'+d.ext;}
