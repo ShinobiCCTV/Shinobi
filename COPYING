@@ -1,4 +1,76 @@
-http://shinobi.video
-Software under licence Creative Commons 4.0 
-https://creativecommons.org/licenses/by-nc-sa/4.0/
-@author :: Moinul Alam
+            SHINOBI OPEN SOURCE SOFTWARE LICENSE AGREEMENT
+                       Version 1, 04 June 2018
+
+ Copyright (C) 2018 Shinobi Systems <https://shinobi.systems>
+ 
+ We'll try to keep it simple. Thanks for using Shinobi Software!
+  
+Defintions.
+  
+    In this End User Licence Agreement,
+    "EULA" shall mean this End User Licence Agreement
+    "Licenser" shall mean SHINOBI SYSTEMS
+    "Licensee" shall mean YOU, or the organisation (if any) on whose behalf YOU are taking the EULA.
+
+    "SOFTWARE PRODUCTS" or "SOFTWARE" or "PRODUCTS" shall mean GMASTER and any additional modules or add-ons delivered by Shinobi Systems. The term "SOFTWARE" includes, to the extent provided by SHINOBI SYSTEMS: 1) any revisions, updates and/or upgrades thereto; 2) any data, image or executable files, databases, data engines, computer software, or similar items customarily used or distributed with computer software products; 3) anything in any form whatsoever intended to be used with or in conjunction with the SOFTWARE; and 4) any associated media, documentation (including physical, electronic and on-line) and printed materials (the "Documentation").
+
+Purpose of the Agreement.
+
+    The Short : Protect the rights of this Software Product and the Licenser.
+    
+    The Long : The LICENSER grants the LICENSEE a non-exclusive, non-transferable and perpetual licence to use the SOFTWARE PRODUCTS listed therein and under the terms thereof. By accepting the terms and conditions established in this agreement, the LICENSEE does not acquire any ownership of copyright or other intellectual property rights in any part of the SOFTWARE PRODUCTS. The LICENSEE is only entitled to use the SOFTWARE PRODUCTS in accordance with the terms and conditions set forth by Shinobi Systems. By using the SOFTWARE PRODUCTS, the LICENSEE agrees to accept the terms and conditions presented.
+
+    LICENSEE must purchase the applicable subscription in any other use case unless otherwise granted. If the use case does not have a subscription applicable please contact a representative at support@shinobi.systems.
+
+Conditions for Free (Unpaid) use.
+
+    - Use in a non commercial area for non commercial purposes
+    - Educational use
+    - Testing Purposes
+    - Use in a School like a elementary school, college, or university
+
+Support Services.
+
+	The Maintenance and Support Service shall be contracted and provided as per selected plan agreement, taxes will be included in all prices for Support Services.
+    
+    Support Services will only provide support services as per the selected agreement.
+    
+    This is not the entire agreement on support services. You must also review all agreements provided with subscription plans provided.
+
+Software Product Ownership.
+
+    This software is property of Shinobi Systems. LICENSEE must keep all copyright notices unchanged.
+
+Modification of this Software Product.
+
+    LICENSEE may modify the code but LICENSEE must provide the source code if asked by law enforcement or an authorized Shinobi representative. LICENSEE must keep all copyright notices unchanged.
+
+Software Product Rebranding or "White-Labelling".
+
+    LICENSEE can remove the Shinobi branding from the front end but all copyright notices must remain unchanged.
+
+Software Product Contributions.
+
+    All contributed code becomes the property of Shinobi Systems. All contributors give permission to Shinobi and Shinobi developers to use the code however it is seen fit.
+
+Disclaimer of Warranty.
+
+    THERE IS NO WARRANTY FOR THE PROGRAM, TO THE EXTENT PERMITTED BY APPLICABLE LAW. EXCEPT WHEN OTHERWISE STATED IN WRITING THE COPYRIGHT HOLDERS AND/OR OTHER PARTIES PROVIDE THE PROGRAM "AS IS" WITHOUT WARRANTY OF ANY KIND, EITHER EXPRESSED OR IMPLIED, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.  THE ENTIRE RISK AS TO THE QUALITY AND PERFORMANCE OF THE PROGRAM IS WITH YOU.  SHOULD THE PROGRAM PROVE DEFECTIVE, YOU ASSUME THE COST OF ALL NECESSARY SERVICING, REPAIR OR CORRECTION.
+
+Limitation of Liability.
+
+    LIMITATION ON AND EXCLUSION OF REMEDIES AND DAMAGES. YOU CAN RECOVER FROM SHINOBI SYSTEMS AND ITS SUPPLIERS ONLY DIRECT DAMAGES UP TO $5.00 CAD. YOU CANNOT RECOVER ANY OTHER DAMAGES, INCLUDING CONSEQUENTIAL, LOST PROFITS, SPECIAL, INDIRECT OR INCIDENTAL DAMAGES.
+    This limitation applies to:
+
+    - anything related to the software, services, content (including code) on third-party Internet sites, or third-party programs; and
+    - claims for breach of contract, breach of warranty, guarantee or condition, strict liability, negligence, or other tort to the extent permitted by applicable law.
+    
+    It also applies even if Shinobi Systems knew or should have known about the possibility of the damages. The above limitation or exclusion may not apply to you because your country may not allow the exclusion or limitation of incidental, consequential or other damages.
+
+Changes to the Agreement.
+
+    Shinobi Systems reserves the right to change the license and set of terms at any time. Continued use is agreement to those possible changes. Changes to this license will be provided in the commit history of the repository it is located in.
+
+Legal Proceedings
+
+    All lawsuits must be filed in the city in which the current headquarters is based at the time of the filing.

@@ -1,5 +1,8 @@
+# We moved to GitLab!
+## https://gitlab.com/Shinobi-Systems/Shinobi
+
 # Shinobi Pro 
-### (Creative Commons v4.0)
+### (Shinobi Open Source Software)
 
 Shinobi is the Open Source CCTV Solution written in Node.JS. Designed with multiple account system, Streams by WebSocket, and Save to WebM. Shinobi can record IP Cameras and Local Cameras.
 
@@ -100,7 +103,7 @@ http://shinobi.video/why
 2. Download and run the installer.
 
 ```
-bash <(curl -s https://raw.githubusercontent.com/ShinobiCCTV/Shinobi-Installer/master/shinobi-install.sh)
+bash <(curl -s https://gitlab.com/Shinobi-Systems/Shinobi-Installer/raw/master/shinobi-install.sh)
 ```
 
 #### Elaborate Installs
