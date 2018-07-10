@@ -807,7 +807,7 @@ s.filterEvents=function(x,d){
 
                 })
                 d.mailOptions = {
-                    from: '"ShinobiCCTV" <no-reply@shinobi.video>', // sender address
+                    from: config.fromEmail || '"ShinobiCCTV" <no-reply@shinobi.video>', // sender address
                     to: d.mail, // list of receivers
                     subject: lang['Filter Matches']+' : '+d.name, // Subject line
                     html: lang.FilterMatchesText1+' '+d.videos.length+' '+lang.FilterMatchesText2,
@@ -2445,7 +2445,7 @@ s.camera=function(x,e,cn,tx){
                         s.group[e.ke].mon[e.id].detector_notrigger_timeout_function=function(){
                             if(config.mail&&e.details.detector_notrigger_mail=='1'){
                                 e.mailOptions = {
-                                    from: '"ShinobiCCTV" <no-reply@shinobi.video>', // sender address
+                                    from: config.fromEmail || '"ShinobiCCTV" <no-reply@shinobi.video>', // sender address
                                     to: r.mail, // list of receivers
                                     subject: lang.NoMotionEmailText1+' '+e.name+' ('+e.id+')', // Subject line
                                     html: '<i>'+lang.NoMotionEmailText2+' '+e.details.detector_notrigger_timeout+' '+lang.minutes+'.</i>',
@@ -3147,7 +3147,7 @@ s.camera=function(x,e,cn,tx){
                         d.frame_filename='Motion_'+(d.mon.name.replace(/[^\w\s]/gi, ''))+'_'+d.id+'_'+d.ke+'_'+s.formattedTime()+'.jpg';
                         fs.readFile(s.dir.streams+'/'+d.ke+'/'+d.id+'/s.jpg',function(err, frame){
                             d.mailOptions = {
-                                from: '"ShinobiCCTV" <no-reply@shinobi.video>', // sender address
+                                from: config.fromEmail || '"ShinobiCCTV" <no-reply@shinobi.video>', // sender address
                                 to: r.mail, // list of receivers
                                 subject: lang.Event+' - '+d.frame_filename, // Subject line
                                 html: '<i>'+lang.EventText1+' '+s.timeObject(new Date).format()+'.</i>',
@@ -4815,7 +4815,7 @@ app.post(['/','/:screen'],function (req,res){
                                 if(!s.factorAuth[r.ke][r.uid]){
                                     s.factorAuth[r.ke][r.uid]={key:s.nid(),user:r}
                                     r.mailOptions = {
-                                        from: '"ShinobiCCTV" <no-reply@shinobi.video>',
+                                        from: config.fromEmail || '"ShinobiCCTV" <no-reply@shinobi.video>',
                                         to: r.mail,
                                         subject: r.lang['2-Factor Authentication'],
                                         html: r.lang['Enter this code to proceed']+' <b>'+s.factorAuth[r.ke][r.uid].key+'</b>. '+r.lang.FactorAuthText1,
